@@ -1,0 +1,72 @@
+//
+//  cpacketstream.h
+//  xlxd
+//
+//  Created by Jean-Luc Deltombe (LX3JL) on 06/11/2015.
+//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//
+// ----------------------------------------------------------------------------
+//    This file is part of xlxd.
+//
+//    xlxd is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    xlxd is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+// ----------------------------------------------------------------------------
+
+#ifndef cpacketstream_h
+#define cpacketstream_h
+
+#include "cpacketqueue.h"
+#include "ctimepoint.h"
+#include "cdvheaderpacket.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+#define STREAM_TIMEOUT      (0.200)
+
+////////////////////////////////////////////////////////////////////////////////////////
+// class
+
+class CPacketStream : public CPacketQueue
+{
+public:
+    // constructor
+    CPacketStream();
+    
+    // destructor
+    virtual ~CPacketStream() {};
+
+    // open / close
+    bool Open(const CDvHeaderPacket &, CClient *);
+    void Close(void);
+    
+    // push & pop
+    void Push(CPacket *);
+    void Tickle(void)                               { m_LastPacketTime.Now(); }
+    
+    // get
+    CClient         *GetOwnerClient(void)           { return m_OwnerClient; }
+    bool            IsExpired(void) const           { return (m_LastPacketTime.DurationSinceNow() > STREAM_TIMEOUT); }
+    uint16          GetStreamId(void) const         { return m_uiStreamId; }
+    const CCallsign &GetUserCallsign(void) const    { return m_DvHeader.GetMyCallsign(); }
+
+protected:
+    // data
+    bool                m_bOpen;
+    uint16              m_uiStreamId;
+    CClient             *m_OwnerClient;
+    CTimePoint          m_LastPacketTime;
+    CDvHeaderPacket     m_DvHeader;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+#endif /* cpacketstream_h */

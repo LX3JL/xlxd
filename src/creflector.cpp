@@ -25,6 +25,7 @@
 #include "main.h"
 #include <string.h>
 #include "creflector.h"
+#include "cgatekeeper.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -90,6 +91,9 @@ bool CReflector::Start(void)
     // reset stop flag
     m_bStopThreads = false;
     
+    // init gate keeper
+    ok &= g_GateKeeper.Init();
+    
     // create protocols
     ok &= m_Protocols.Init();
     
@@ -138,6 +142,12 @@ void CReflector::Stop(void)
             m_RouterThreads[i] = NULL;
         }
     }
+    
+    // close protocols
+    m_Protocols.Close();
+    
+    // close gatekeeper
+    g_GateKeeper.Close();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -322,7 +332,7 @@ void CReflector::XmlReportThread(CReflector *This)
     {
         // report to xml file
         std::ofstream xmlFile;
-        xmlFile.open("/var/log/xlxd.xml", std::ios::out | std::ios::trunc);
+        xmlFile.open(XML_PATH, std::ios::out | std::ios::trunc);
         if ( xmlFile.is_open() )
         {
             // write xml file

@@ -42,7 +42,7 @@ CReflector  g_Reflector;
 int main(int argc, const char * argv[])
 {
 #ifdef RUN_AS_DAEMON
-
+    
     // redirect cout, cerr and clog to syslog
     syslog::redirect cout_redir(std::cout);
     syslog::redirect cerr_redir(std::cerr);
@@ -83,7 +83,7 @@ int main(int argc, const char * argv[])
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-
+    
 #endif
 
     // check arguments

@@ -203,9 +203,25 @@ void CCallsign::GetSuffix(uint8 *buffer) const
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // compare
+
 bool CCallsign::HasSameCallsign(const CCallsign &Callsign) const
 {
     return (::memcmp(m_Callsign, Callsign.m_Callsign, sizeof(m_Callsign)) == 0);
+}
+
+bool CCallsign::HasSameCallsignWithWidlcard(const CCallsign &callsign) const
+{
+    bool same = true;
+    bool done = false;
+    
+    for ( int i = 0; (i < sizeof(m_Callsign)) && same && !done; i++ )
+    {
+        if ( !(done = ((m_Callsign[i] == '*') || (callsign[i] == '*'))) )
+        {
+            same &= (m_Callsign[i] == callsign[i]);
+        }
+    }
+    return same;
 }
 
 bool CCallsign::HasSameModule(const CCallsign &Callsign) const

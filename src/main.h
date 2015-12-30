@@ -47,7 +47,7 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR               1
-#define VERSION_MINOR               0
+#define VERSION_MINOR               1
 #define VERSION_REVISION            0
 
 // global ------------------------------------------------------
@@ -81,7 +81,7 @@
 // DCS
 #define DCS_PORT                    30051                           // UDP port
 #define DCS_KEEPALIVE_PERIOD        1                               // in seconds
-#define DCS_KEEPALIVE_TIMEOUT       (DCS_KEEPALIVE_PERIOD*10)       // in seconds
+#define DCS_KEEPALIVE_TIMEOUT       (DCS_KEEPALIVE_PERIOD*30)       // in seconds
 
 // xml & json reporting -----------------------------------------
 
@@ -89,6 +89,12 @@
 #define XML_UPDATE_PERIOD           10                              // in seconds
 #define JSON_UPDATE_PERIOD          10                              // in seconds
 #define JSON_PORT                   10001
+
+// system paths -------------------------------------------------
+
+#define XML_PATH                    "/var/log/xlxd.xml"
+#define WHITELIST_PATH              "/xlxd/xlxd.whitelist"
+#define BLACKLIST_PATH              "/xlxd/xlxd.blacklist"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

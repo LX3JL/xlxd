@@ -1,8 +1,8 @@
 //
-//  cgatekeeper.h
+//  ccallsignlist.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 07/11/2015.
+//  Created by Jean-Luc Deltombe (LX3JL) on 30/12/2015.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -19,54 +19,51 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cgatekeeper_h
-#define cgatekeeper_h
+
+#ifndef ccallsignlist_h
+#define ccallsignlist_h
 
 #include "main.h"
 #include "ccallsign.h"
-#include "cip.h"
-#include "ccallsignlist.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CGateKeeper
+class CCallsignList : public std::vector<CCallsign>
 {
 public:
     // constructor
-    CGateKeeper();
+    CCallsignList();
     
     // destructor
-    virtual ~CGateKeeper();
+    virtual ~CCallsignList();
+
+    // locks
+    void Lock(void)                        { m_Mutex.lock(); }
+    void Unlock(void)                      { m_Mutex.unlock(); }
+
+    // file io
+    bool LoadFromFile(const char *);
+    bool ReloadFromFile(void);
+    bool NeedReload(void);
     
-    // init & clode
-    bool Init(void);
-    void Close(void);
-    
-    // operation
-    bool MayLink(const CCallsign &, const CIp &, int) const;
-    bool MayTransmit(const CCallsign &, const CIp &, int) const;
+    // compare
+    bool IsListed(const CCallsign &) const;
     
 protected:
-    // thread
-    static void Thread(CGateKeeper *);
-
-    // operation helpers
-    bool IsListedOk(const CCallsign &, const CIp &) const;
+    //
+    bool GetLastModTime(time_t *);
     
 protected:
     // data
-    CCallsignList   m_WhiteList;
-    CCallsignList   m_BlackList;
-    
-    // thread
-    bool            m_bStopThread;
-    std::thread     *m_pThread;
+    std::mutex      m_Mutex;
+    const char *    m_Filename;
+    time_t          m_LastModTime;
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cgatekeeper_h */
+#endif /* ccallsignlist_h */

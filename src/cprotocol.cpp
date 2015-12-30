@@ -97,7 +97,6 @@ void CProtocol::Close(void)
 
 void CProtocol::Thread(CProtocol *This)
 {
- 
     while ( !This->m_bStopThread )
     {
         This->Task();

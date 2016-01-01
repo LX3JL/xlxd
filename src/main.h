@@ -19,7 +19,7 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
 #ifndef main_h
@@ -48,7 +48,7 @@
 
 #define VERSION_MAJOR               1
 #define VERSION_MINOR               1
-#define VERSION_REVISION            0
+#define VERSION_REVISION            1
 
 // global ------------------------------------------------------
 

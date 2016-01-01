@@ -56,30 +56,36 @@ CCallsignList::~CCallsignList()
 bool CCallsignList::LoadFromFile(const char *filename)
 {
     bool ok = false;
-    char sz[CALLSIGN_LEN+1];
-    
+    char sz[32];
+
     // and load
     std::ifstream file (filename);
     if ( file.is_open() )
     {
         Lock();
-        
+
         // empty list
         clear();
         // fill with file content
         while ( file.getline(sz, sizeof(sz)).good()  )
         {
-            push_back(CCallsign(sz));
+            // remove leading & trailing spaces
+            char *szt = TrimWhiteSpaces(sz);
+            // and load
+            if ( ::strlen(szt) > 0 )
+            {
+                push_back(CCallsign(szt));
+            }
         }
         // close file
         file.close();
-        
+
         // keep file path
         m_Filename = filename;
-        
+
         // update time
         GetLastModTime(&m_LastModTime);
-        
+
         // and done
         Unlock();
         ok = true;
@@ -96,7 +102,7 @@ bool CCallsignList::LoadFromFile(const char *filename)
 bool CCallsignList::ReloadFromFile(void)
 {
     bool ok = false;
-    
+
     if ( m_Filename !=  NULL )
     {
         ok = LoadFromFile(m_Filename);
@@ -107,7 +113,7 @@ bool CCallsignList::ReloadFromFile(void)
 bool CCallsignList::NeedReload(void)
 {
     bool needReload = false;
-    
+
     time_t time;
     if ( GetLastModTime(&time) )
     {
@@ -116,38 +122,57 @@ bool CCallsignList::NeedReload(void)
     return needReload;
 }
 
-bool CCallsignList::GetLastModTime(time_t *time)
-{
-    bool ok = false;
- 
-    if ( m_Filename != NULL )
-    {
-        int file=0;
-        if( (file = ::open(m_Filename, O_RDONLY)) != -1 )
-        {
-            struct stat fileStat;
-            if( ::fstat(file, &fileStat) != -1 )
-            {
-                *time = fileStat.st_mtime;
-                ok = true;
-            }
-        }
-
-    }
-    return ok;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // compare
 
 bool CCallsignList::IsListed(const CCallsign &callsign) const
 {
     bool listed = false;
-    
+
     for ( int i =  0; (i < size()) && !listed; i++ )
     {
         listed = (data()[i]).HasSameCallsignWithWidlcard(callsign);
     }
-    
+
     return listed;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// helpers
+
+char *CCallsignList::TrimWhiteSpaces(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(*str == ' ') str++;
+
+  // All spaces?
+  if(*str == 0)
+    return str;
+
+  // Trim trailing space
+  end = str + ::strlen(str) - 1;
+  while((end > str) && (*end == ' ')) end--;
+
+  // Write new null terminator
+  *(end+1) = 0;
+
+  return str;
+}
+
+bool CCallsignList::GetLastModTime(time_t *time)
+{
+    bool ok = false;
+
+    if ( m_Filename != NULL )
+    {
+        struct stat fileStat;
+        if( ::stat(m_Filename, &fileStat) != -1 )
+        {
+            *time = fileStat.st_mtime;
+            ok = true;
+        }
+    }
+    return ok;
 }

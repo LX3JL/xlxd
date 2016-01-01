@@ -37,7 +37,7 @@ class CCallsignList : public std::vector<CCallsign>
 public:
     // constructor
     CCallsignList();
-    
+
     // destructor
     virtual ~CCallsignList();
 
@@ -49,14 +49,15 @@ public:
     bool LoadFromFile(const char *);
     bool ReloadFromFile(void);
     bool NeedReload(void);
-    
+
     // compare
     bool IsListed(const CCallsign &) const;
-    
+
 protected:
     //
     bool GetLastModTime(time_t *);
-    
+    char *TrimWhiteSpaces(char *);
+
 protected:
     // data
     std::mutex      m_Mutex;

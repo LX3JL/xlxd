@@ -1,0 +1,96 @@
+body {
+   margin               : 0px;
+   padding              : 0px;
+   background-color     : #D3D3D3;
+   font-family          : calibri, verdana, arial, comic sans;
+}
+
+h1 {
+   font-size            : 25pt;
+}
+
+#top {
+   height               : 105px;
+   background-color     : #FFFFFF;
+   width                : 100%;
+   background-image     : url('../img/dvc.jpg');
+   background-repeat    : no-repeat;
+   background-position  : 99.5%;
+   position             : absolute;
+   left                 : 0px;
+   top                  : 0px;  
+}
+
+#menu {
+   margin-top           : 5px;
+   height               : 34px;
+   float                : left;
+}
+
+#menubar {
+   height               : 40px;
+   width                : 100%;
+   background-color     : #FEC456;
+   position             : absolute;   
+   left                 : 0px;
+   top                  : 105px;   
+}
+
+#info {
+   float                : right;
+   font-size            : 11pt;   
+}
+
+#content {
+
+   width                : 100%;
+   position             : absolute;
+   left                 : 0px;
+   top                  : 150px;   
+}
+
+.menulink {
+   font-size            : 14pt;
+   text-decoration      : none;
+   border               : 1px #000000 solid;
+   padding-left         : 10px;
+   padding-top          : 3px;
+   padding-bottom       : 3px;
+   padding-right        : 10px;
+   margin-left          : 10px;
+   background-color     : #FFFFC6;
+   color                : #000000;
+} 
+
+.pl {
+   font-size            : 12pt;
+   text-decoration      : none;
+   color                : #000000;
+}
+  
+.listingtable {
+   margin-top           : 10px;
+   border               : 1px #C1DAD7 solid;
+   font-size            : 12pt;   
+}
+  
+.listingtable th {
+   height               : 35px;
+   text-align           : center;
+   background-image: -webkit-gradient(
+	linear,
+	left top,
+	left bottom,
+	color-stop(0, rgb(201, 231, 233)),
+	color-stop(0.8, rgb(220, 237, 244))
+);
+background-image: -o-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+background-image: -moz-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+background-image: -webkit-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+background-image: -ms-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+}
+
+.listingtable td {
+   padding-left         : 5px;
+}      

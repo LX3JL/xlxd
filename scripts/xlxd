@@ -16,6 +16,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 . /lib/lsb/init-functions
 
+# change below settings according to your system
 NAME="xlxd"
 DAEMON="/xlxd/xlxd"
 ARGUMENTS="XLX270 158.64.26.132"
@@ -61,7 +62,7 @@ case "$1" in
 		echo $DAEMON $NAME :
                 if [ $PIDID -gt 0 ] 2>/dev/null;
             then
-                echo running 
+                echo running
             else
                 echo not running
             fi

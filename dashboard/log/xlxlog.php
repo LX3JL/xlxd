@@ -2,7 +2,7 @@
 // ----------------------------------------------------------------------------
 //  xlxd
 //
-//  Created by Luc Engelmann (LX1IQ) on 31/12.2015
+//  Created by Luc Engelmann (LX1IQ) on 31/12/2015
 //  Copyright © 2015 Luc Engelmann (LX1IQ). All rights reserved.
 //
 // ----------------------------------------------------------------------------

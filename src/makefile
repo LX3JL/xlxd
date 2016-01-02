@@ -6,8 +6,8 @@ OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=xlxd
 
 all: $(SOURCES) $(EXECUTABLE)
-    
-$(EXECUTABLE): $(OBJECTS) 
+
+$(EXECUTABLE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 .cpp.o:
@@ -15,3 +15,9 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean:
 	rm *.o
+
+install:
+	mkdir -p /xlxd
+	cp ./xlxd /xlxd/
+	cp ../config/xlxd.blacklist /xlxd/
+	cp ../config/xlxd.whitelist /xlxd/

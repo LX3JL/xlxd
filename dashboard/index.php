@@ -1,6 +1,31 @@
 <?php
+/*
+----------------------------------------------------------------------------
+	xlxd
+
+	Created by Luc Engelmann (LX1IQ) on 31/12/2015
+	Copyright © 2015 Luc Engelmann (LX1IQ). All rights reserved.
+
+----------------------------------------------------------------------------
+	This file is part of xlxd.
+
+	xlxd is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	xlxd is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+----------------------------------------------------------------------------
+*/
 
 $FILE = "/var/log/xlxd.xml";
+$PID  = "/var/log/xlxd.pid";
 
 require_once("./pgs/functions.php");
 if (!class_exists('ParseXML'))   require_once("./pgs/class.parsexml.php");
@@ -81,7 +106,11 @@ for ($i=0;$i<count($tmpStations);$i++) {
             
           </table>
       </div>
-      <div id="info"><?php echo str_replace ("up" , "&nbsp;&nbsp;Server uptime" , GetSystemUptime()); ?>&nbsp;<br />XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.0.5&nbsp;&nbsp;</div>
+      <div id="info">Service uptime: <?php 
+            if (file_exists($PID) && is_readable($PID)) {
+               echo FormatSeconds(time()-filectime($PID));
+            }
+         ?>&nbsp;<br />XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.0.6&nbsp;&nbsp;</div>
    </div>
    <div id="content" align="center">
    

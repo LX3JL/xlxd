@@ -1,34 +1,36 @@
 <?php
-// ----------------------------------------------------------------------------
-//  xlxd
-//
-//  Created by Luc Engelmann (LX1IQ) on 31/12/2015
-//  Copyright © 2015 Luc Engelmann (LX1IQ). All rights reserved.
-//
-// ----------------------------------------------------------------------------
-//    This file is part of xlxd.
-//
-//    xlxd is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    xlxd is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-// ----------------------------------------------------------------------------
+/*
+----------------------------------------------------------------------------
+	xlxd
+
+	Created by Luc Engelmann (LX1IQ) on 31/12/2015
+	Copyright © 2015 Luc Engelmann (LX1IQ). All rights reserved.
+
+----------------------------------------------------------------------------
+	This file is part of xlxd.
+
+	xlxd is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	xlxd is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+----------------------------------------------------------------------------
+*/
 ?>
 <table border="0">
    <tr>
       <td  valign="top">
-
+         
 
 <table class="listingtable">
- <tr>
+ <tr>   
    <th>#</th>
    <th>Flag</th>
    <th>Callsign</th>
@@ -47,11 +49,11 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
   <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center" width="35">';
    echo ($i==0 ? '<img src="./img/radio-waves-hi.png" />' : $i+1);
-
-
+   
+   
    echo '</td>
    <td align="center" width="60">';
-
+   
    if (file_exists("./img/flags/".$Reflector->GetFlag($Reflector->Stations[$i]->GetCallSign()).".png")) {
       echo '<img src="./img/flags/'.$Reflector->GetFlag($Reflector->Stations[$i]->GetCallSign()).'.png" height="15" />';
    }
@@ -62,22 +64,22 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    <td width="90">'.$Reflector->Stations[$i]->GetVia().'</td>
    <td width="150">'.date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()).'</td>
  </tr>';
-   if ($i == 41) { $i = $Reflector->StationCount()+1; }
+   if ($i == 39) { $i = $Reflector->StationCount()+1; }
 }
 
-?>
-
+?> 
+ 
 </table>
 
 
 </td>
 <td style="padding-left:50px;" align="center" valign="top">
-
-
+   
+   
 
 
 <table class="listingtable">
-<?php
+<?php 
 echo '
 <tr>';
 
@@ -92,11 +94,11 @@ echo '
 <tr bgcolor="#FFFFFF" style="padding:0px;">';
 
 for ($i=0;$i<count($Modules);$i++) {
-
+    
     $Users = $Reflector->GetCallSignsInModules($Modules[$i]);
     echo '
    <td valign="top" style="border:0px;padding:0px;">
-
+   
    <table width="100" border="0" style="padding:0px;margin:0px;">';
    $odd = "";
    for ($j=0;$j<count($Users);$j++) {
@@ -107,7 +109,7 @@ for ($i=0;$i<count($Modules);$i++) {
    }
    echo '
    </table>
-
+   
    </td>';
 }
 
@@ -115,9 +117,9 @@ echo '
 </tr>';
 
 ?>
-</table>
+</table>    
 
 
 </td>
 </tr>
-</table>
+</table>     

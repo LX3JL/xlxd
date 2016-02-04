@@ -1,0 +1,11 @@
+xlx db v2.0.6
+
+- "index.php" now reads out the XLX service uptime and not the server uptime
+- "country.csv" prefixes update
+- "class.reflector.php" flags showing improvements
+- "users.php" limits user show up to 40 users
+- "repeaters.php" limits nodes show up to 40 nodes
+
+xlx db v2.0.5
+
+- "class.reflector.php" extra callsign checking

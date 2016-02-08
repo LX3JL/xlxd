@@ -151,9 +151,11 @@ void CDplusProtocol::Task(void)
         {
             //std::cout << "DPlus keepalive packet from " << Ip << std::endl;
             
-            // find client & keep it alive
-            CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DPLUS);
-            if ( client != NULL )
+            // find all clients with that callsign & ip and keep them alive
+            CClients *clients = g_Reflector.GetClients();
+            int index = -1;
+            CClient *client = NULL;
+            while ( (client = clients->FindNextClient(Ip, PROTOCOL_DPLUS, &index)) != NULL )
             {
                 client->Alive();
             }

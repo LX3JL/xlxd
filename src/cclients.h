@@ -63,10 +63,9 @@ public:
     
     // iterate on clients
     CClient *FindNextClient(int, int*);
+    CClient *FindNextClient(const CIp &, int, int *);
+    CClient *FindNextClient(const CCallsign &, const CIp &, int, int *);
 
-    // reporting
-    void WriteXml(std::ofstream &);
-    
 protected:
     // data
     std::mutex               m_Mutex;

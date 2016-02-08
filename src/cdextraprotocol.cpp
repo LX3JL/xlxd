@@ -139,15 +139,15 @@ void CDextraProtocol::Task(void)
         }
         else if ( IsValidKeepAlivePacket(Buffer, &Callsign) )
         {
-            //std::cout << "DExtra keepalive packet from " << Callsign << " at " << Ip << std::endl;
+           //std::cout << "DExtra keepalive packet from " << Callsign << " at " << Ip << std::endl;
             
-            // find client & keep it alive
-            CClient *GetClient(const CCallsign &, const CIp &, char, int);
-
-            CClient *client = g_Reflector.GetClients()->FindClient(Callsign, Ip, PROTOCOL_DEXTRA);
-            if ( client != NULL )
+            // find all clients with that callsign & ip and keep them alive
+            CClients *clients = g_Reflector.GetClients();
+            int index = -1;
+            CClient *client = NULL;
+            while ( (client = clients->FindNextClient(Callsign, Ip, PROTOCOL_DEXTRA, &index)) != NULL )
             {
-                client->Alive();
+               client->Alive();
             }
             g_Reflector.ReleaseClients();
         }

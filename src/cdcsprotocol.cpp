@@ -158,11 +158,11 @@ void CDcsProtocol::Task(void)
         {
             //std::cout << "DCS keepalive packet from " << Callsign << " at " << Ip << std::endl;
             
-            // find client & keep it alive
-            CClient *GetClient(const CCallsign &, const CIp &, char, int);
-            
-            CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DCS);
-            if ( client != NULL )
+            // find all clients with that callsign & ip and keep them alive
+            CClients *clients = g_Reflector.GetClients();
+            int index = -1;
+            CClient *client = NULL;
+            while ( (client = clients->FindNextClient(Callsign, Ip, PROTOCOL_DCS, &index)) != NULL )
             {
                 client->Alive();
             }

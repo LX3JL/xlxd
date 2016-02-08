@@ -235,17 +235,42 @@ CClient *CClients::FindNextClient(int Protocol, int *index)
     return client;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-// reporting
-
-void CClients::WriteXml(std::ofstream &xmlFile)
+CClient *CClients::FindNextClient(const CIp &Ip, int Protocol, int *index)
 {
-    xmlFile << "<CLIENTS>" << std::endl;
-    for ( int i = 0; i < m_Clients.size(); i++ )
+    CClient *client = NULL;
+    
+    // find next client
+    bool found = false;
+    for ( int i = *index+1; (i < m_Clients.size()) && !found; i++ )
     {
-        m_Clients[i]->WriteXml(xmlFile);
+        if ( (m_Clients[i]->GetProtocol() == Protocol) &&
+             (m_Clients[i]->GetIp() == Ip) )
+        {
+            found = true;
+            client = m_Clients[i];
+            *index = i;
+        }
     }
-    xmlFile << "</CLIENTS>" << std::endl;
+    return client;
 }
 
+CClient *CClients::FindNextClient(const CCallsign &Callsign, const CIp &Ip, int Protocol, int *index)
+{
+    CClient *client = NULL;
+    
+    // find next client
+    bool found = false;
+    for ( int i = *index+1; (i < m_Clients.size()) && !found; i++ )
+    {
+        if ( (m_Clients[i]->GetProtocol() == Protocol) &&
+            (m_Clients[i]->GetIp() == Ip) &&
+            m_Clients[i]->GetCallsign().HasSameCallsign(Callsign) )
+        {
+            found = true;
+            client = m_Clients[i];
+            *index = i;
+        }
+    }
+    return client;
+}
 

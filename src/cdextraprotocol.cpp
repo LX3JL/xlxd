@@ -401,9 +401,27 @@ void CDextraProtocol::EncodeKeepAlivePacket(CBuffer *Buffer)
 
 void CDextraProtocol::EncodeConnectAckPacket(CBuffer *Buffer)
 {
-    uint8 tag[] = { 'A','C','K',0 };
-    Buffer->resize(Buffer->size()-1);
-    Buffer->Append(tag, sizeof(tag));
+    uint8 xrf[] = { 'X','R','F' };
+    
+   // is it for a XRF or repeater
+    if ( Buffer->Compare(xrf, sizeof(xrf)) == 0 )
+    {
+        // XRFxxx
+        uint8 rm = (Buffer->data())[8];
+        uint8 lm = (Buffer->data())[9];
+        Buffer->clear();
+        Buffer->Set((uint8 *)(const char *)GetReflectorCallsign(), CALLSIGN_LEN);
+        Buffer->Append(lm);
+        Buffer->Append(rm);
+        Buffer->Append((uint8)0);
+    }
+    else
+    {
+        // regular repeater
+        uint8 tag[] = { 'A','C','K',0 };
+        Buffer->resize(Buffer->size()-1);
+        Buffer->Append(tag, sizeof(tag));
+    }
 }
 
 void CDextraProtocol::EncodeConnectNackPacket(CBuffer *Buffer)

@@ -92,7 +92,7 @@ void CClient::WriteXml(std::ofstream &xmlFile)
     char mbstr[100];
     if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&m_ConnectTime))) 
     {
-    	xmlFile << "\t<ConnectTime>" << mbstr << "</ConnectTime>" << std::endl;
+        xmlFile << "\t<ConnectTime>" << mbstr << "</ConnectTime>" << std::endl;
     }
     if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&m_LastHeardTime)))
     {

@@ -53,6 +53,12 @@ public:
     void Task(void);
     
 protected:
+    // queue helper
+    void HandleQueue(void);
+    
+    // keepalive helpers
+    void HandleKeepalives(void);
+    
     // stream helpers
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &);
     
@@ -70,9 +76,6 @@ protected:
     void EncodeDisconnectPacket(CBuffer *, CClient *);
     void EncodeDvPacket(const CDvHeaderPacket &, const CDvFramePacket &, uint32, CBuffer *) const;
     void EncodeDvLastPacket(const CDvHeaderPacket &, const CDvFramePacket &, uint32, CBuffer *) const;
-    
-    // queue helper
-    void HandleQueue(void);
     
 protected:
     // for keep alive

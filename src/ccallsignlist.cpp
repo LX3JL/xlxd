@@ -38,25 +38,12 @@ CCallsignList::CCallsignList()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// destructor
-
-CCallsignList::~CCallsignList()
-{
-    if ( m_Filename != NULL )
-    {
-        delete m_Filename;
-    }
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////
 // file io
 
 bool CCallsignList::LoadFromFile(const char *filename)
 {
     bool ok = false;
-    char sz[32];
+    char sz[256];
 
     // and load
     std::ifstream file (filename);
@@ -71,10 +58,10 @@ bool CCallsignList::LoadFromFile(const char *filename)
         {
             // remove leading & trailing spaces
             char *szt = TrimWhiteSpaces(sz);
-            // and load
-            if ( ::strlen(szt) > 0 )
+            // and load if not comment
+            if ( (::strlen(szt) > 0) && (szt[0] != '#') )
             {
-                push_back(CCallsign(szt));
+                push_back(CCallsignListItem(CCallsign(szt), CIp(), NULL));
             }
         }
         // close file
@@ -125,7 +112,7 @@ bool CCallsignList::NeedReload(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // compare
 
-bool CCallsignList::IsListed(const CCallsign &callsign) const
+bool CCallsignList::IsCallsignListed(const CCallsign &callsign) const
 {
     bool listed = false;
 
@@ -137,6 +124,55 @@ bool CCallsignList::IsListed(const CCallsign &callsign) const
     return listed;
 }
 
+bool CCallsignList::IsCallsignListed(const CCallsign &callsign, char module) const
+{
+    bool listed = false;
+    
+    for ( int i =  0; (i < size()) && !listed; i++ )
+    {
+        const CCallsignListItem *item = &(data()[i]);
+        listed = (item->HasSameCallsign(callsign) && item->HasModuleListed(module));
+
+    }
+    
+    return listed;
+}
+
+bool CCallsignList::IsCallsignListed(const CCallsign &callsign, char *modules) const
+{
+    bool listed = false;
+    
+    for ( int i =  0; (i < size()) && !listed; i++ )
+    {
+        const CCallsignListItem *item = &(data()[i]);
+        listed = (item->HasSameCallsign(callsign) && item->CheckListedModules(modules));
+        
+    }
+    
+    return listed;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// find
+
+CCallsignListItem *CCallsignList::FindListItem(const CCallsign &Callsign)
+{
+    CCallsignListItem *item = NULL;
+    
+    // find client
+    for ( int i = 0; (i < size()) && (item == NULL); i++ )
+    {
+        if ( (data()[i]).GetCallsign().HasSameCallsign(Callsign) )
+        {
+            item = &(data()[i]);
+        }
+    }
+    
+    // done
+    return item;
+    
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // helpers
 
@@ -144,16 +180,16 @@ char *CCallsignList::TrimWhiteSpaces(char *str)
 {
   char *end;
 
-  // Trim leading space
-  while(*str == ' ') str++;
+  // Trim leading space & tabs
+  while((*str == ' ') || (*str == '\t')) str++;
 
   // All spaces?
   if(*str == 0)
     return str;
 
-  // Trim trailing space
+  // Trim trailing space, tab or lf
   end = str + ::strlen(str) - 1;
-  while((end > str) && (*end == ' ')) end--;
+  while((end > str) && ((*end == ' ') || (*end == '\t') || (*end == '\r'))) end--;
 
   // Write new null terminator
   *(end+1) = 0;

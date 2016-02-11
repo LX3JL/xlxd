@@ -27,32 +27,37 @@
 #define ccallsignlist_h
 
 #include "main.h"
-#include "ccallsign.h"
+#include "ccallsignlistitem.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CCallsignList : public std::vector<CCallsign>
+class CCallsignList : public std::vector<CCallsignListItem>
 {
 public:
     // constructor
     CCallsignList();
 
     // destructor
-    virtual ~CCallsignList();
+    virtual ~CCallsignList() {}
 
     // locks
     void Lock(void)                        { m_Mutex.lock(); }
     void Unlock(void)                      { m_Mutex.unlock(); }
 
     // file io
-    bool LoadFromFile(const char *);
+    virtual bool LoadFromFile(const char *);
     bool ReloadFromFile(void);
     bool NeedReload(void);
 
     // compare
-    bool IsListed(const CCallsign &) const;
+    bool IsCallsignListed(const CCallsign &) const;
+    bool IsCallsignListed(const CCallsign &, char) const;
+    bool IsCallsignListed(const CCallsign &, char*) const;
 
+    // find
+    CCallsignListItem *FindListItem(const CCallsign &);
+    
 protected:
     //
     bool GetLastModTime(time_t *);

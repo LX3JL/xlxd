@@ -59,8 +59,13 @@ void CUsers::AddUser(const CUser &user)
 // operation
 
 void CUsers::Hearing(const CCallsign &my, const CCallsign &rpt1)
-{   
-    CUser heard(my, rpt1);
+{
+    Hearing(my, rpt1, g_Reflector.GetCallsign());
+}
+
+void CUsers::Hearing(const CCallsign &my, const CCallsign &rpt1, const CCallsign &xlx)
+{
+    CUser heard(my, rpt1, xlx);
     
     // first check if we have this user listed yet
     bool found = false;

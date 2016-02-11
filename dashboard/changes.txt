@@ -1,3 +1,13 @@
+xlx db v2.1.0
+
+- "index.php" 
+  button "Peers" added
+  button "Repeaters/Nodes" shows now the number of connected devices
+  moved XLX name, version and service uptime to improve view on mobile devices
+- "class.peer.php" added
+- "peers.php" added 
+- "repeaters.php" limits nodes show up to 100 nodes
+
 xlx db v2.0.6
 
 - "index.php" now reads out the XLX service uptime and not the server uptime

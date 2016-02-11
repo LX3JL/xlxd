@@ -80,6 +80,14 @@ protected:
     // queue helper
     virtual void HandleQueue(void);
     
+    // keepalive helpers
+    virtual void HandleKeepalives(void) {}
+
+    // syntax helper
+    bool IsNumber(char) const;
+    bool IsLetter(char) const;
+    bool IsSpace(char) const;
+
 protected:
     // socket
     CUdpSocket      m_Socket;

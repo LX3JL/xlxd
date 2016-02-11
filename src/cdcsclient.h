@@ -48,6 +48,7 @@ public:
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_DCS; }
     const char *GetProtocolName(void) const     { return "DCS"; }
+    bool IsNode(void) const                     { return true; }
     
     // status
     bool IsAlive(void) const;

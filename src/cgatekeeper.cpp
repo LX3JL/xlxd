@@ -62,8 +62,9 @@ bool CGateKeeper::Init(void)
 {
     
     // load lists from files
-    m_WhiteList.LoadFromFile(WHITELIST_PATH);
-    m_BlackList.LoadFromFile(BLACKLIST_PATH);
+    m_NodeWhiteList.LoadFromFile(WHITELIST_PATH);
+    m_NodeBlackList.LoadFromFile(BLACKLIST_PATH);
+    m_PeerList.LoadFromFile(INTERLINKLIST_PATH);
     
     // reset stop flag
     m_bStopThread = false;
@@ -86,16 +87,34 @@ void CGateKeeper::Close(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// operation
+// authorisations
 
-bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol) const
+bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol, char *modules) const
 {
     bool ok = true;
     
-    // first check is IP & callsigned listed OK
-    ok &= IsListedOk(callsign, ip);
-    
-    // then apply any protocol specific authorisation for the operation
+    switch (protocol)
+    {
+        // repeaters
+        case PROTOCOL_DEXTRA:
+        case PROTOCOL_DPLUS:
+        case PROTOCOL_DCS:
+            // first check is IP & callsigned listed OK
+            ok &= IsNodeListedOk(callsign, ip);
+            // todo: then apply any protocol specific authorisation for the operation
+            break;
+            
+        // XLX interlinks
+        case PROTOCOL_XLX:
+            ok &= IsPeerListedOk(callsign, ip, modules);
+            break;
+            
+        // unsupported
+        case PROTOCOL_NONE:
+        default:
+            ok = false;
+            break;
+    }
     
     // report
     if ( !ok )
@@ -107,14 +126,33 @@ bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol
     return ok;
 }
     
-bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int protocol) const
+bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int protocol, char module) const
 {
     bool ok = true;
     
-    // first check is IP & callsigned listed OK
-    ok &= IsListedOk(callsign, ip);
-    
-    // then apply any protocol specific authorisation for the operation
+    switch (protocol)
+    {
+        // repeaters, protocol specific
+        case PROTOCOL_ANY:
+        case PROTOCOL_DEXTRA:
+        case PROTOCOL_DPLUS:
+        case PROTOCOL_DCS:
+            // first check is IP & callsigned listed OK
+            ok &= IsNodeListedOk(callsign, ip);
+            // todo: then apply any protocol specific authorisation for the operation
+            break;
+            
+        // XLX interlinks
+        case PROTOCOL_XLX:
+            ok &= IsPeerListedOk(callsign, ip, module);
+            break;
+            
+        // unsupported
+        case PROTOCOL_NONE:
+        default:
+            ok = false;
+            break;
+    }
     
     // report
     if ( !ok )
@@ -125,7 +163,6 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
     // done
     return ok;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // thread
@@ -138,13 +175,17 @@ void CGateKeeper::Thread(CGateKeeper *This)
         CTimePoint::TaskSleepFor(30000);
 
         // have lists files changed ?
-        if ( This->m_WhiteList.NeedReload() )
+        if ( This->m_NodeWhiteList.NeedReload() )
         {
-            This->m_WhiteList.ReloadFromFile();
+            This->m_NodeWhiteList.ReloadFromFile();
         }
-        if ( This->m_BlackList.NeedReload() )
+        if ( This->m_NodeBlackList.NeedReload() )
         {
-            This->m_BlackList.ReloadFromFile();
+            This->m_NodeBlackList.ReloadFromFile();
+        }
+        if ( This->m_PeerList.NeedReload() )
+        {
+            This->m_PeerList.ReloadFromFile();
         }
     }
 }
@@ -152,7 +193,7 @@ void CGateKeeper::Thread(CGateKeeper *This)
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation helpers
 
-bool CGateKeeper::IsListedOk(const CCallsign &callsign, const CIp &ip) const
+bool CGateKeeper::IsNodeListedOk(const CCallsign &callsign, const CIp &ip) const
 {
     bool ok = true;
     
@@ -163,20 +204,65 @@ bool CGateKeeper::IsListedOk(const CCallsign &callsign, const CIp &ip) const
     {
         // first check if callsign is in white list
         // note if white list is empty, everybody is authorized
-        const_cast<CCallsignList &>(m_WhiteList).Lock();
-        if ( !m_WhiteList.empty() )
+        const_cast<CCallsignList &>(m_NodeWhiteList).Lock();
+        if ( !m_NodeWhiteList.empty() )
         {
-            ok = m_WhiteList.IsListed(callsign);
+            ok = m_NodeWhiteList.IsCallsignListed(callsign);
         }
-        const_cast<CCallsignList &>(m_WhiteList).Unlock();
+        const_cast<CCallsignList &>(m_NodeWhiteList).Unlock();
         
         // then check if not blacklisted
-        const_cast<CCallsignList &>(m_BlackList).Lock();
-        ok &= !m_BlackList.IsListed(callsign);
-        const_cast<CCallsignList &>(m_BlackList).Unlock();
+        const_cast<CCallsignList &>(m_NodeBlackList).Lock();
+        ok &= !m_NodeBlackList.IsCallsignListed(callsign);
+        const_cast<CCallsignList &>(m_NodeBlackList).Unlock();
     }
     
     // done
     return ok;
     
 }
+
+bool CGateKeeper::IsPeerListedOk(const CCallsign &callsign, const CIp &ip, char module) const
+{
+    bool ok = true;
+    
+    // first check IP
+    
+    // next, check callsign
+    if ( ok )
+    {
+        // look for an exact match in the list
+        const_cast<CPeerCallsignList &>(m_PeerList).Lock();
+        if ( !m_PeerList.empty() )
+        {
+            ok = m_PeerList.IsCallsignListed(callsign, module);
+        }
+        const_cast<CPeerCallsignList &>(m_PeerList).Unlock();
+    }
+    
+    // done
+    return ok;
+}
+
+bool CGateKeeper::IsPeerListedOk(const CCallsign &callsign, const CIp &ip, char *modules) const
+{
+    bool ok = true;
+    
+    // first check IP
+    
+    // next, check callsign
+    if ( ok )
+    {
+        // look for an exact match in the list
+        const_cast<CPeerCallsignList &>(m_PeerList).Lock();
+        if ( !m_PeerList.empty() )
+        {
+            ok = m_PeerList.IsCallsignListed(callsign, modules);
+        }
+        const_cast<CPeerCallsignList &>(m_PeerList).Unlock();
+    }
+    
+    // done
+    return ok;
+}
+

@@ -216,5 +216,22 @@ void CProtocol::HandleQueue(void)
     m_Queue.Unlock();
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// syntax helper
+
+bool CProtocol::IsNumber(char c) const
+{
+    return ((c >= '0') && (c <= '9'));
+}
+
+bool CProtocol::IsLetter(char c) const
+{
+    return ((c >= 'A') && (c <= 'Z'));
+}
+
+bool CProtocol::IsSpace(char c) const
+{
+    return (c == ' ');
+}
 
 

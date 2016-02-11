@@ -1,6 +1,6 @@
 1. Copyright:
 
-¬© 2016 Luc Engelmann LX1IQ
+© 2016 Luc Engelmann LX1IQ
 
 The XLX Multiprotocol Gateway Reflector Server is part of the software system
 for the D-Star Network.
@@ -43,6 +43,7 @@ Debian 7 (Wheezy) 32 and 64bit:
 
 //install g++ compiler
  # apt-get install build-essential
+ # apt-get install g++-4.7 (skip this step on Debian 8.x) 
 
 //download and compile the XLX sources
 # git clone https://github.com/LX3JL/xlxd.git
@@ -51,15 +52,13 @@ Debian 7 (Wheezy) 32 and 64bit:
 # make clean
 # make install
 
-// copy startup script ‚Äúxlxd‚Äù to /etc/init.d
+// copy startup script "xlxd"ù to /etc/init.d
 # cp ~/xlxd/scripts/xlxd /etc/init.d/xlxd
 
 // adapt the default startup parameters to your needs
 # pico /etc/init.d/xlxd
 
 // Last step is to declare the service for automatic startup and shutdown
-# service xlxd start
-# service xlxd status
 # update-rc.d xlxd defaults
 
 // start or stop the service with:
@@ -68,6 +67,9 @@ Debian 7 (Wheezy) 32 and 64bit:
 
 // copy dashboard to /var/www
 # cp -r ~/xlxd/dashboard /var/www/db
+
+// give the dashboard read access to the server log file 
+# chmod +r /var/log/messages 
 
 // reboot server to see if the auto-start is working
 # reboot
@@ -79,9 +81,10 @@ XLX Server requires the following ports to be open and forwarded properly for in
  TCP port 80        (http) optional TCP port 443 (https)
  TCP port 8080      (RepNet)
  UDP port 10001     (json interface XLX Core)
+ UDP port 10002     (XLX interlink)
  TCP port 22        (ssh) optional  TCP port 10022
  UDP port 30001     (DExtra protocol)
  UPD port 20001     (DPlus protocol)
  UDP port 30051     (DCS protocol)
 
-¬© 2016 Luc Engelmann LX1IQ
+© 2016 Luc Engelmann LX1IQ

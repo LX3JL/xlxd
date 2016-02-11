@@ -33,6 +33,7 @@ CPacket::CPacket()
     m_uiStreamId = 0;
     m_uiPacketId = 0;
     m_uiModuleId = ' ';
+    m_uiOriginId = ORIGIN_LOCAL;
 };
 
 CPacket::CPacket(uint16 sid, uint8 pid)
@@ -40,6 +41,7 @@ CPacket::CPacket(uint16 sid, uint8 pid)
     m_uiStreamId = sid;
     m_uiPacketId = pid;
     m_uiModuleId = ' ';
+    m_uiOriginId = ORIGIN_LOCAL;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

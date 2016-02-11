@@ -49,6 +49,7 @@ public:
 
     // operation
     void   Hearing(const CCallsign &, const CCallsign &);
+    void   Hearing(const CCallsign &, const CCallsign &, const CCallsign &);
 
 protected:
     // data

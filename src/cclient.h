@@ -56,7 +56,8 @@ public:
     bool HasModule(void) const                          { return m_Callsign.HasModule(); }
     char GetModule(void) const                          { return m_Callsign.GetModule(); }
     char GetReflectorModule(void) const                 { return m_ReflectorModule; }
-    
+    virtual bool HasThisReflectorModule(char m) const   { return (m_ReflectorModule == m); }
+   
     // set
     void SetModule(char c)                              { m_Callsign.SetModule(c); }
     void SetReflectorModule(char c)                     { m_ReflectorModule = c; }
@@ -64,6 +65,8 @@ public:
     // identity
     virtual int GetProtocol(void) const                 { return PROTOCOL_NONE; }
     virtual const char *GetProtocolName(void) const     { return "none"; }
+    virtual bool IsNode(void) const                     { return false; }
+    virtual bool IsPeer(void) const                     { return false; }
     
     // status
     virtual void Alive(void);

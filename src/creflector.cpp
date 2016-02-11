@@ -96,18 +96,26 @@ bool CReflector::Start(void)
 
     // create protocols
     ok &= m_Protocols.Init();
-
-    // start one thread per reflector module
-    for ( int i = 0; i < NB_OF_MODULES; i++ )
+    
+    // if ok, start threads
+    if ( ok )
     {
-        m_RouterThreads[i] = new std::thread(CReflector::RouterThread, this, &(m_Streams[i]));
-    }
+        // start one thread per reflector module
+        for ( int i = 0; i < NB_OF_MODULES; i++ )
+        {
+            m_RouterThreads[i] = new std::thread(CReflector::RouterThread, this, &(m_Streams[i]));
+        }
 
-    // start the reporting threads
-    m_XmlReportThread = new std::thread(CReflector::XmlReportThread, this);
+        // start the reporting threads
+        m_XmlReportThread = new std::thread(CReflector::XmlReportThread, this);
 #ifdef JSON_MONITOR
-    m_JsonReportThread = new std::thread(CReflector::JsonReportThread, this);
+        m_JsonReportThread = new std::thread(CReflector::JsonReportThread, this);
 #endif
+    }
+    else
+    {
+        m_Protocols.Close();
+    }
 
     // done
     return ok;
@@ -531,14 +539,33 @@ void CReflector::WriteXmlFile(std::ofstream &xmlFile)
     ::sprintf(sz, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
     xmlFile << "<Version>" << sz << "</Version>" << std::endl;
 
-    // linked nodes
-    xmlFile << "<" << m_Callsign << "linked nodes>" << std::endl;
+    // linked peers
+    xmlFile << "<" << m_Callsign << "linked peers>" << std::endl;
     // lock
     CClients *clients = GetClients();
     // iterate on clients
     for ( int i = 0; i < clients->GetSize(); i++ )
     {
-        clients->GetClient(i)->WriteXml(xmlFile);
+        if ( clients->GetClient(i)->IsPeer() )
+        {
+            clients->GetClient(i)->WriteXml(xmlFile);
+        }
+    }
+    // unlock
+    ReleaseClients();
+    xmlFile << "</" << m_Callsign << "linked peers>" << std::endl;
+    
+    // linked nodes
+    xmlFile << "<" << m_Callsign << "linked nodes>" << std::endl;
+    // lock
+    clients = GetClients();
+    // iterate on clients
+    for ( int i = 0; i < clients->GetSize(); i++ )
+    {
+        if ( clients->GetClient(i)->IsNode() )
+        {
+            clients->GetClient(i)->WriteXml(xmlFile);
+        }
     }
     // unlock
     ReleaseClients();

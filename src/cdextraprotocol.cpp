@@ -45,6 +45,10 @@ bool CDextraProtocol::Init(void)
     
     // create our socket
     ok &= m_Socket.Open(DEXTRA_PORT);
+    if ( !ok )
+    {
+        std::cout << "Error opening socket on port UDP" << DEXTRA_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+    }
     
     // update time
     m_LastKeepaliveTime.Now();
@@ -139,7 +143,7 @@ void CDextraProtocol::Task(void)
         }
         else if ( IsValidKeepAlivePacket(Buffer, &Callsign) )
         {
-           //std::cout << "DExtra keepalive packet from " << Callsign << " at " << Ip << std::endl;
+            //std::cout << "DExtra keepalive packet from " << Callsign << " at " << Ip << std::endl;
             
             // find all clients with that callsign & ip and keep them alive
             CClients *clients = g_Reflector.GetClients();
@@ -166,42 +170,8 @@ void CDextraProtocol::Task(void)
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DEXTRA_KEEPALIVE_PERIOD )
     {
-        // DExtra protocol sends and monitors keepalives packets
-        // event if the client is currently streaming
-        // so, send keepalives to all
-        CBuffer keepalive;
-        EncodeKeepAlivePacket(&keepalive);
-        
-        // iterate on clients
-        CClients *clients = g_Reflector.GetClients();
-        int index = -1;
-        CClient *client = NULL;
-        while ( (client = clients->FindNextClient(PROTOCOL_DEXTRA, &index)) != NULL )
-        {
-            // send keepalive
-            m_Socket.Send(keepalive, client->GetIp());
-            
-            // client busy ?
-            if ( client->IsAMaster() )
-            {
-                // yes, just tickle it
-                client->Alive();
-            }
-            // otherwise check if still with us
-            else if ( !client->IsAlive() )
-            {
-                // no, disconnect
-                CBuffer disconnect;
-                EncodeDisconnectPacket(&disconnect);
-                m_Socket.Send(disconnect, client->GetIp());
-                
-                // remove it
-                std::cout << "DExtra client " << client->GetCallsign() << " keepalive timeout" << std::endl;
-                clients->RemoveClient(client);
-            }
-            
-        }
-        g_Reflector.ReleaseClients();
+        //
+        HandleKeepalives();
         
         // update time
         m_LastKeepaliveTime.Now();
@@ -246,6 +216,49 @@ void CDextraProtocol::HandleQueue(void)
         delete packet;
     }
     m_Queue.Unlock();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// keepalive helpers
+
+void CDextraProtocol::HandleKeepalives(void)
+{
+    // DExtra protocol sends and monitors keepalives packets
+    // event if the client is currently streaming
+    // so, send keepalives to all
+    CBuffer keepalive;
+    EncodeKeepAlivePacket(&keepalive);
+    
+    // iterate on clients
+    CClients *clients = g_Reflector.GetClients();
+    int index = -1;
+    CClient *client = NULL;
+    while ( (client = clients->FindNextClient(PROTOCOL_DEXTRA, &index)) != NULL )
+    {
+        // send keepalive
+        m_Socket.Send(keepalive, client->GetIp());
+        
+        // client busy ?
+        if ( client->IsAMaster() )
+        {
+            // yes, just tickle it
+            client->Alive();
+        }
+        // otherwise check if still with us
+        else if ( !client->IsAlive() )
+        {
+            // no, disconnect
+            CBuffer disconnect;
+            EncodeDisconnectPacket(&disconnect);
+            m_Socket.Send(disconnect, client->GetIp());
+            
+            // remove it
+            std::cout << "DExtra client " << client->GetCallsign() << " keepalive timeout" << std::endl;
+            clients->RemoveClient(client);
+        }
+        
+    }
+    g_Reflector.ReleaseClients();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -301,7 +314,7 @@ bool CDextraProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *cal
         callsign->SetCallsign(Buffer.data(), 8);
         callsign->SetModule(Buffer.data()[8]);
         *reflectormodule = Buffer.data()[9];
-        valid = (callsign->IsValid() && std::isupper(*reflectormodule));
+        valid = (callsign->IsValid() && IsLetter(*reflectormodule));
     }
     return valid;
 }
@@ -436,7 +449,6 @@ void CDextraProtocol::EncodeDisconnectPacket(CBuffer *Buffer)
     uint8 tag[] = { ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',0 };
     Buffer->Set(tag, sizeof(tag));
 }
-
 
 bool CDextraProtocol::EncodeDvHeaderPacket(const CDvHeaderPacket &Packet, CBuffer *Buffer) const
 {

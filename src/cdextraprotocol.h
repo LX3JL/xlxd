@@ -55,7 +55,10 @@ public:
 protected:
     // queue helper
     void HandleQueue(void);
-    
+
+    // keepalive helpers
+    void HandleKeepalives(void);
+
     // stream helpers
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &);
     

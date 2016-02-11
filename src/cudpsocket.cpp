@@ -151,3 +151,23 @@ int CUdpSocket::Send(const char *Buffer, const CIp &Ip)
            (void *)Buffer, ::strlen(Buffer),
            0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
 }
+
+int CUdpSocket::Send(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
+{
+    CIp temp(Ip);
+    temp.GetSockAddr()->sin_port = htons(destport);
+    return (int)::sendto(m_Socket,
+                         (void *)Buffer.data(), Buffer.size(),
+                         0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
+}
+
+int CUdpSocket::Send(const char *Buffer, const CIp &Ip, uint16 destport)
+{
+    CIp temp(Ip);
+    temp.GetSockAddr()->sin_port = htons(destport);
+    return (int)::sendto(m_Socket,
+                         (void *)Buffer, ::strlen(Buffer),
+                         0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
+}
+
+

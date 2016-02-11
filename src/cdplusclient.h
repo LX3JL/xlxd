@@ -48,6 +48,7 @@ public:
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_DPLUS; }
     const char *GetProtocolName(void) const     { return "Dplus"; }
+    bool IsNode(void) const                     { return true; }
     
     // status
     bool IsAlive(void) const;

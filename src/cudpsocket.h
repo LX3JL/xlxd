@@ -64,7 +64,9 @@ public:
     
     // write
     int Send(const CBuffer &, const CIp &);
+    int Send(const CBuffer &, const CIp &, uint16);
     int Send(const char *, const CIp &);
+    int Send(const char *, const CIp &, uint16);
     
 protected:
     // data

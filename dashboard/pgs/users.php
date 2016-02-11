@@ -1,29 +1,3 @@
-<?php
-/*
-----------------------------------------------------------------------------
-	xlxd
-
-	Created by Luc Engelmann (LX1IQ) on 31/12/2015
-	Copyright © 2015 Luc Engelmann (LX1IQ). All rights reserved.
-
-----------------------------------------------------------------------------
-	This file is part of xlxd.
-
-	xlxd is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	xlxd is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-----------------------------------------------------------------------------
-*/
-?>
 <table border="0">
    <tr>
       <td  valign="top">
@@ -36,7 +10,7 @@
    <th>Callsign</th>
    <th>Suffix</th>
    <th>DPRS</th>
-   <th>Via</th>
+   <th>Via / Peer</th>
    <th>Last heard</th>
  </tr>
 <?php
@@ -52,7 +26,7 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    
    
    echo '</td>
-   <td align="center" width="60">';
+   <td align="center" width="50">';
    
    if (file_exists("./img/flags/".$Reflector->GetFlag($Reflector->Stations[$i]->GetCallSign()).".png")) {
       echo '<img src="./img/flags/'.$Reflector->GetFlag($Reflector->Stations[$i]->GetCallSign()).'.png" height="15" />';
@@ -61,7 +35,11 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    <td width="75"><a href="https://www.qrz.com/db/'.$Reflector->Stations[$i]->GetCallsignOnly().'" class="pl" target="_blank">'.$Reflector->Stations[$i]->GetCallsignOnly().'</a></td>
    <td width="60">'.$Reflector->Stations[$i]->GetSuffix().'</td>
    <td width="50" align="center"><a href="http://www.aprs.fi/'.$Reflector->Stations[$i]->GetCallsignOnly().'" class="pl" target="_blank"><img src="./img/sat.png" /></a></td>
-   <td width="90">'.$Reflector->Stations[$i]->GetVia().'</td>
+   <td width="150">'.$Reflector->Stations[$i]->GetVia();
+   if ($Reflector->Stations[$i]->GetPeer() != 'XLX'.$ServiceName) {
+      echo ' / '.$Reflector->Stations[$i]->GetPeer();
+   }
+   echo '</td>
    <td width="150">'.date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()).'</td>
  </tr>';
    if ($i == 39) { $i = $Reflector->StationCount()+1; }

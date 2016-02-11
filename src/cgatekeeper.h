@@ -29,6 +29,7 @@
 #include "ccallsign.h"
 #include "cip.h"
 #include "ccallsignlist.h"
+#include "cpeercallsignlist.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -46,25 +47,32 @@ public:
     bool Init(void);
     void Close(void);
     
-    // operation
-    bool MayLink(const CCallsign &, const CIp &, int) const;
-    bool MayTransmit(const CCallsign &, const CIp &, int) const;
+    // authorizations
+    bool MayLink(const CCallsign &, const CIp &, int, char * = NULL) const;
+    bool MayTransmit(const CCallsign &, const CIp &, int = PROTOCOL_ANY, char = ' ') const;
+    
+    // peer list handeling
+    CPeerCallsignList *GetPeerList(void)    { m_PeerList.Lock(); return &m_PeerList; }
+    void ReleasePeerList(void)              { m_PeerList.Unlock(); }
     
 protected:
     // thread
     static void Thread(CGateKeeper *);
 
     // operation helpers
-    bool IsListedOk(const CCallsign &, const CIp &) const;
+    bool IsNodeListedOk(const CCallsign &, const CIp &) const;
+    bool IsPeerListedOk(const CCallsign &, const CIp &, char) const;
+    bool IsPeerListedOk(const CCallsign &, const CIp &, char *) const;
     
 protected:
     // data
-    CCallsignList   m_WhiteList;
-    CCallsignList   m_BlackList;
+    CCallsignList       m_NodeWhiteList;
+    CCallsignList       m_NodeBlackList;
+    CPeerCallsignList   m_PeerList;
     
     // thread
-    bool            m_bStopThread;
-    std::thread     *m_pThread;
+    bool                m_bStopThread;
+    std::thread         *m_pThread;
 };
 
 

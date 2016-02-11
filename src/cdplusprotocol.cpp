@@ -46,6 +46,10 @@ bool CDplusProtocol::Init(void)
     
     // create our socket
     ok &= m_Socket.Open(DPLUS_PORT);
+    if ( !ok )
+    {
+        std::cout << "Error opening socket on port UDP" << DPLUS_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+    }
     
     // update time
     m_LastKeepaliveTime.Now();
@@ -176,40 +180,8 @@ void CDplusProtocol::Task(void)
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DPLUS_KEEPALIVE_PERIOD )
     {
-        // send keepalives
-        CBuffer keepalive;
-        EncodeKeepAlivePacket(&keepalive);
-        
-        // iterate on clients
-        CClients *clients = g_Reflector.GetClients();
-        int index = -1;
-        CClient *client = NULL;
-        while ( (client = clients->FindNextClient(PROTOCOL_DPLUS, &index)) != NULL )
-        {
-            // send keepalive
-            //std::cout << "Sending DPlus packet @ " << client->GetIp() << std::endl;
-            m_Socket.Send(keepalive, client->GetIp());
-            
-            // is this client busy ?
-            if ( client->IsAMaster() )
-            {
-                // yes, just tickle it
-                client->Alive();
-            }
-            // check it's still with us
-            else if ( !client->IsAlive() )
-            {
-                // no, disconnect
-                CBuffer disconnect;
-                EncodeDisconnectPacket(&disconnect);
-                m_Socket.Send(disconnect, client->GetIp());
-                
-                // and remove it
-                std::cout << "DPlus client " << client->GetCallsign() << " keepalive timeout" << std::endl;
-                clients->RemoveClient(client);
-            }
-        }
-        g_Reflector.ReleaseClients();
+        //
+        HandleKeepalives();
         
         // update time
         m_LastKeepaliveTime.Now();
@@ -307,6 +279,46 @@ void CDplusProtocol::HandleQueue(void)
     m_Queue.Unlock();
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// keepalive helpers
+
+void CDplusProtocol::HandleKeepalives(void)
+{
+    // send keepalives
+    CBuffer keepalive;
+    EncodeKeepAlivePacket(&keepalive);
+    
+    // iterate on clients
+    CClients *clients = g_Reflector.GetClients();
+    int index = -1;
+    CClient *client = NULL;
+    while ( (client = clients->FindNextClient(PROTOCOL_DPLUS, &index)) != NULL )
+    {
+        // send keepalive
+        //std::cout << "Sending DPlus packet @ " << client->GetIp() << std::endl;
+        m_Socket.Send(keepalive, client->GetIp());
+        
+        // is this client busy ?
+        if ( client->IsAMaster() )
+        {
+            // yes, just tickle it
+            client->Alive();
+        }
+        // check it's still with us
+        else if ( !client->IsAlive() )
+        {
+            // no, disconnect
+            CBuffer disconnect;
+            EncodeDisconnectPacket(&disconnect);
+            m_Socket.Send(disconnect, client->GetIp());
+            
+            // and remove it
+            std::cout << "DPlus client " << client->GetCallsign() << " keepalive timeout" << std::endl;
+            clients->RemoveClient(client);
+        }
+    }
+    g_Reflector.ReleaseClients();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // packet decoding helpers

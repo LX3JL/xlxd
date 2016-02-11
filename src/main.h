@@ -47,8 +47,8 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR               1
-#define VERSION_MINOR               1
-#define VERSION_REVISION            3
+#define VERSION_MINOR               2
+#define VERSION_REVISION            4
 
 // global ------------------------------------------------------
 
@@ -61,12 +61,14 @@
 
 // protocols ---------------------------------------------------
 
-#define NB_OF_PROTOCOLS             3
+#define NB_OF_PROTOCOLS             4
 
+#define PROTOCOL_ANY                -1
 #define PROTOCOL_NONE               0
 #define PROTOCOL_DEXTRA             1
 #define PROTOCOL_DPLUS              2
 #define PROTOCOL_DCS                3
+#define PROTOCOL_XLX                4
 
 // DExtra
 #define DEXTRA_PORT                 30001                           // UDP port
@@ -83,6 +85,11 @@
 #define DCS_KEEPALIVE_PERIOD        1                               // in seconds
 #define DCS_KEEPALIVE_TIMEOUT       (DCS_KEEPALIVE_PERIOD*30)       // in seconds
 
+// XLX
+#define XLX_PORT                    10002                           // UDP port
+#define XLX_KEEPALIVE_PERIOD        3                               // in seconds
+#define XLX_KEEPALIVE_TIMEOUT       (XLX_KEEPALIVE_PERIOD*10)       // in seconds
+
 // xml & json reporting -----------------------------------------
 
 #define LASTHEARD_USERS_MAX_SIZE    100
@@ -95,7 +102,11 @@
 #define XML_PATH                    "/var/log/xlxd.xml"
 #define WHITELIST_PATH              "/xlxd/xlxd.whitelist"
 #define BLACKLIST_PATH              "/xlxd/xlxd.blacklist"
+#define INTERLINKLIST_PATH          "/xlxd/xlxd.interlink"
 
+// system constants ---------------------------------------------
+
+#define NB_MODULES_MAX              26
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // typedefs

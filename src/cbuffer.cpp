@@ -78,6 +78,12 @@ void CBuffer::Append(uint16 ui)
     ::memcpy(&(data()[n]), &ui, sizeof(uint16));
 }
 
+void CBuffer::Append(const char *sz)
+{
+    Append((uint8 *)sz, (int)strlen(sz));
+    Append((uint8)0x00);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation

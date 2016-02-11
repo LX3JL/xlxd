@@ -27,7 +27,10 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+// Origin Id
 
+#define ORIGIN_LOCAL    0
+#define ORIGIN_PEER     1
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -55,15 +58,19 @@ public:
     uint16 GetStreamId(void) const          { return m_uiStreamId; }
     uint8  GetPacketId(void) const          { return m_uiPacketId; }
     uint8  GetModuleId(void) const          { return m_uiModuleId; }
+    bool   IsLocalOrigin(void) const        { return (m_uiOriginId == ORIGIN_LOCAL); }
     
     // set
     void SetModuleId(uint8 uiId)            { m_uiModuleId = uiId; }
+    void SetLocalOrigin(void)               { m_uiOriginId = ORIGIN_LOCAL; }
+    void SetRemotePeerOrigin(void)          { m_uiOriginId = ORIGIN_PEER; }
 
 protected:
     // data
     uint16  m_uiStreamId;
     uint8   m_uiPacketId;
     uint8   m_uiModuleId;
+    uint8   m_uiOriginId;
 };
 
 

@@ -18,6 +18,10 @@ clean:
 
 install:
 	mkdir -p /xlxd
+	mv /xlxd/xlxd.blacklist /xlxd/xlxd.blacklist.bak
+	mv /xlxd/xlxd.whitelist /xlxd/xlxd.whitelist.bak
+	mv /xlxd/xlxd.interlink /xlxd/xlxd.interlink.bak
 	cp ./xlxd /xlxd/
 	cp ../config/xlxd.blacklist /xlxd/
 	cp ../config/xlxd.whitelist /xlxd/
+	cp ../config/xlxd.interlink /xlxd/

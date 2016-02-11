@@ -56,6 +56,10 @@ bool CDcsProtocol::Init(void)
     
     // create our socket
     ok &= m_Socket.Open(DCS_PORT);
+    if ( !ok )
+    {
+        std::cout << "Error opening socket on port UDP" << DCS_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+    }
     
     // update time
     m_LastKeepaliveTime.Now();
@@ -183,47 +187,8 @@ void CDcsProtocol::Task(void)
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DCS_KEEPALIVE_PERIOD )
     {
-        // DCS protocol sends and monitors keepalives packets
-        // event if the client is currently streaming
-        // so, send keepalives to all
-        CBuffer keepalive1;
-        EncodeKeepAlivePacket(&keepalive1);
-        
-        // iterate on clients
-        CClients *clients = g_Reflector.GetClients();
-        int index = -1;
-        CClient *client = NULL;
-        while ( (client = clients->FindNextClient(PROTOCOL_DCS, &index)) != NULL )
-        {
-            // encode client's specific keepalive packet
-            CBuffer keepalive2;
-            EncodeKeepAlivePacket(&keepalive2, client);
-  
-            // send keepalive
-            m_Socket.Send(keepalive1, client->GetIp());
-            m_Socket.Send(keepalive2, client->GetIp());
-
-            // is this client busy ?
-            if ( client->IsAMaster() )
-            {
-                // yes, just tickle it
-                client->Alive();
-            }
-            // check it's still with us
-            else if ( !client->IsAlive() )
-            {
-                // no, disconnect
-                CBuffer disconnect;
-                EncodeDisconnectPacket(&disconnect, client);
-                m_Socket.Send(disconnect, client->GetIp());
-                
-                // remove it
-                std::cout << "DCS client " << client->GetCallsign() << " keepalive timeout" << std::endl;
-                clients->RemoveClient(client);
-            }
-            
-        }
-        g_Reflector.ReleaseClients();
+        //
+        HandleKeepalives();
         
         // update time
         m_LastKeepaliveTime.Now();
@@ -336,6 +301,53 @@ void CDcsProtocol::HandleQueue(void)
     m_Queue.Unlock();
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// keepalive helpers
+
+void CDcsProtocol::HandleKeepalives(void)
+{
+    // DCS protocol sends and monitors keepalives packets
+    // event if the client is currently streaming
+    // so, send keepalives to all
+    CBuffer keepalive1;
+    EncodeKeepAlivePacket(&keepalive1);
+    
+    // iterate on clients
+    CClients *clients = g_Reflector.GetClients();
+    int index = -1;
+    CClient *client = NULL;
+    while ( (client = clients->FindNextClient(PROTOCOL_DCS, &index)) != NULL )
+    {
+        // encode client's specific keepalive packet
+        CBuffer keepalive2;
+        EncodeKeepAlivePacket(&keepalive2, client);
+        
+        // send keepalive
+        m_Socket.Send(keepalive1, client->GetIp());
+        m_Socket.Send(keepalive2, client->GetIp());
+        
+        // is this client busy ?
+        if ( client->IsAMaster() )
+        {
+            // yes, just tickle it
+            client->Alive();
+        }
+        // check it's still with us
+        else if ( !client->IsAlive() )
+        {
+            // no, disconnect
+            CBuffer disconnect;
+            EncodeDisconnectPacket(&disconnect, client);
+            m_Socket.Send(disconnect, client->GetIp());
+            
+            // remove it
+            std::cout << "DCS client " << client->GetCallsign() << " keepalive timeout" << std::endl;
+            clients->RemoveClient(client);
+        }
+        
+    }
+    g_Reflector.ReleaseClients();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // packet decoding helpers
@@ -348,7 +360,7 @@ bool CDcsProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsi
         callsign->SetCallsign(Buffer.data(), 8);
         callsign->SetModule(Buffer.data()[8]);
         *reflectormodule = Buffer.data()[9];
-        valid = (callsign->IsValid() && std::isupper(*reflectormodule));
+        valid = (callsign->IsValid() && IsLetter(*reflectormodule));
     }
     return valid;
 }

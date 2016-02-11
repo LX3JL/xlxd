@@ -24,8 +24,9 @@
 
 #include "main.h"
 #include <string.h>
-#include <arpa/inet.h>
 #include "cip.h"
+
+#include <netdb.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructors
@@ -33,12 +34,24 @@
 CIp::CIp()
 {
     ::memset(&m_Addr, 0, sizeof(m_Addr));
+    m_Addr.sin_family = AF_INET;
 }
 
 CIp::CIp(const char *sz)
 {
     ::memset(&m_Addr, 0, sizeof(m_Addr));
+    m_Addr.sin_family = AF_INET;
+    // try xxx.xxx.xxx.xxxx first
     m_Addr.sin_addr.s_addr = inet_addr(sz);
+    if ( m_Addr.sin_addr.s_addr == INADDR_NONE )
+    {
+        // otherwise try to resolve via dns
+        hostent *record = gethostbyname(sz);
+        if( record != NULL )
+        {
+            m_Addr.sin_addr.s_addr = ((in_addr * )record->h_addr)->s_addr;
+        }
+    }
 }
 
 CIp::CIp(const struct sockaddr_in *sa)

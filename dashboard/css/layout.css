@@ -3,6 +3,7 @@ body {
    padding              : 0px;
    background-color     : #D3D3D3;
    font-family          : calibri, verdana, arial, comic sans;
+   min-width            : 760px;
 }
 
 h1 {
@@ -10,7 +11,7 @@ h1 {
 }
 
 #top {
-   height               : 105px;
+   height               : 115px;
    background-color     : #FFFFFF;
    width                : 100%;
    background-image     : url('../img/dvc.jpg');
@@ -19,6 +20,8 @@ h1 {
    position             : absolute;
    left                 : 0px;
    top                  : 0px;  
+   min-width            : 760px;   
+   padding-left         : 3px;
 }
 
 #menu {
@@ -33,20 +36,15 @@ h1 {
    background-color     : #FEC456;
    position             : absolute;   
    left                 : 0px;
-   top                  : 105px;   
-}
-
-#info {
-   float                : right;
-   font-size            : 11pt;   
+   top                  : 115px;
+   min-width            : 760px;      
 }
 
 #content {
-
    width                : 100%;
    position             : absolute;
    left                 : 0px;
-   top                  : 150px;   
+   top                  : 175px;   
 }
 
 .menulink {

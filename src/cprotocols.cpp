@@ -26,6 +26,7 @@
 #include "cdextraprotocol.h"
 #include "cdplusprotocol.h"
 #include "cdcsprotocol.h"
+#include "cxlxprotocol.h"
 #include "cprotocols.h"
 
 
@@ -78,7 +79,11 @@ bool CProtocols::Init(void)
         delete m_Protocols[2];
         m_Protocols[2] = new CDcsProtocol;
         ok &= m_Protocols[2]->Init();
-
+        
+        // create and initialize XLX - interlink
+        delete m_Protocols[3];
+        m_Protocols[3] = new CXlxProtocol;
+        ok &= m_Protocols[3]->Init();
     }
     m_Mutex.unlock();
    

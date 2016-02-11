@@ -44,6 +44,7 @@ public:
     void Append(uint8, int);
     void Append(uint8);
     void Append(uint16);
+    void Append(const char *);
     
     // operation
     int Compare(uint8 *, int) const;

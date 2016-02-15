@@ -193,6 +193,7 @@ Samoa;WS;5W
 San Marino;SM;T7
 Sao Tome and Principe;ST;S9
 Saudi Arabia;SA;HZ
+Scotland;SH;GM
 Senegal;SN;6V-6W
 Serbia;RS;YT-YU
 Seychelles;SC;S7
@@ -232,8 +233,8 @@ Tuvalu;TV;T2
 Uganda;UG;5X
 Ukraine;UA;UR-US-UT-UU-UV-UW-UX-UY-UZ
 United Arab Emirates;AE;A6
-United Kingdom;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-MI-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GX
-United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KC-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NO-WB-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK-NS-KD
+United Kingdom;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GX
+United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KC-KI-KD-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-KA-KJ-KE-KM-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NO-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK-NS
 United States Minor Outlying Islands;UM;
 Uruguay;UY;CV-CW-CX
 Uzbekistan;UZ;UJ-UK-UL-UM
@@ -242,6 +243,7 @@ Venezuela, Bolivarian Republic of;VE;YV-YW-YX-YY-4M
 Viet Nam;VN;3W-XV
 Virgin Islands, British;VG;VP2V
 Virgin Islands, U.S.;VI;KP2
+Wales;WL;2W-GW
 Wallis and Futuna;WF;FW
 Western Sahara;EH;S0
 Yemen;YE;7O

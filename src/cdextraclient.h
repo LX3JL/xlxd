@@ -39,7 +39,7 @@ class CDextraClient : public CClient
 public:
     // constructors
     CDextraClient();
-    CDextraClient(const CCallsign &, const CIp &, char = ' ');
+    CDextraClient(const CCallsign &, const CIp &, char = ' ', int = 0);
     CDextraClient(const CDextraClient &);
     
     // destructor
@@ -47,11 +47,16 @@ public:
     
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_DEXTRA; }
+    int GetProtocolRevision(void) const         { return m_ProtRev; }
     const char *GetProtocolName(void) const     { return "Dextra"; }
     bool IsNode(void) const                     { return true; }
     
     // status
     bool IsAlive(void) const;
+
+protected:
+    // data
+    int     m_ProtRev;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -66,6 +66,7 @@ void CDextraProtocol::Task(void)
     CIp                 Ip;
     CCallsign           Callsign;
     char                ToLinkModule;
+    int                 ProtRev;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frame;
     CDvLastFramePacket  *LastFrame;
@@ -103,7 +104,7 @@ void CDextraProtocol::Task(void)
             // handle it
             OnDvLastFramePacketIn(LastFrame);
         }
-        else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule) )
+        else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule, &ProtRev) )
         {
             std::cout << "DExtra connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
             
@@ -115,7 +116,7 @@ void CDextraProtocol::Task(void)
                 m_Socket.Send(Buffer, Ip);
                 
                 // create the client
-                CDextraClient *client = new CDextraClient(Callsign, Ip, ToLinkModule);
+                CDextraClient *client = new CDextraClient(Callsign, Ip, ToLinkModule, ProtRev);
                 
                 // and append
                 g_Reflector.GetClients()->AddClient(client);
@@ -137,6 +138,13 @@ void CDextraProtocol::Task(void)
             CClient *client = clients->FindClient(Callsign, Ip, PROTOCOL_DEXTRA);
             if ( client != NULL )
             {
+                // ack disconnect packet
+                if ( client->GetProtocolRevision() == 1 )
+                {
+                    EncodeDisconnectedPacket(&Buffer);
+                    m_Socket.Send(Buffer, Ip);
+                }
+                // and remove it
                 clients->RemoveClient(client);
             }
             g_Reflector.ReleaseClients();
@@ -267,6 +275,7 @@ void CDextraProtocol::HandleKeepalives(void)
 bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
+    CCallsign via(Header->GetRpt1Callsign());
     
     // find the stream
     CPacketStream *stream = GetStream(Header->GetStreamId());
@@ -277,6 +286,8 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DEXTRA);
         if ( client != NULL )
         {
+            // get client callsign
+            via = client->GetCallsign();
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
             {
@@ -296,7 +307,7 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
     }
     
     // update last heard
-    g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), Header->GetRpt1Callsign());
+    g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
     g_Reflector.ReleaseUsers();
     
     // done
@@ -306,7 +317,7 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 ////////////////////////////////////////////////////////////////////////////////////////
 // packet decoding helpers
 
-bool CDextraProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *reflectormodule)
+bool CDextraProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *reflectormodule, int *revision)
 {
     bool valid = false;
     if ((Buffer.size() == 11) && (Buffer.data()[9] != ' '))
@@ -314,6 +325,7 @@ bool CDextraProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *cal
         callsign->SetCallsign(Buffer.data(), 8);
         callsign->SetModule(Buffer.data()[8]);
         *reflectormodule = Buffer.data()[9];
+        *revision = (Buffer.data()[10] == 11) ? 1 : 0;
         valid = (callsign->IsValid() && IsLetter(*reflectormodule));
     }
     return valid;
@@ -447,6 +459,12 @@ void CDextraProtocol::EncodeConnectNackPacket(CBuffer *Buffer)
 void CDextraProtocol::EncodeDisconnectPacket(CBuffer *Buffer)
 {
     uint8 tag[] = { ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',0 };
+    Buffer->Set(tag, sizeof(tag));
+}
+
+void CDextraProtocol::EncodeDisconnectedPacket(CBuffer *Buffer)
+{
+    uint8 tag[] = { 'D','I','S','C','O','N','N','E','C','T','E','D' };
     Buffer->Set(tag, sizeof(tag));
 }
 

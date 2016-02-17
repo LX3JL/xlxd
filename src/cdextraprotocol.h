@@ -63,7 +63,7 @@ protected:
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &);
     
     // packet decoding helpers
-    bool                IsValidConnectPacket(const CBuffer &, CCallsign *, char *);
+    bool                IsValidConnectPacket(const CBuffer &, CCallsign *, char *, int *);
     bool                IsValidDisconnectPacket(const CBuffer &, CCallsign *);
     bool                IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
     CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &);
@@ -75,6 +75,7 @@ protected:
     void                EncodeConnectAckPacket(CBuffer *);
     void                EncodeConnectNackPacket(CBuffer *);
     void                EncodeDisconnectPacket(CBuffer *);
+    void                EncodeDisconnectedPacket(CBuffer *);
     bool                EncodeDvHeaderPacket(const CDvHeaderPacket &, CBuffer *) const;
     bool                EncodeDvFramePacket(const CDvFramePacket &, CBuffer *) const;
     bool                EncodeDvLastFramePacket(const CDvLastFramePacket &, CBuffer *) const;

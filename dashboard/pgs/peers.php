@@ -25,7 +25,7 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    <td>'.FormatSeconds(time()-$Reflector->Peers[$i]->GetConnectTime()).' s</td>
    <td align="center">'.$Reflector->Peers[$i]->GetProtocol().'</td>
    <td align="center">'.$Reflector->Peers[$i]->GetLinkedModule().'</td>
-   <td>'.$Reflector->Peers[$i]->GetIP().'</td>
+   <td><a href="http://'.$Reflector->Peers[$i]->GetIP().'" target="_blank" style="text-decoration:none;color:#000000;">'.$Reflector->Peers[$i]->GetIP().'</a></td>
  </tr>';
    if ($i == 99) { $i = $Reflector->PeerCount()+1; }
 }

@@ -31,16 +31,19 @@
 
 CDextraClient::CDextraClient()
 {
+    m_ProtRev = 0;
 }
 
-CDextraClient::CDextraClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
+CDextraClient::CDextraClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
     : CClient(callsign, ip, reflectorModule)
 {
+    m_ProtRev = protRev;
 }
 
 CDextraClient::CDextraClient(const CDextraClient &client)
     : CClient(client)
 {
+    m_ProtRev = client.m_ProtRev;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

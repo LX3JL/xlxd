@@ -201,6 +201,7 @@ void CDcsProtocol::Task(void)
 bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
+    CCallsign via(Header->GetRpt1Callsign());
     
     // find the stream
     CPacketStream *stream = GetStream(Header->GetStreamId());
@@ -211,6 +212,8 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DCS);
         if ( client != NULL )
         {
+            // get client callsign
+            via = client->GetCallsign();
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
             {
@@ -232,7 +235,7 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
     }
  
      // update last heard
-     g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), Header->GetRpt1Callsign());
+     g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
      g_Reflector.ReleaseUsers();
  
     // done

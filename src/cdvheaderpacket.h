@@ -112,7 +112,7 @@ protected:
     uint16      m_uiCrc;
 #ifdef IMPLEMENT_CDVHEADERPACKET_CONST_CHAR_OPERATOR
     // buffer
-    char		m_sz[32];
+    char		m_sz[256];
 #endif
 };
 

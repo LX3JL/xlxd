@@ -26,7 +26,7 @@ $Reflector = new xReflector();
 $Reflector->SetFlagFile("./pgs/country.csv");
 
 $ServiceName = substr($FILECONTENT, strpos($FILECONTENT, "<XLX")+4, 3);
-if (intval($ServiceName) !== 0) {
+if (is_numeric($ServiceName)) {
    $LinkedPeersName = "XLX".$ServiceName."  linked peers";
    $LinkedNodesName = "XLX".$ServiceName."  linked nodes";
    $LinkedUsersName = "XLX".$ServiceName."  heard users";
@@ -80,7 +80,7 @@ for ($i=0;$i<count($tmpPeers);$i++) {
 </head>
 <body>
    <div id="top"><img src="./img/header.jpg" alt="XLX Multiprotocol Gateway Reflector" style="margin-top:15px;" />
-      <br />&nbsp;XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.1.1&nbsp;&nbsp;/&nbsp;&nbsp;Service uptime: <?php 
+      <br />&nbsp;XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.1.2&nbsp;&nbsp;/&nbsp;&nbsp;Service uptime: <?php 
             if (file_exists($PID) && is_readable($PID)) {
                echo FormatSeconds(time()-filectime($PID));
             }

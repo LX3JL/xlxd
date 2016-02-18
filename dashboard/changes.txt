@@ -1,3 +1,7 @@
+xlx db v2.1.2
+
+- "index.php" bugfix to correct an error if XLX name is equal to XLX000
+
 xlx db v2.1.1
 
 - "peers.php" added hyperlink to the peers ip address

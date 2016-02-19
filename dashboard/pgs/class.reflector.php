@@ -114,17 +114,16 @@ class xReflector {
       }
    }
    
-   public function GetSuffixOfRepeater($Repeater) {
+   public function GetSuffixOfRepeater($Repeater, $LinkedModul, $StartWithIndex = 0) {
       $suffix = "";
       $found  = false;
-      $i      = 0;
+      $i      = $StartWithIndex;
       while (!$found && $i < $this->NodeCount()) {
-         
-         if (strpos($this->Nodes[$i]->GetCallSign(), $Repeater) !== false) {
-            
-            
-            $suffix = $this->Nodes[$i]->GetSuffix();
-            $found = true;
+         if ($this->Nodes[$i]->GetLinkedModule() == $LinkedModul) {
+            if (strpos($this->Nodes[$i]->GetCallSign(), $Repeater) !== false) {
+               $suffix = $this->Nodes[$i]->GetSuffix();
+               $found = true;
+            }
          }
          $i++;
       }

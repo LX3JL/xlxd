@@ -80,7 +80,7 @@ for ($i=0;$i<count($tmpPeers);$i++) {
 </head>
 <body>
    <div id="top"><img src="./img/header.jpg" alt="XLX Multiprotocol Gateway Reflector" style="margin-top:15px;" />
-      <br />&nbsp;XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.1.2&nbsp;&nbsp;/&nbsp;&nbsp;Service uptime: <?php 
+      <br />&nbsp;XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.1.3&nbsp;&nbsp;/&nbsp;&nbsp;Service uptime: <?php 
             if (file_exists($PID) && is_readable($PID)) {
                echo FormatSeconds(time()-filectime($PID));
             }

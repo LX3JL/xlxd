@@ -1,14 +1,14 @@
 <table class="listingtable">
  <tr>   
    <th width="25">#</th>
-   <th width="54">Flag</th>
+   <th width="60">Flag</th>
    <th width="100">DV Station</th>
-   <th width="60">Band</th>
-   <th width="154">Last Heard</th>
-   <th width="156">Linked for</th>
+   <th width="75">Band</th>
+   <th width="150">Last Heard</th>
+   <th width="150">Linked for</th>
    <th width="90">Protocol</th>
-   <th width="66">Module</th>
-   <th width="130">IP</th>
+   <th width="65">Module</th>
+   <th width="125">IP</th>
  </tr>
 <?php
 
@@ -37,6 +37,7 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
       case 'A' : echo '23cm'; break;
       case 'B' : echo '70cm'; break;
       case 'C' : echo '2m'; break;
+      case 'D' : echo 'dongle'; break;
       case 'G' : echo 'Internet-Gateway'; break;
       default  : echo ''; 
    }

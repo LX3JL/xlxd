@@ -147,7 +147,7 @@ void CDcsProtocol::Task(void)
         }
         else if ( IsValidDisconnectPacket(Buffer, &Callsign) )
         {
-            std::cout << "DCS disconnect packet from " << Ip << std::endl;
+            std::cout << "DCS disconnect packet from " << Callsign << " at " << Ip << std::endl;
             
             // find client & remove it
             CClients *clients = g_Reflector.GetClients();
@@ -201,13 +201,14 @@ void CDcsProtocol::Task(void)
 bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
-    CCallsign via(Header->GetRpt1Callsign());
     
     // find the stream
     CPacketStream *stream = GetStream(Header->GetStreamId());
     if ( stream == NULL )
     {
         // no stream open yet, open a new one
+        CCallsign via(Header->GetRpt1Callsign());
+        
         // find this client
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DCS);
         if ( client != NULL )
@@ -224,6 +225,10 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         }
         // release
         g_Reflector.ReleaseClients();
+        
+        // update last heard
+        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
+        g_Reflector.ReleaseUsers();
     }
     else
     {
@@ -233,10 +238,6 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         // and delete packet
         delete Header;
     }
- 
-     // update last heard
-     g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
-     g_Reflector.ReleaseUsers();
  
     // done
     return newstream;

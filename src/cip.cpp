@@ -79,7 +79,8 @@ void CIp::SetSockAddr(struct sockaddr_in *sa)
 bool CIp::operator ==(const CIp &ip) const
 {
     return ( (ip.m_Addr.sin_family == m_Addr.sin_family) &&
-             (ip.m_Addr.sin_addr.s_addr == m_Addr.sin_addr.s_addr)) ;
+             (ip.m_Addr.sin_addr.s_addr == m_Addr.sin_addr.s_addr) &&
+             (ip.m_Addr.sin_port == m_Addr.sin_port)) ;
 }
 
 CIp::operator const char *() const

@@ -306,7 +306,7 @@ void CXlxProtocol::HandlePeerLinks(void)
         {
             // send disconnect packet
             EncodeDisconnectPacket(&buffer);
-            m_Socket.Send(buffer, client->GetIp(), XLX_PORT);
+            m_Socket.Send(buffer, client->GetIp());
             std::cout << "Sending disconnect packet to XLX peer " << client->GetCallsign() << std::endl;
             // remove client
             clients->RemoveClient(client);
@@ -318,7 +318,7 @@ void CXlxProtocol::HandlePeerLinks(void)
     for ( int i = 0; i < list->size(); i++ )
     {
         CCallsignListItem *item = &((list->data())[i]);
-        if ( clients->FindClient(item->GetCallsign(), item->GetIp(), PROTOCOL_XLX) == NULL )
+        if ( clients->FindClient(item->GetCallsign(), PROTOCOL_XLX) == NULL )
         {
             // send connect packet to re-initiate peer link
             EncodeConnectPacket(&buffer, item->GetModules());

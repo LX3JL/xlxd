@@ -85,6 +85,7 @@ void CDextraProtocol::Task(void)
         else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
         {
             //std::cout << "DExtra DV header:"  << std::endl << *Header << std::endl;
+            //std::cout << "DExtra DV header:"  << std::endl;
             
             // callsign muted?
             if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DEXTRA) )
@@ -135,7 +136,7 @@ void CDextraProtocol::Task(void)
             
             // find client & remove it
             CClients *clients = g_Reflector.GetClients();
-            CClient *client = clients->FindClient(Callsign, Ip, PROTOCOL_DEXTRA);
+            CClient *client = clients->FindClient(Ip, PROTOCOL_DEXTRA);
             if ( client != NULL )
             {
                 // ack disconnect packet
@@ -212,8 +213,11 @@ void CDextraProtocol::HandleQueue(void)
                 if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
                 {
                     // no, send the packet
-                    m_Socket.Send(buffer, client->GetIp());
-                    
+                    int n = packet->IsDvHeader() ? 5 : 1;
+                    for ( int i = 0; i < n; i++ )
+                    {
+                        m_Socket.Send(buffer, client->GetIp());
+                    }
                 }
             }
             g_Reflector.ReleaseClients();
@@ -275,13 +279,14 @@ void CDextraProtocol::HandleKeepalives(void)
 bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
-    CCallsign via(Header->GetRpt1Callsign());
     
     // find the stream
     CPacketStream *stream = GetStream(Header->GetStreamId());
     if ( stream == NULL )
     {
         // no stream open yet, open a new one
+        CCallsign via(Header->GetRpt1Callsign());
+        
         // find this client
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DEXTRA);
         if ( client != NULL )
@@ -298,17 +303,19 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         }
         // release
         g_Reflector.ReleaseClients();
+        
+        // update last heard
+        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
+        g_Reflector.ReleaseUsers();
     }
     else
     {
         // stream already open
         // skip packet, but tickle the stream
         stream->Tickle();
+        // and delete packet
+        delete Header;
     }
-    
-    // update last heard
-    g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
-    g_Reflector.ReleaseUsers();
     
     // done
     return newstream;

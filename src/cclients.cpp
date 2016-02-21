@@ -214,6 +214,25 @@ CClient *CClients::FindClient(const CCallsign &Callsign, char module, const CIp 
     return client;
 }
 
+CClient *CClients::FindClient(const CCallsign &Callsign, int Protocol)
+{
+    CClient *client = NULL;
+    
+    // find client
+    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    {
+        if ( (m_Clients[i]->GetProtocol() == Protocol) &&
+             m_Clients[i]->GetCallsign().HasSameCallsign(Callsign) )
+        {
+            client = m_Clients[i];
+        }
+    }
+    
+    // done
+    return client;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // iterate on clients
 

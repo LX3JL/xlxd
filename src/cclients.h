@@ -60,6 +60,7 @@ public:
     CClient *FindClient(const CIp &, int);
     CClient *FindClient(const CCallsign &, const CIp &, int);
     CClient *FindClient(const CCallsign &, char, const CIp &, int);
+    CClient *FindClient(const CCallsign &, int);
     
     // iterate on clients
     CClient *FindNextClient(int, int*);

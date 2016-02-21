@@ -194,14 +194,15 @@ void CDplusProtocol::Task(void)
 bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
-    CCallsign via(Header->GetRpt1Callsign());
     
     // find the stream
     CPacketStream *stream = GetStream(Header->GetStreamId());
     if ( stream == NULL )
     {
         // no stream open yet, open a new one
-        // find this client
+        CCallsign via(Header->GetRpt1Callsign());
+        
+       // find this client
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DPLUS);
         if ( client != NULL )
         {
@@ -222,6 +223,10 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         }
         // release
         g_Reflector.ReleaseClients();
+        
+        // update last heard
+        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
+        g_Reflector.ReleaseUsers();
     }
     else
     {
@@ -231,10 +236,6 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         // and delete packet
         delete Header;
     }
-    
-    // update last heard
-    g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
-    g_Reflector.ReleaseUsers();
     
     // done
     return newstream;

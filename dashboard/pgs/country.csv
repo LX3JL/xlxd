@@ -37,7 +37,7 @@ Burkina Faso;BF;XT
 Burundi;BI;9U
 Cambodia;KH;XU
 Cameroon;CM;TJ
-Canada;CA;VA-VB-VC-VD-VE-VF-VG
+Canada;CA;VA-VB-VC-VD-VE-VF-VG-VY
 Cape Verde;CV;D4
 Cayman Islands;KY;ZF
 Central African Republic;CF;TL
@@ -104,10 +104,10 @@ India;IN;VU
 Indonesia;ID;YB-YC-YD-YE-YF-YG-YH
 Iran, Islamic Republic of;IR;EP-EQ
 Iraq;IQ;YI
-Ireland;IE;EI-EJ
+Ireland;IE;EI-EJ-MI
 Isle of Man;IM;GD-GT
 Israel;IL;4X-4Z
-Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IU-IZ-IR-IW-IK
+Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IK-TR-IT-IU-IW-IZ
 Jamaica;JM;6Y
 Japan;JP;JA-JB-JC-JD-JE-JF-JG-JH-JI-JJ-JK-JL-JM-JN-JO-JP-JQ-JR-JS-7J-7K-7L-7M-7N
 Jersey;JE;GJ-GH
@@ -116,7 +116,7 @@ Kazakhstan;KZ;UN-UO-UP-UQ
 Kenya;KE;5Y-5Z
 Kiribati;KI;T30
 Korea, Democratic People's Republic of;KP;P5
-Korea, Republic of;KR;HL-6K-6L-6M-6N
+Korea, Republic of;KR;DS-HL-6K-6L-6M-6N
 Kuwait;KW;9K
 Kyrgyzstan;KG;EX
 Lao People's Democratic Republic;LA;XW
@@ -178,7 +178,7 @@ Poland;PL;SN-SO-SP-SQ-SR
 Portugal;PT;CT
 Puerto Rico;PR;KP3-KP4
 Qatar;QA;A7
-Réunion;RE;FR-TO
+Reunion;RE;FR-TO
 Romania;RO;YO-YP-YQ-YR
 Russian Federation;RU;UA-UB-UC-UD-UE-UF-UG-UH-UI-RA-RB-RC-RD-RE-RF-RG-RH-RI-RJ-RK-RL-RM-RN-RO-RP-RQ-RR-RS-RT-RT-RU-RV-RW-RX-RY-RZ
 Rwanda;RW;9X
@@ -186,7 +186,7 @@ Saint Barthélemy;BL;FJ-TO
 Saint Helena, Ascension and Tristan da Cunha;SH;ZD9
 Saint Kitts and Nevis;KN;V4
 Saint Lucia;LC;J6
-Saint Martin (French part);MF;FS-TO
+Saint Martin (French part);MF;FS
 Saint Pierre and Miquelon;PM;FP
 Saint Vincent and the Grenadines;VC;J8
 Samoa;WS;5W
@@ -204,8 +204,8 @@ Slovakia;SK;OM
 Slovenia;SI;S5
 Solomon Islands;SB;H4
 Somalia;SO;T5-6O
-South Africa;ZA;VP8-LU
-South Georgia and the South Sandwich Islands;GS;VP8-LU
+South Africa;ZA;ZS
+South Georgia and the South Sandwich Islands;GS;VP8S
 South Sudan;SS;ZR-ZS-ZT-ZU
 Spain;ES;EA-EB-EC-ED-EE-EF-EG-EH
 Sri Lanka;LK;4S
@@ -233,8 +233,8 @@ Tuvalu;TV;T2
 Uganda;UG;5X
 Ukraine;UA;UR-US-UT-UU-UV-UW-UX-UY-UZ
 United Arab Emirates;AE;A6
-United Kingdom;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GX
-United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KC-KI-KD-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-KA-KJ-KE-KM-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NO-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK-NS
+United Kingdom;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-MB-MM-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GX
+United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KA-KB-KC-KD-KE-KF-KI-KJ-KM-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-WX-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NS-NO-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK
 United States Minor Outlying Islands;UM;
 Uruguay;UY;CV-CW-CX
 Uzbekistan;UZ;UJ-UK-UL-UM
@@ -243,7 +243,7 @@ Venezuela, Bolivarian Republic of;VE;YV-YW-YX-YY-4M
 Viet Nam;VN;3W-XV
 Virgin Islands, British;VG;VP2V
 Virgin Islands, U.S.;VI;KP2
-Wales;WL;2W-GW
+Wales;WL;2W-GW-MW
 Wallis and Futuna;WF;FW
 Western Sahara;EH;S0
 Yemen;YE;7O

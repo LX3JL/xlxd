@@ -144,8 +144,8 @@ class xReflector {
    public function GetFlag($Callsign) {
       $Image     = "";
       $FoundFlag = false;
-      $Letters = 2;
-      while (($Letters < 5) && (!$FoundFlag)) {
+      $Letters = 4;
+      while (($Letters >= 2) && (!$FoundFlag)) {
          $j = 0;
          $Prefix = substr($Callsign, 0, $Letters);
          while (($j < count($this->Flagarray)) && (!$FoundFlag)) {
@@ -160,7 +160,7 @@ class xReflector {
             }
             $j++;
          }
-         $Letters++;
+         $Letters--;
       }
       
       return strtolower($Image);

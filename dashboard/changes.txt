@@ -1,3 +1,9 @@
+xlx db v2.1.4
+
+- "class.reflector.php" improved the flag search
+- "country.csv" added serveral prefixes
+- "flags" added Puerto Ricco and Åland Islands
+
 xlx db v2.1.3
 
 - "index.php" added support for multiradio repeaters

@@ -127,7 +127,7 @@ void CDcsProtocol::Task(void)
             if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DCS) )
             {
                 // acknowledge the request
-                EncodeConnectAckPacket(Callsign, &Buffer);
+                EncodeConnectAckPacket(Callsign, ToLinkModule, &Buffer);
                 m_Socket.Send(Buffer, Ip);
                 
                 // create the client
@@ -140,7 +140,7 @@ void CDcsProtocol::Task(void)
             else
             {
                 // deny the request
-                EncodeConnectNackPacket(Callsign, &Buffer);
+                EncodeConnectNackPacket(Callsign, ToLinkModule, &Buffer);
                 m_Socket.Send(Buffer, Ip);
             }
          
@@ -172,9 +172,15 @@ void CDcsProtocol::Task(void)
             }
             g_Reflector.ReleaseClients();
         }
+        else if ( IsIgnorePacket(Buffer) )
+        {
+            // valid but ignore packet
+            //std::cout << "DCS ignored packet from " << Ip << std::endl;
+        }
         else
         {
-            std::cout << "DCS packet (" << Buffer.size() << ")" << std::endl;
+            // invalid packet
+            std::cout << "DCS packet (" << Buffer.size() << ") from " << Ip << std::endl;
         }
     }
     
@@ -390,7 +396,7 @@ bool CDcsProtocol::IsValidDisconnectPacket(const CBuffer &Buffer, CCallsign *cal
 bool CDcsProtocol::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *callsign)
 {
     bool valid = false;
-    if (Buffer.size() == 17)
+    if ( (Buffer.size() == 17) || (Buffer.size() == 15) || (Buffer.size() == 22) )
     {
         callsign->SetCallsign(Buffer.data(), 8);
         valid = callsign->IsValid();
@@ -443,6 +449,18 @@ bool CDcsProtocol::IsValidDvPacket(const CBuffer &Buffer, CDvHeaderPacket **head
     return valid;
 }
 
+bool CDcsProtocol::IsIgnorePacket(const CBuffer &Buffer)
+{
+    bool valid = false;
+    uint8 tag[] = { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, };
+    
+    if ( Buffer.size() == 15 )
+    {
+        valid = (Buffer.Compare(tag, sizeof(tag)) == 0);
+    }
+    return valid;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // packet encoding helpers
@@ -454,35 +472,40 @@ void CDcsProtocol::EncodeKeepAlivePacket(CBuffer *Buffer)
 
 void CDcsProtocol::EncodeKeepAlivePacket(CBuffer *Buffer, CClient *Client)
 {
+    uint8 tag[] = { 0x0A,0x00,0x20,0x20 };
+    
     Buffer->Set((uint8 *)(const char *)GetReflectorCallsign(), CALLSIGN_LEN-1);
     Buffer->Append((uint8)Client->GetReflectorModule());
-    Buffer->Append((uint8)0);
-    Buffer->Append((uint8 *)(const char *)Client->GetCallsign(), CALLSIGN_LEN);
-    Buffer->Append((uint8)Client->GetModule());
-    Buffer->Append((uint8)0, 4);
-}
-
-void CDcsProtocol::EncodeConnectAckPacket(const CCallsign &Callsign, CBuffer *Buffer)
-{
-    uint8 tag[] = { 'E','A','C','K',0x00 };
-    uint8 cs[CALLSIGN_LEN];
-    
-    Callsign.GetCallsign(cs);
-    Buffer->Set(cs, CALLSIGN_LEN-1);
     Buffer->Append((uint8)' ');
-    Buffer->Append((uint8)Callsign.GetModule());
+    Buffer->Append((uint8 *)(const char *)Client->GetCallsign(), CALLSIGN_LEN-1);
+    Buffer->Append((uint8)Client->GetModule());
+    Buffer->Append((uint8)Client->GetModule());
     Buffer->Append(tag, sizeof(tag));
 }
 
-void CDcsProtocol::EncodeConnectNackPacket(const CCallsign &Callsign, CBuffer *Buffer)
+void CDcsProtocol::EncodeConnectAckPacket(const CCallsign &Callsign, char ReflectorModule, CBuffer *Buffer)
 {
-    uint8 tag[] = { 'E','N','A','K',0x00 };
+    uint8 tag[] = { 'A','C','K',0x00 };
     uint8 cs[CALLSIGN_LEN];
     
     Callsign.GetCallsign(cs);
     Buffer->Set(cs, CALLSIGN_LEN-1);
     Buffer->Append((uint8)' ');
     Buffer->Append((uint8)Callsign.GetModule());
+    Buffer->Append((uint8)ReflectorModule);
+    Buffer->Append(tag, sizeof(tag));
+}
+
+void CDcsProtocol::EncodeConnectNackPacket(const CCallsign &Callsign, char ReflectorModule, CBuffer *Buffer)
+{
+    uint8 tag[] = { 'N','A','K',0x00 };
+    uint8 cs[CALLSIGN_LEN];
+    
+    Callsign.GetCallsign(cs);
+    Buffer->Set(cs, CALLSIGN_LEN-1);
+    Buffer->Append((uint8)' ');
+    Buffer->Append((uint8)Callsign.GetModule());
+    Buffer->Append((uint8)ReflectorModule);
     Buffer->Append(tag, sizeof(tag));
 }
 

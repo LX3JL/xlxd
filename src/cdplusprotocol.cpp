@@ -41,8 +41,8 @@ bool CDplusProtocol::Init(void)
     ok = CProtocol::Init();
     
     // update the reflector callsign
-    //m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"REF", 3);
-    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRF", 3);
+    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"REF", 3);
+    //m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRF", 3);
     
     // create our socket
     ok &= m_Socket.Open(DPLUS_PORT);
@@ -202,10 +202,15 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         // no stream open yet, open a new one
         CCallsign via(Header->GetRpt1Callsign());
         
-       // find this client
+        // find this client
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DPLUS);
         if ( client != NULL )
         {
+            // now we knwo if it's a dextra dongle or a genuine dplus node
+            if ( Header->GetRpt2Callsign().HasSameCallsignWithWidlcard(CCallsign("XRF*"))  )
+            {
+                client->SetDextraDongle();
+            }
             // now we know its module, let's update it
             if ( !client->HasModule() )
             {
@@ -268,9 +273,35 @@ void CDplusProtocol::HandleQueue(void)
                 // is this client busy ?
                 if ( !client->IsAMaster() )
                 {
-                    // no, send the packet
-                    m_Socket.Send(buffer, client->GetIp());
-                    
+                    // check if client is a dextra dongle
+                    // then replace RPT2 with XRF instead of REF
+                    // if the client type is not yet known, send bothheaders
+                    if ( packet->IsDvHeader() && (client->IsDextraDongle() || !client->HasModule()) )
+                    {
+                        // clone the packet and patch it
+                        CDvHeaderPacket packet2(*((CDvHeaderPacket *)packet));
+                        CCallsign rpt2 = packet2.GetRpt2Callsign();
+                        rpt2.PatchCallsign(0, (const uint8 *)"XRF", 3);
+                        packet2.SetRpt2Callsign(rpt2);
+                        // encode it
+                        CBuffer buffer2;
+                        if ( EncodeDvPacket(packet2, &buffer2) )
+                        {
+                            // and send it
+                            m_Socket.Send(buffer2, client->GetIp());
+                        }
+                        // client type known ?
+                        if ( !client->HasModule() )
+                        {
+                            // no, send also the genuine packet
+                            m_Socket.Send(buffer, client->GetIp());
+                        }
+                    }
+                    else
+                    {
+                        // no, send the original packet
+                        m_Socket.Send(buffer, client->GetIp());
+                    }
                 }
             }
             g_Reflector.ReleaseClients();

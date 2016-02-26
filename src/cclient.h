@@ -68,6 +68,8 @@ public:
     virtual const char *GetProtocolName(void) const     { return "none"; }
     virtual bool IsNode(void) const                     { return false; }
     virtual bool IsPeer(void) const                     { return false; }
+    virtual bool IsDextraDongle(void) const             { return false; }
+    virtual void SetDextraDongle(void)                  { }
     
     // status
     virtual void Alive(void);

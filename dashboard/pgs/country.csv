@@ -55,7 +55,7 @@ Costa Rica;CR;TI-TE
 Cote d'Ivoire;CI;TU
 Croatia;HR;9A
 Cuba;CU;CO-CM
-Curaçao;CW;PJ2
+Curacao;CW;PJ2
 Cyprus;CY;5B-C4-P3
 Czech Republic;CZ;OK-OL
 Denmark;DK;OU-OV-OW-OZ
@@ -73,10 +73,10 @@ Falkland Islands (Malvinas);FK;VP8
 Faroe Islands;FO;OY
 Fiji;FJ;3D2
 Finland;FI;OF-OG-OH-OI
-France;FR;F0-F1-F2-F3-F4-F5-F6-F7-F8-F9
+France;FR;F0-F1-F2-F3-F4-F5-F6-F7-F8-F9-TK
 French Guiana;GF;FY
 French Polynesia;PF;FO-TX
-French Southern Territories;TF;TK
+French Southern Territories;TF;
 Gabon;GA;TR
 Gambia;GM;C5
 Georgia;GE;4L
@@ -104,7 +104,7 @@ India;IN;VU
 Indonesia;ID;YB-YC-YD-YE-YF-YG-YH
 Iran, Islamic Republic of;IR;EP-EQ
 Iraq;IQ;YI
-Ireland;IE;EI-EJ-MI
+Ireland;IE;EI-EJ-MI-GI
 Isle of Man;IM;GD-GT
 Israel;IL;4X-4Z
 Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IK-TR-IT-IU-IW-IZ
@@ -175,7 +175,7 @@ Peru;PE;OA-OB-OC
 Philippines;PH;DU-DV-DW-DX-DY-DZ-4D-4E-4F-4G-4H-4I
 Pitcairn;PN;VP6
 Poland;PL;SN-SO-SP-SQ-SR
-Portugal;PT;CT
+Portugal;PT;CT-CU3
 Puerto Rico;PR;KP3-KP4
 Qatar;QA;A7
 Reunion;RE;FR-TO
@@ -234,7 +234,7 @@ Uganda;UG;5X
 Ukraine;UA;UR-US-UT-UU-UV-UW-UX-UY-UZ
 United Arab Emirates;AE;A6
 United Kingdom;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-MB-MM-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GX
-United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KA-KB-KC-KD-KE-KF-KI-KJ-KM-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-WX-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NS-NO-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK
+United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KA-KB-KC-KD-KE-KF-KG-KI-KJ-KK-KM-KN-KO-KQ-KR-KS-KT-KU-KV-KW-KX-KY-KZ-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-WD-WX-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NS-NO-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK
 United States Minor Outlying Islands;UM;
 Uruguay;UY;CV-CW-CX
 Uzbekistan;UZ;UJ-UK-UL-UM

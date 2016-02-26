@@ -67,12 +67,13 @@ protected:
     bool IsValidDisconnectPacket(const CBuffer &, CCallsign *);
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
     bool IsValidDvPacket(const CBuffer &, CDvHeaderPacket **, CDvFramePacket **);
+    bool IsIgnorePacket(const CBuffer &);
     
     // packet encoding helpers
     void EncodeKeepAlivePacket(CBuffer *);
     void EncodeKeepAlivePacket(CBuffer *, CClient *);
-    void EncodeConnectAckPacket(const CCallsign &, CBuffer *);
-    void EncodeConnectNackPacket(const CCallsign &, CBuffer *);
+    void EncodeConnectAckPacket(const CCallsign &, char, CBuffer *);
+    void EncodeConnectNackPacket(const CCallsign &, char, CBuffer *);
     void EncodeDisconnectPacket(CBuffer *, CClient *);
     void EncodeDvPacket(const CDvHeaderPacket &, const CDvFramePacket &, uint32, CBuffer *) const;
     void EncodeDvLastPacket(const CDvHeaderPacket &, const CDvFramePacket &, uint32, CBuffer *) const;

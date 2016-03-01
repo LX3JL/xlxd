@@ -1,3 +1,10 @@
+xlx db v2.1.5
+
+- "class.node.php" added "get prefix
+- "repeaters.php" check for XRF or REF link
+- "country.csv " prefixes update + gate symbol
+- "flags" gate.png 
+
 xlx db v2.1.4
 
 - "class.reflector.php" improved the flag search

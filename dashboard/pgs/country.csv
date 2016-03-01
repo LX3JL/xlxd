@@ -24,8 +24,8 @@ Belize;BZ;V3
 Benin;BJ;TY
 Bermuda;BM;VP9
 Bhutan;BT;A5
-Bolivia, Plurinational State of;BO;CP
-Bonaire, Sint Eustatius and Saba;BQ;PJ4
+Bolivia Plurinational State of;BO;CP
+Bonaire Sint Eustatius and Saba;BQ;PJ4
 Bosnia and Herzegovina;BA;E7
 Botswana;BW;A2
 Bouvet Island;BV;3Y
@@ -49,7 +49,7 @@ Cocos (Keeling) Islands;CC;VK9C
 Colombia;CO;HJ-HK-5J-5K
 Comoros;KM;D6
 Congo;CG;TN
-Congo, the Democratic Republic of the;CD;9Q-9R-9S-9T
+Congo the Democratic Republic of the;CD;9Q-9R-9S-9T
 Cook Islands;CK;E5
 Costa Rica;CR;TI-TE
 Cote d'Ivoire;CI;TU
@@ -102,12 +102,12 @@ Hungary;HU;HA-HG
 Iceland;IS;TF
 India;IN;VU
 Indonesia;ID;YB-YC-YD-YE-YF-YG-YH
-Iran, Islamic Republic of;IR;EP-EQ
+Iran Islamic Republic of;IR;EP-EQ
 Iraq;IQ;YI
 Ireland;IE;EI-EJ-MI-GI
 Isle of Man;IM;GD-GT
 Israel;IL;4X-4Z
-Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IK-TR-IT-IU-IW-IZ
+Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IK-IN-IQ-IR-IS-IT-IU-IW-IZ
 Jamaica;JM;6Y
 Japan;JP;JA-JB-JC-JD-JE-JF-JG-JH-JI-JJ-JK-JL-JM-JN-JO-JP-JQ-JR-JS-7J-7K-7L-7M-7N
 Jersey;JE;GJ-GH
@@ -115,8 +115,8 @@ Jordan;JO;JY
 Kazakhstan;KZ;UN-UO-UP-UQ
 Kenya;KE;5Y-5Z
 Kiribati;KI;T30
-Korea, Democratic People's Republic of;KP;P5
-Korea, Republic of;KR;DS-HL-6K-6L-6M-6N
+Korea Democratic People's Republic of;KP;P5
+Korea Republic of;KR;DS-HL-6K-6L-6M-6N
 Kuwait;KW;9K
 Kyrgyzstan;KG;EX
 Lao People's Democratic Republic;LA;XW
@@ -129,7 +129,7 @@ Liechtenstein;LI;HB0
 Lithuania;LT;LY
 Luxembourg;LU;LX
 Macao;MO;XX9
-Macedonia, the Former Yugoslav Republic of;MK;Z3
+Macedonia the Former Yugoslav Republic of;MK;Z3
 Madagascar;MG;5R
 Malawi;MW;7Q
 Malaysia;MY;9M
@@ -142,8 +142,8 @@ Mauritania;MR;5T
 Mauritius;MU;3B8
 Mayotte;YT;FH-FO
 Mexico;MX;XA-XB-XC-XD-XE-XF-XG-XH-XI
-Micronesia, Federated States of;FM;V6
-Moldova, Republic of;MD;ER
+Micronesia Federated States of;FM;V6
+Moldova Republic of;MD;ER
 Monaco;MC;3A
 Mongolia;MN;JT-JU-JV
 Montenegro;ME;4O
@@ -167,7 +167,7 @@ Norway;NO;LA-LB-LC-LD-LE-LF-LG-LH-LI-LJ-LK-LL-LM-LN
 Oman;OM;YO-YP-YQ-YR
 Pakistan;PK;AP
 Palau;PW;T8
-Palestine, State of;PS;E4
+Palestine State of;PS;E4
 Panama;PA;HO-HP
 Papua New Guinea;PG;P2
 Paraguay;PY;ZP
@@ -182,8 +182,8 @@ Reunion;RE;FR-TO
 Romania;RO;YO-YP-YQ-YR
 Russian Federation;RU;UA-UB-UC-UD-UE-UF-UG-UH-UI-RA-RB-RC-RD-RE-RF-RG-RH-RI-RJ-RK-RL-RM-RN-RO-RP-RQ-RR-RS-RT-RT-RU-RV-RW-RX-RY-RZ
 Rwanda;RW;9X
-Saint Barthélemy;BL;FJ-TO
-Saint Helena, Ascension and Tristan da Cunha;SH;ZD9
+Saint Barthelemy;BL;FJ-TO
+Saint Helena Ascension and Tristan da Cunha;SH;ZD9
 Saint Kitts and Nevis;KN;V4
 Saint Lucia;LC;J6
 Saint Martin (French part);MF;FS
@@ -193,7 +193,7 @@ Samoa;WS;5W
 San Marino;SM;T7
 Sao Tome and Principe;ST;S9
 Saudi Arabia;SA;HZ
-Scotland;SH;GM
+Scotland;SH;GM-2M0
 Senegal;SN;6V-6W
 Serbia;RS;YT-YU
 Seychelles;SC;S7
@@ -216,9 +216,9 @@ Swaziland;SZ;3DA
 Sweden;SE;SA-SB-SC-SD-SE-SF-SG-SH-SI-SJ-SK-SL-SM-7S-8S
 Switzerland;CH;HB
 Syrian Arab Republic;SY;YK
-Taiwan, Province of China;TW;BU-BV-BW-BX
+Taiwan Province of China;TW;BU-BV-BW-BX
 Tajikistan;TJ;EY
-Tanzania, United Republic of;TZ;5H-5I
+Tanzania United Republic of;TZ;5H-5I
 Thailand;TH;HS-E2
 Timor-Leste;TL;4W
 Togo;TG;5V
@@ -239,13 +239,14 @@ United States Minor Outlying Islands;UM;
 Uruguay;UY;CV-CW-CX
 Uzbekistan;UZ;UJ-UK-UL-UM
 Vanuatu;VU;YJ
-Venezuela, Bolivarian Republic of;VE;YV-YW-YX-YY-4M
+Venezuela Bolivarian Republic of;VE;YV-YW-YX-YY-4M
 Viet Nam;VN;3W-XV
-Virgin Islands, British;VG;VP2V
-Virgin Islands, U.S.;VI;KP2
+Virgin Islands British;VG;VP2V
+Virgin Islands U.S.;VI;KP2
 Wales;WL;2W-GW-MW
 Wallis and Futuna;WF;FW
 Western Sahara;EH;S0
 Yemen;YE;7O
 Zambia;ZM;9I-9J
 Zimbabwe;ZW;Z2
+GATE;GATE;REF-XRF

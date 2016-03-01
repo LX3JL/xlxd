@@ -9,6 +9,7 @@ class Node {
    private $ConnectTime;
    private $LastHeardTime;
    private $Suffix;
+   private $Prefix;
    
    public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime) {
       
@@ -21,10 +22,12 @@ class Node {
       if (strpos($Callsign, " ") !== false) {
          $this->Callsign      = trim(substr($Callsign, 0, strpos($Callsign, " ")));
          $this->Suffix        = trim(substr($Callsign, strpos($Callsign, " "), strlen($Callsign)));
+         $this->Prefix        = strtoupper(trim(substr($Callsign, 0, 3)));
       }
       else {
          $this->Callsign      = trim($Callsign);
          $this->Suffix        = "";
+         $this->Prefix        = "";
       }
       
       
@@ -39,7 +42,7 @@ class Node {
    public function GetConnectTime()          { return $this->ConnectTime;    }
    public function GetLastHeardTime()        { return $this->LastHeardTime;  }
    public function GetSuffix()               { return $this->Suffix;         }
-   
+   public function GetPrefix()               { return $this->Prefix;         }
 }
 
 ?>

@@ -33,13 +33,21 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.$Reflector->Nodes[$i]->GetSuffix(); } 
    echo '</a></td>
    <td>';
-   switch ($Reflector->Nodes[$i]->GetSuffix()) {
-      case 'A' : echo '23cm'; break;
-      case 'B' : echo '70cm'; break;
-      case 'C' : echo '2m'; break;
-      case 'D' : echo 'dongle'; break;
-      case 'G' : echo 'Internet-Gateway'; break;
-      default  : echo ''; 
+   if (($Reflector->Nodes[$i]->GetPrefix() == 'REF') || ($Reflector->Nodes[$i]->GetPrefix() == 'XRF')) {
+      switch ($Reflector->Nodes[$i]->GetPrefix()) {
+        case 'REF'  : echo 'REF-Link'; break;
+        case 'XRF'  : echo 'XRF-Link'; break;
+      }
+   }
+   else {
+      switch ($Reflector->Nodes[$i]->GetSuffix()) {
+         case 'A' : echo '23cm'; break;
+         case 'B' : echo '70cm'; break;
+         case 'C' : echo '2m'; break;
+         case 'D' : echo 'Dongle'; break;
+         case 'G' : echo 'Internet-Gateway'; break;
+         default  : 
+      }
    }
    echo '</td>
    <td>'.date("d.m.Y H:i", $Reflector->Nodes[$i]->GetLastHeardTime()).'</td>

@@ -1,5 +1,7 @@
 <?php
 
+require_once("config.inc.php");
+
 $FILE = "/var/log/xlxd.xml";
 $PID  = "/var/log/xlxd.pid";
 

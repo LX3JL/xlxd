@@ -53,8 +53,15 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    <td>'.date("d.m.Y H:i", $Reflector->Nodes[$i]->GetLastHeardTime()).'</td>
    <td>'.FormatSeconds(time()-$Reflector->Nodes[$i]->GetConnectTime()).' s</td>
    <td>'.$Reflector->Nodes[$i]->GetProtocol().'</td>
-   <td align="center">'.$Reflector->Nodes[$i]->GetLinkedModule().'</td>
-   <td>'.$Reflector->Nodes[$i]->GetIP().'</td>
+   <td align="center">'.$Reflector->Nodes[$i]->GetLinkedModule().'</td>';
+   echo '<td>';
+   if ($showip == 1) {
+      echo $Reflector->Nodes[$i]->GetIP();
+   } else {
+      echo 'n/a';
+   }
+   echo '</td>';
+   echo '
  </tr>';
    if ($i == 99) { $i = $Reflector->NodeCount()+1; }
 }

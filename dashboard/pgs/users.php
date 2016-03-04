@@ -58,17 +58,30 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
 
 <table class="listingtable">
 <?php 
-echo '
-<tr>';
 
 $Modules = $Reflector->GetModules();
 for ($i=0;$i<count($Modules);$i++) {
+   
+   if (isset($PageOptions['ModuleNames'][$Modules[$i]])) {
+      echo '
+   <tr>
+      <th>'.$PageOptions['ModuleNames'][$Modules[$i]];
+      if (trim($PageOptions['ModuleNames'][$Modules[$i]]) != "") {
+         echo '<br />';
+      }
+      echo $Modules[$i].'</th>
+   </tr>';
+      
+   }
+   else {
    echo '
-   <th>'.$Modules[$i].'</th>';
+   <tr>
+      <th>'.$Modules[$i].'</th>
+   </tr>';
+   }
 }
 
 echo '
-</tr>
 <tr bgcolor="#FFFFFF" style="padding:0px;">';
 
 for ($i=0;$i<count($Modules);$i++) {
@@ -77,7 +90,7 @@ for ($i=0;$i<count($Modules);$i++) {
     echo '
    <td valign="top" style="border:0px;padding:0px;">
    
-   <table width="100" border="0" style="padding:0px;margin:0px;">';
+      <table width="100" border="0" style="padding:0px;margin:0px;">';
    $odd = "";
    
    $UserCheckedArray = array();
@@ -91,13 +104,14 @@ for ($i=0;$i<count($Modules);$i++) {
       else {
          $Displayname = $Users[$j].'-'.$Reflector->GetSuffixOfRepeater($Users[$j], $Modules[$i]);
       }
-      echo '<tr height="25" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
+      echo '
+            <tr height="25" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
                <td valign="top" style="border-bottom:1px #C1DAD7 solid;"><a href="http://www.aprs.fi/'.$Displayname.'" class="pl" target="_blank">'.$Displayname.'</a> </td>
             </tr>';
       $UserCheckedArray[] = $Users[$j];
    }
    echo '
-   </table>
+      </table>
    
    </td>';
 }

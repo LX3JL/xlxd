@@ -1,3 +1,15 @@
+xlx db v2.1.6
+
+With this version of the dashboard, serveral parameters
+are free configurable.
+Changes are made in "config.inc.php" 
+
+- "config.inc.php"
+- "index.php"
+- "users.php"
+- "peers.php
+- "repeaters.php"
+
 xlx db v2.1.5
 
 - "class.node.php" added "get prefix

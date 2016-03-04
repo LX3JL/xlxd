@@ -3,15 +3,14 @@
 $FILE = "/var/log/xlxd.xml";
 $PID  = "/var/log/xlxd.pid";
 
-require_once("./pgs/functions.php");
+if (file_exists("./pgs/functions.php"))  { require_once("./pgs/functions.php");  } else { die("functions.php does not exist.");  }
+if (file_exists("./pgs/config.inc.php")) { require_once("./pgs/config.inc.php"); } else { die("config.inc.php does not exist."); }
+
 if (!class_exists('ParseXML'))   require_once("./pgs/class.parsexml.php");
 if (!class_exists('Node'))       require_once("./pgs/class.node.php");
 if (!class_exists('xReflector')) require_once("./pgs/class.reflector.php");
 if (!class_exists('Station'))    require_once("./pgs/class.station.php");
 if (!class_exists('Peer'))       require_once("./pgs/class.peer.php");
-
-
-//if (!isset($_GET['show'])) { $_GET['show'] == ''; }
 
 if (!@file_exists($FILE) && (!@is_readable($FILE))) die("xlxd.xml does not exist or is not readable");
 
@@ -62,25 +61,33 @@ for ($i=0;$i<count($tmpPeers);$i++) {
    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
    <title>XLX Reflector Dashboard</title>
    <link rel="stylesheet" type="text/css" href="./css/layout.css">
-   <link rel="icon" href="./favicon.ico" type="image/vnd.microsoft.icon">
+   <link rel="icon" href="./favicon.ico" type="image/vnd.microsoft.icon"><?php
+   
+   if ($PageOptions['PageRefreshActive']) {
+      echo '
    <script>
    
       function ReloadPage() {
-         document.location.href = "./index.php<?php if (isset($_GET['show'])) { echo '?show='.$_GET['show']; } ?>";
-      }
-      <?php
-      
-         if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'liveccs'))) {
+         document.location.href = "./index.php';
+     if (isset($_GET['show'])) { 
+        echo '?show='.$_GET['show']; 
+     }
+     echo '";
+      }';
+     
+     if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'liveccs'))) {
          echo '
-      setTimeout(ReloadPage, 10000);';
-         }
-      ?>
-       
-   </script>
+      setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
+     }
+     echo '
+     
+   </script>';
+   }   
+?>   
 </head>
 <body>
    <div id="top"><img src="./img/header.jpg" alt="XLX Multiprotocol Gateway Reflector" style="margin-top:15px;" />
-      <br />&nbsp;XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v2.1.5&nbsp;&nbsp;/&nbsp;&nbsp;Service uptime: <?php 
+      <br />&nbsp;XLX<?php echo $ServiceName; ?>&nbsp;v<?php echo $XML->GetElement($FILECONTENT, "Version"); ?>&nbsp;-&nbsp;Dashboard v<?php echo $PageOptions['DashboardVersion']; ?>&nbsp;&nbsp;/&nbsp;&nbsp;Service uptime: <?php 
             if (file_exists($PID) && is_readable($PID)) {
                echo FormatSeconds(time()-filectime($PID));
             }
@@ -109,7 +116,7 @@ for ($i=0;$i<count($tmpPeers);$i++) {
 
 ?>   
    
-   <div style="width:100%;text-align:center;margin-top:50px;"><a href="mailto:dvc@rlx.lu" style="font-family:verdana;color:#000000;font-size:12pt;text-decoration:none;">dvc@rlx.lu</a></div>
+   <div style="width:100%;text-align:center;margin-top:50px;"><a href="mailto:<?php echo $PageOptions['ContactEmail']; ?>" style="font-family:verdana;color:#000000;font-size:12pt;text-decoration:none;"><?php echo $PageOptions['ContactEmail']; ?></a></div>
    
    </div>
    

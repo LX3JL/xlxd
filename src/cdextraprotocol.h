@@ -33,6 +33,24 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+// note on protocol revisions:
+//
+//  rev 0:
+//      this is standard protocol implementation
+//
+//  rev 1:
+//      this is specific UP4DAR umplementation
+//      the protocol is detected using byte(10) of connect packet (value is 11)
+//      the protocol require a specific non-standard disconnect acqknowleding packet
+//
+//  rev 2:
+//      this is specific to KI4KLF dxrfd reflector
+//      the protocol is detected by looking at "XRF" in connect packet callsign
+//      the protocol require a specific connect ack packet
+//      the protocol also implement a workaround for detecting stream's module
+//          as dxrfd soes not set DV header RPT2 properly.
+//      the protocol assumes that a dxrfd can only be linked to one module at a time
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -72,7 +90,7 @@ protected:
     
     // packet encoding helpers
     void                EncodeKeepAlivePacket(CBuffer *);
-    void                EncodeConnectAckPacket(CBuffer *);
+    void                EncodeConnectAckPacket(CBuffer *, int);
     void                EncodeConnectNackPacket(CBuffer *);
     void                EncodeDisconnectPacket(CBuffer *);
     void                EncodeDisconnectedPacket(CBuffer *);

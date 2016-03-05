@@ -93,6 +93,7 @@ public:
     
     // set callsigns
     void SetRpt2Callsign(const CCallsign &cs)       { m_csRPT2 = cs; }
+    void SetRpt2Module(char c)                      { m_csRPT2.SetModule(c); }
     
     // operators
     bool operator ==(const CDvHeaderPacket &) const;

@@ -107,13 +107,13 @@ void CDextraProtocol::Task(void)
         }
         else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule, &ProtRev) )
         {
-            std::cout << "DExtra connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
+            std::cout << "DExtra connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << " rev " << ProtRev << std::endl;
             
             // callsign authorized?
             if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DEXTRA) )
             {
                 // acknowledge the request
-                EncodeConnectAckPacket(&Buffer);
+                EncodeConnectAckPacket(&Buffer, ProtRev);
                 m_Socket.Send(Buffer, Ip);
                 
                 // create the client
@@ -293,6 +293,13 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         {
             // get client callsign
             via = client->GetCallsign();
+            // apply protocol revision details
+            if ( client->GetProtocolRevision() == 2 )
+            {
+                // update Header RPT2 module letter with
+                // the module the client is linked to
+                Header->SetRpt2Module(client->GetReflectorModule());
+            }
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
             {
@@ -334,6 +341,19 @@ bool CDextraProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *cal
         *reflectormodule = Buffer.data()[9];
         *revision = (Buffer.data()[10] == 11) ? 1 : 0;
         valid = (callsign->IsValid() && IsLetter(*reflectormodule));
+        // detect revision
+        if ( (Buffer.data()[10] == 11) )
+        {
+            *revision = 1;
+        }
+        else if ( callsign->HasSameCallsignWithWidlcard(CCallsign("XRF*")) )
+        {
+            *revision = 2;
+        }
+        else
+        {
+            *revision = 0;
+        }
     }
     return valid;
 }
@@ -431,12 +451,10 @@ void CDextraProtocol::EncodeKeepAlivePacket(CBuffer *Buffer)
    Buffer->Set(GetReflectorCallsign());
 }
 
-void CDextraProtocol::EncodeConnectAckPacket(CBuffer *Buffer)
+void CDextraProtocol::EncodeConnectAckPacket(CBuffer *Buffer, int ProtRev)
 {
-    uint8 xrf[] = { 'X','R','F' };
-    
    // is it for a XRF or repeater
-    if ( Buffer->Compare(xrf, sizeof(xrf)) == 0 )
+    if ( ProtRev == 2 )
     {
         // XRFxxx
         uint8 rm = (Buffer->data())[8];

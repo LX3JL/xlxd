@@ -60,28 +60,25 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
 <?php 
 
 $Modules = $Reflector->GetModules();
+echo '
+   <tr>';
 for ($i=0;$i<count($Modules);$i++) {
-   
    if (isset($PageOptions['ModuleNames'][$Modules[$i]])) {
-      echo '
-   <tr>
+      echo '   
       <th>'.$PageOptions['ModuleNames'][$Modules[$i]];
       if (trim($PageOptions['ModuleNames'][$Modules[$i]]) != "") {
          echo '<br />';
       }
-      echo $Modules[$i].'</th>
-   </tr>';
-      
+      echo $Modules[$i].'</th>';
    }
    else {
    echo '
-   <tr>
-      <th>'.$Modules[$i].'</th>
-   </tr>';
+      <th>'.$Modules[$i].'</th>';
    }
 }
 
 echo '
+</tr>
 <tr bgcolor="#FFFFFF" style="padding:0px;">';
 
 for ($i=0;$i<count($Modules);$i++) {

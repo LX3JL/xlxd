@@ -2,16 +2,108 @@
 
 class xReflector {
    
-   public $Nodes         = null;
-   public $Stations      = null;
-   public $Peers         = null;
-   private $Flagarray    = null;
-   private $Flagfile     = null;
+   public $Nodes                     = null;
+   public $Stations                  = null;
+   public $Peers                     = null;
+   private $Flagarray                = null;
+   private $Flagfile                 = null;
+   private $CallingHomeActive        = null;
+   private $CallingHomeHash          = null;
+   private $CallingHomeDashboardURL  = null;
+   private $CallingHomeServerURL     = null;
+   private $ReflectorName            = null;
+   private $ServiceUptime            = null;
+   private $ProcessIDFile            = null;
+   private $XMLContent               = null;
+   private $XMLFile                  = null;
+   private $ServiceName              = null;
+   private $Version                  = null;
+   private $CallingHomeCountry       = null;
+   private $CallingHomeComment       = null;
    
    public function __construct() {
       $this->Nodes    = array();
       $this->Stations = array();
       $this->Peers    = array();
+   }
+   
+   public function LoadXML() {
+      if ($this->XMLFile != null) {
+         $handle = fopen($this->XMLFile, 'r');
+         $this->XMLContent = fread($handle, filesize($this->XMLFile));
+         fclose($handle);
+         
+         $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
+         if (!is_numeric($this->ServiceName)) {
+            $this->ServiceName = null;
+            return false;
+         }
+         
+         $this->ReflectorName = "XLX".$this->ServiceName;
+         
+         $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";
+         $LinkedNodesName = "XLX".$this->ServiceName."  linked nodes";
+         $LinkedUsersName = "XLX".$this->ServiceName."  heard users";
+         
+         $XML       = new ParseXML();
+         
+         $AllNodesString    = $XML->GetElement($this->XMLContent, $LinkedNodesName);
+         $tmpNodes          = $XML->GetAllElements($AllNodesString, "NODE");
+         
+         for ($i=0;$i<count($tmpNodes);$i++) {
+             $Node = new Node($XML->GetElement($tmpNodes[$i], 'Callsign'), $XML->GetElement($tmpNodes[$i], 'IP'), $XML->GetElement($tmpNodes[$i], 'LinkedModule'), $XML->GetElement($tmpNodes[$i], 'Protocol'), $XML->GetElement($tmpNodes[$i], 'ConnectTime'), $XML->GetElement($tmpNodes[$i], 'LastHeardTime'));
+             $this->AddNode($Node);
+         }
+         
+         $AllStationsString = $XML->GetElement($this->XMLContent, $LinkedUsersName);
+         $tmpStations       = $XML->GetAllElements($AllStationsString, "STATION");
+         for ($i=0;$i<count($tmpStations);$i++) {
+             $Station = new Station($XML->GetElement($tmpStations[$i], 'Callsign'), $XML->GetElement($tmpStations[$i], 'Via node'), $XML->GetElement($tmpStations[$i], 'Via peer'), $XML->GetElement($tmpStations[$i], 'LastHeardTime'));
+             $this->AddStation($Station, false);
+         }
+         
+         $AllPeersString    = $XML->GetElement($this->XMLContent, $LinkedPeersName);
+         $tmpPeers          = $XML->GetAllElements($AllPeersString, "PEER");
+         for ($i=0;$i<count($tmpPeers);$i++) {
+             $Peer = new Peer($XML->GetElement($tmpPeers[$i], 'Callsign'), $XML->GetElement($tmpPeers[$i], 'IP'), $XML->GetElement($tmpPeers[$i], 'LinkedModule'), $XML->GetElement($tmpPeers[$i], 'Protocol'), $XML->GetElement($tmpPeers[$i], 'ConnectTime'), $XML->GetElement($tmpPeers[$i], 'LastHeardTime'));
+             $this->AddPeer($Peer, false);
+         }
+         
+         $this->Version = $XML->GetElement($this->XMLContent, "Version");   
+      }
+   }
+   
+   public function GetVersion() {
+      return $this->Version;
+   }
+   
+   public function GetReflectorName() {
+      return $this->ReflectorName;
+   }
+   
+   public function SetXMLFile($XMLFile) {
+      if (file_exists($XMLFile) && (is_readable($XMLFile))) {
+         $this->XMLFile = $XMLFile;
+      }
+      else {
+         die("File ".$XMLFile." does not exist or is not readable");
+         $this->XMLContent = null;
+      }
+   }
+   
+   public function SetPIDFile($ProcessIDFile) {
+      if (file_exists($ProcessIDFile)) {
+         $this->ProcessIDFile = $ProcessIDFile;
+         $this->ServiceUptime = time() - filectime($ProcessIDFile);
+      }
+      else {
+         $this->ProcessIDFile = null;
+         $this->ServiceUptime = null;
+      }
+   }
+   
+   public function GetServiceUptime() {
+      return $this->ServiceUptime;
    }
    
    public function SetFlagFile($Flagfile) {
@@ -184,6 +276,24 @@ class xReflector {
       return $out;
    }
       
+   public function GetModuleOfNode($Node) {
+      $Node = trim(str_replace("   ", "-", $Node));
+      $Node = trim(str_replace("  ", "-", $Node));
+      $Node = trim(str_replace(" ", "-", $Node));
+      $found  = false;
+      $i      = 0;
+      $Module = "";
+      while (!$found && $i<$this->NodeCount()) {
+         if (strpos($Node, $this->Nodes[$i]->GetFullCallsign()) !== false) { 
+            $Module = $this->Nodes[$i]->GetLinkedModule(); 
+            $found = true;
+         }
+         
+         $i++;
+      }
+      return $Module;
+   }  
+      
    public function GetCallSignsInModules($Module) {
       $out = array();
       for ($i=0;$i<$this->NodeCount();$i++) {
@@ -193,6 +303,22 @@ class xReflector {
       }
       return $out;
    }
+   
+   public function SetCallingHome($Active, $DashboardURL, $Hash, $ServerURL, $Country, $Comment) {
+      $this->CallingHomeActive          = ($Active === true);
+      $this->CallingHomeHash            = $Hash;
+      $this->CallingHomeDashboardURL    = $DashboardURL;
+      $this->CallingHomeServerURL       = $ServerURL;
+      $this->CallingHomeCountry         = $Country;
+      $this->CallingHomeComment         = $Comment;
+   }
+      
+   public function PushCallingHome() {
+      $CallingHome = @fopen($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment), "r");
+      //debug($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment));
+   }   
+   
+   
       
 }
 

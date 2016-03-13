@@ -1,7 +1,7 @@
 <?php
 
 class Node {
-   
+
    private $Callsign;
    private $IP;
    private $LinkedModule;
@@ -10,14 +10,18 @@ class Node {
    private $LastHeardTime;
    private $Suffix;
    private $Prefix;
-   
+
    public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime) {
-      
+
       $this->IP            = $IP;
-      
+
       $this->Protocol      = $Protocol;
       $this->ConnectTime   = ParseTime($ConnectTime);
       $this->LastHeardTime = ParseTime($LastHeardTime);
+   
+      $this->FullCallsign  = trim(str_replace("   ", "-", $Callsign));
+      $this->FullCallsign  = str_replace("  ", "-", $this->FullCallsign);
+      $this->FullCallsign  = str_replace(" ", "-", $this->FullCallsign); 
       
       if (strpos($Callsign, " ") !== false) {
          $this->Callsign      = trim(substr($Callsign, 0, strpos($Callsign, " ")));
@@ -29,12 +33,12 @@ class Node {
          $this->Suffix        = "";
          $this->Prefix        = "";
       }
-      
-      
+
+
       $this->LinkedModule  = trim($LinkedModule);
    }
-   
 
+   public function GetFullCallsign()         { return $this->FullCallsign;   }
    public function GetCallsign()             { return $this->Callsign;       }
    public function GetIP()                   { return $this->IP;             }
    public function GetLinkedModule()         { return $this->LinkedModule;   }

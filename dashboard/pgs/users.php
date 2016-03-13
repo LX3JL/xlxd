@@ -12,6 +12,7 @@
    <th>DPRS</th>
    <th>Via / Peer</th>
    <th>Last heard</th>
+   <th align="center" valign="middle"><img src="./img/ear.png" alt="Listening on" /></th>
  </tr>
 <?php
 
@@ -35,12 +36,17 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    <td width="75"><a href="https://www.qrz.com/db/'.$Reflector->Stations[$i]->GetCallsignOnly().'" class="pl" target="_blank">'.$Reflector->Stations[$i]->GetCallsignOnly().'</a></td>
    <td width="60">'.$Reflector->Stations[$i]->GetSuffix().'</td>
    <td width="50" align="center"><a href="http://www.aprs.fi/'.$Reflector->Stations[$i]->GetCallsignOnly().'" class="pl" target="_blank"><img src="./img/sat.png" /></a></td>
-   <td width="127">'.$Reflector->Stations[$i]->GetVia();
-   if ($Reflector->Stations[$i]->GetPeer() != 'XLX'.$ServiceName) {
+   <td width="150">'.$Reflector->Stations[$i]->GetVia();
+   if ($Reflector->Stations[$i]->GetPeer() != $Reflector->GetReflectorName()) {
       echo ' / '.$Reflector->Stations[$i]->GetPeer();
    }
    echo '</td>
-   <td width="150">'.date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()).'</td>
+   <td width="150">'.@date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()).'</td>
+   <td align="center" width="30">';
+   if ($Reflector->Stations[$i]->GetPeer() == $Reflector->GetReflectorName()) {
+      echo trim($Reflector->GetModuleOfNode($Reflector->Stations[$i]->GetVia()));
+   }
+   echo '</td>
  </tr>';
    if ($i == 39) { $i = $Reflector->StationCount()+1; }
 }
@@ -61,18 +67,22 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
 
 $Modules = $Reflector->GetModules();
 echo '
-   <tr>';
+ <tr>';
 for ($i=0;$i<count($Modules);$i++) {
+   
    if (isset($PageOptions['ModuleNames'][$Modules[$i]])) {
-      echo '   
+      echo '
+   
       <th>'.$PageOptions['ModuleNames'][$Modules[$i]];
       if (trim($PageOptions['ModuleNames'][$Modules[$i]]) != "") {
          echo '<br />';
       }
-      echo $Modules[$i].'</th>';
+      echo $Modules[$i].'</th>
+';
    }
    else {
    echo '
+  
       <th>'.$Modules[$i].'</th>';
    }
 }

@@ -16,12 +16,11 @@ h1 {
    width                : 100%;
    background-image     : url('../img/dvc.jpg');
    background-repeat    : no-repeat;
-   background-position  : 99.5%;
+   background-position  : 98.5%;
    position             : absolute;
    left                 : 0px;
    top                  : 0px;  
    min-width            : 760px;   
-   padding-left         : 3px;
 }
 
 #menu {
@@ -92,3 +91,9 @@ background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237
 .listingtable td {
    padding-left         : 5px;
 }      
+
+.listinglink {
+   ont-size             : 12pt;
+   text-decoration      : underline;
+   color                : #60A1DE;
+}

@@ -41,7 +41,7 @@ function ParseTime($Input) {
       case 'dec' : $month = 12; break;
       default    : $month = 1; 
     }
-    return mktime($tmp1[0], $tmp1[1], $tmp1[2], $month, $tmp[3], $tmp[5]);
+    return @mktime($tmp1[0], $tmp1[1], $tmp1[2], $month, $tmp[3], $tmp[5]);
     
 }
 
@@ -49,5 +49,15 @@ function FormatSeconds($seconds) {
   $seconds = abs($seconds); 
   return sprintf("%d days %02d:%02d:%02d", $seconds/60/60/24,($seconds/60/60)%24,($seconds/60)%60,$seconds%60);
 } 
+
+function CreateCode ($laenge) {   
+	$zeichen = "1234567890abcdefghijklmnopqrstuvwyxzABCDEFGHIJKLMNAOPQRSTUVWYXZ";   
+	mt_srand( (double) microtime() * 1000000); 
+	$out = "";
+	for ($i=1;$i<=$laenge;$i++){ 
+		$out .= $zeichen[mt_rand(0,(strlen($zeichen)-1))];       
+	}         
+	return $out;  
+}
 
 ?>

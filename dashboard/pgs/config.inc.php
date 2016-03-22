@@ -54,7 +54,7 @@ $Service['XMLFile']                                  = '/var/log/xlxd.xml';
 
 $CallingHome['Active']                               = false;			                             //xlx phone home, true or false
 $CallingHome['MyDashBoardURL']                       = 'http://your_dashboard';	                     //dashboard url
-$CallingHome['ServerURL']                            = 'http://158.64.26.134/api.php';               //database server, do not change !!!!
+$CallingHome['ServerURL']                            = 'http://xlxapi.rlx.lu/api.php';               //database server, do not change !!!!
 $CallingHome['PushDelay']                            = 600;  	                                     //push delay in seconds
 $CallingHome['Country']                              = "your_country";                               //Country
 $CallingHome['Comment']                              = "your_comment";                               //Comment. Max 100 character

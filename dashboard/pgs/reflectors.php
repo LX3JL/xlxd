@@ -21,7 +21,7 @@ $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
  <tr>   
    <th width="40">#</th>
    <th width="75">Reflector</th>
-   <th width="100">Country</th>
+   <th width="120">Country</th>
    <th width="90">Service</th>
    <th width="400">Comment</th>
  </tr>

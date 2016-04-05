@@ -20,6 +20,7 @@ class xReflector {
    private $Version                  = null;
    private $CallingHomeCountry       = null;
    private $CallingHomeComment       = null;
+   private $CallingHomeOverrideIP    = null;
    
    public function __construct() {
       $this->Nodes    = array();
@@ -293,7 +294,7 @@ class xReflector {
       }
       return $Module;
    }  
-      
+   
    public function GetCallSignsInModules($Module) {
       $out = array();
       for ($i=0;$i<$this->NodeCount();$i++) {
@@ -304,17 +305,18 @@ class xReflector {
       return $out;
    }
    
-   public function SetCallingHome($Active, $DashboardURL, $Hash, $ServerURL, $Country, $Comment) {
+   public function SetCallingHome($Active, $DashboardURL, $Hash, $ServerURL, $Country, $Comment, $OverrideIP) {
       $this->CallingHomeActive          = ($Active === true);
       $this->CallingHomeHash            = $Hash;
       $this->CallingHomeDashboardURL    = $DashboardURL;
       $this->CallingHomeServerURL       = $ServerURL;
       $this->CallingHomeCountry         = $Country;
       $this->CallingHomeComment         = $Comment;
+      $this->CallingHomeOverrideIP      = $OverrideIP;
    }
       
    public function PushCallingHome() {
-      $CallingHome = @fopen($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment), "r");
+      $CallingHome = @fopen($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment)."&OverrideIP=".$this->CallingHomeOverrideIP, "r");
       //debug($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment));
    }   
    

@@ -93,7 +93,18 @@ background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237
 }      
 
 .listinglink {
-   ont-size             : 12pt;
+   font-size             : 12pt;
    text-decoration      : underline;
    color                : #60A1DE;
+}
+
+.error {
+   font-size         : 12pt;
+   text-decoration   : none,
+   font-weight       : bold;
+   color             : #FF0000;
+   background-color  : #FFFFFF;
+   width             : 90%;
+   padding           : 15px;
+   margin            : 5px;
 }

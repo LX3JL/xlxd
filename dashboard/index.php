@@ -18,25 +18,26 @@ $Reflector->SetXMLFile($Service['XMLFile']);
 $Reflector->LoadXML();
 
 if ($CallingHome['Active']) { 
+   
    $CallHomeNow = false;
-   if (!file_exists("/tmp/callinghome.php")) {
+   if (!file_exists($CallingHome['HashFile'])) {
       $Hash = CreateCode(16);
       $LastSync = 0;
-      $Ressource = @fopen("/tmp/callinghome.php","w");
+      $Ressource = @fopen($CallingHome['HashFile'],"w");
       if ($Ressource) {
          @fwrite($Ressource, "<?php\n");
          @fwrite($Ressource, "\n".'$LastSync = 0;');
          @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
          @fwrite($Ressource, "\n\n".'?>');
          @fclose($Ressource);
-         @exec("chmod 777 /tmp/callinghome.php");
+         @exec("chmod 777 ".$CallingHome['HashFile']);
          $CallHomeNow = true;
       }
    }
    else {
-      include("/tmp/callinghome.php");
+      include($CallingHome['HashFile']);
       if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
-         $Ressource = @fopen("/tmp/callinghome.php","w");
+         $Ressource = @fopen($CallingHome['HashFile'],"w");
          if ($Ressource) {
             @fwrite($Ressource, "<?php\n");
             @fwrite($Ressource, "\n".'$LastSync = '.time().';');
@@ -48,7 +49,7 @@ if ($CallingHome['Active']) {
       }
    }
    if ($CallHomeNow || isset($_GET['callhome'])) {
-      $Reflector->SetCallingHome($CallingHome['Active'], $CallingHome['MyDashBoardURL'], $Hash, $CallingHome['ServerURL'], $CallingHome['Country'], $CallingHome['Comment']);
+      $Reflector->SetCallingHome($CallingHome['Active'], $CallingHome['MyDashBoardURL'], $Hash, $CallingHome['ServerURL'], $CallingHome['Country'], $CallingHome['Comment'], $CallingHome['OverrideIPAddress']);
       $Reflector->PushCallingHome();    
    }
 }
@@ -107,6 +108,15 @@ if ($CallingHome['Active']) {
    <div id="content" align="center">
 
 <?php
+   if ($CallingHome['Active']) {
+      if (!is_readable($CallingHome['HashFile']) && (!is_writeable($CallingHome['HashFile']))) {
+         echo '
+         <div class="error">
+            your private hash in '.$CallingHome['HashFile'].' could not be created, please check your config file and the permissions for the defined folder.
+         </div>';
+      }
+   }
+
    if (!isset($_GET['show'])) $_GET['show'] = "";
    switch ($_GET['show']) {
       case 'users'      : require_once("./pgs/users.php"); break;

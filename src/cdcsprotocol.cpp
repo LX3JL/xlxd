@@ -124,18 +124,30 @@ void CDcsProtocol::Task(void)
             std::cout << "DCS connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
             
             // callsign authorized?
-            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DCS) )
+            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DCS) && g_Reflector.IsValidModule(ToLinkModule) )
             {
-                // acknowledge the request
-                EncodeConnectAckPacket(Callsign, ToLinkModule, &Buffer);
-                m_Socket.Send(Buffer, Ip);
-                
-                // create the client
-                CDcsClient *client = new CDcsClient(Callsign, Ip, ToLinkModule);
-                
-                // and append
-                g_Reflector.GetClients()->AddClient(client);
-                g_Reflector.ReleaseClients();
+                // valid module ?
+                if ( g_Reflector.IsValidModule(ToLinkModule) )
+                {
+                    // acknowledge the request
+                    EncodeConnectAckPacket(Callsign, ToLinkModule, &Buffer);
+                    m_Socket.Send(Buffer, Ip);
+                    
+                    // create the client
+                    CDcsClient *client = new CDcsClient(Callsign, Ip, ToLinkModule);
+                    
+                    // and append
+                    g_Reflector.GetClients()->AddClient(client);
+                    g_Reflector.ReleaseClients();
+                }
+                else
+                {
+                    std::cout << "DCS node " << Callsign << " connect attempt on non-existing module" << std::endl;
+                    
+                    // deny the request
+                    EncodeConnectNackPacket(Callsign, ToLinkModule, &Buffer);
+                    m_Socket.Send(Buffer, Ip);
+                }
             }
             else
             {
@@ -149,12 +161,16 @@ void CDcsProtocol::Task(void)
         {
             std::cout << "DCS disconnect packet from " << Callsign << " at " << Ip << std::endl;
             
-            // find client & remove it
+            // find client
             CClients *clients = g_Reflector.GetClients();
             CClient *client = clients->FindClient(Ip, PROTOCOL_DCS);
             if ( client != NULL )
             {
+                // remove it
                 clients->RemoveClient(client);
+                // and acknowledge the disconnect
+                EncodeConnectNackPacket(Callsign, ' ', &Buffer);
+                m_Socket.Send(Buffer, Ip);
             }
             g_Reflector.ReleaseClients();
         }

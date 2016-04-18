@@ -77,7 +77,7 @@ public:
     void    ReleaseUsers(void)                      { m_Users.Unlock(); }
     
     // get
-    bool IsValidModule(char c) const                { return true; }
+    bool IsValidModule(char c) const                { return (GetModuleIndex(c) >= 0); }
     int  GetModuleIndex(char) const;
     char GetModuleLetter(int i) const               { return 'A' + (char)i; }
     

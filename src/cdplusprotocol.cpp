@@ -202,36 +202,44 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         // no stream open yet, open a new one
         CCallsign via(Header->GetRpt1Callsign());
         
-        // find this client
-        CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DPLUS);
-        if ( client != NULL )
+        // first, check module is valid
+        if ( g_Reflector.IsValidModule(Header->GetRpt1Module()) )
         {
-            // now we knwo if it's a dextra dongle or a genuine dplus node
-            if ( Header->GetRpt2Callsign().HasSameCallsignWithWidlcard(CCallsign("XRF*"))  )
+            // find this client
+            CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DPLUS);
+            if ( client != NULL )
             {
-                client->SetDextraDongle();
+                // now we know if it's a dextra dongle or a genuine dplus node
+                if ( Header->GetRpt2Callsign().HasSameCallsignWithWidlcard(CCallsign("XRF*"))  )
+                {
+                    client->SetDextraDongle();
+                }
+                // now we know its module, let's update it
+                if ( !client->HasModule() )
+                {
+                    client->SetModule(Header->GetRpt1Module());
+                }
+                // get client callsign
+                via = client->GetCallsign();
+                // and try to open the stream
+                if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
+                {
+                    // keep the handle
+                    m_Streams.push_back(stream);
+                    newstream = true;
+                }
             }
-            // now we know its module, let's update it
-            if ( !client->HasModule() )
-            {
-                client->SetModule(Header->GetRpt1Module());
-            }
-            // get client callsign
-            via = client->GetCallsign();
-            // and try to open the stream
-            if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
-            {
-                // keep the handle
-                m_Streams.push_back(stream);
-                newstream = true;
-            }
+            // release
+            g_Reflector.ReleaseClients();
+            
+            // update last heard
+            g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
+            g_Reflector.ReleaseUsers();
         }
-        // release
-        g_Reflector.ReleaseClients();
-        
-        // update last heard
-        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
-        g_Reflector.ReleaseUsers();
+        else
+        {
+            std::cout << "DPlus node " << via << " link attempt on non-existing module" << std::endl;
+        }
     }
     else
     {

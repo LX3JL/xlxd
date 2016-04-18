@@ -52,7 +52,7 @@ Debian 7 (Wheezy) 32 and 64bit:
 # make clean
 # make install
 
-// copy startup script "xlxd"ù to /etc/init.d
+// copy startup script "xlxd" to /etc/init.d
 # cp ~/xlxd/scripts/xlxd /etc/init.d/xlxd
 
 // adapt the default startup parameters to your needs

@@ -131,11 +131,8 @@ void CXlxProtocol::Task(void)
                     m_Socket.Send(Buffer, Ip);
                 }
             }
-            
             // done
             g_Reflector.ReleaseClients();
-            
-            
         }
         else if ( IsValidDisconnectPacket(Buffer, &Callsign) )
         {
@@ -223,12 +220,10 @@ void CXlxProtocol::HandleQueue(void)
                 {
                     // is this client busy ?
                     // here check that origin module of the stream is listed in client xlx
-                    // TODO: and check that client of origin is not another XLX to avoid loops
                     if ( !client->IsAMaster() && client->HasThisReflectorModule(packet->GetModuleId()) )
                     {
                         // no, send the packet
                         m_Socket.Send(buffer, client->GetIp());
-                        
                     }
                 }
                 g_Reflector.ReleaseClients();
@@ -278,8 +273,7 @@ void CXlxProtocol::HandleKeepalives(void)
             // remove it
             std::cout << "XLX peer " << client->GetCallsign() << " keepalive timeout" << std::endl;
             clients->RemoveClient(client);
-        }
-        
+        }        
     }
     g_Reflector.ReleaseClients();
 }

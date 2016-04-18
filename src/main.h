@@ -48,7 +48,7 @@
 
 #define VERSION_MAJOR               1
 #define VERSION_MINOR               3
-#define VERSION_REVISION            5
+#define VERSION_REVISION            6
 
 // global ------------------------------------------------------
 
@@ -57,7 +57,7 @@
 
 // reflector ---------------------------------------------------
 
-#define NB_OF_MODULES               4
+#define NB_OF_MODULES               8
 
 // protocols ---------------------------------------------------
 
@@ -87,8 +87,8 @@
 
 // XLX
 #define XLX_PORT                    10002                           // UDP port
-#define XLX_KEEPALIVE_PERIOD        3                               // in seconds
-#define XLX_KEEPALIVE_TIMEOUT       (XLX_KEEPALIVE_PERIOD*10)       // in seconds
+#define XLX_KEEPALIVE_PERIOD        1                               // in seconds
+#define XLX_KEEPALIVE_TIMEOUT       (XLX_KEEPALIVE_PERIOD*30)       // in seconds
 
 // xml & json reporting -----------------------------------------
 

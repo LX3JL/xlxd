@@ -112,16 +112,28 @@ void CDextraProtocol::Task(void)
             // callsign authorized?
             if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DEXTRA) )
             {
-                // acknowledge the request
-                EncodeConnectAckPacket(&Buffer, ProtRev);
-                m_Socket.Send(Buffer, Ip);
-                
-                // create the client
-                CDextraClient *client = new CDextraClient(Callsign, Ip, ToLinkModule, ProtRev);
-                
-                // and append
-                g_Reflector.GetClients()->AddClient(client);
-                g_Reflector.ReleaseClients();
+                // valid module ?
+                if ( g_Reflector.IsValidModule(ToLinkModule) )
+                {
+                    // acknowledge the request
+                    EncodeConnectAckPacket(&Buffer, ProtRev);
+                    m_Socket.Send(Buffer, Ip);
+                    
+                    // create the client
+                    CDextraClient *client = new CDextraClient(Callsign, Ip, ToLinkModule, ProtRev);
+                    
+                    // and append
+                    g_Reflector.GetClients()->AddClient(client);
+                    g_Reflector.ReleaseClients();
+                }
+                else
+                {
+                    std::cout << "DExtra node " << Callsign << " connect attempt on non-existing module" << std::endl;
+                    
+                    // deny the request
+                    EncodeConnectNackPacket(&Buffer);
+                    m_Socket.Send(Buffer, Ip);
+                }
             }
             else
             {

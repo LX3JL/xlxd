@@ -157,7 +157,11 @@ void CDextraProtocol::Task(void)
                     EncodeDisconnectedPacket(&Buffer);
                     m_Socket.Send(Buffer, Ip);
                 }
-                // and remove it
+                else if ( client->GetProtocolRevision() == 2 )
+                {
+                    m_Socket.Send(Buffer, Ip);
+                }
+               // and remove it
                 clients->RemoveClient(client);
             }
             g_Reflector.ReleaseClients();
@@ -179,6 +183,7 @@ void CDextraProtocol::Task(void)
         else
         {
             std::cout << "DExtra packet (" << Buffer.size() << ")" << std::endl;
+            //std::cout << Buffer.data() << std::endl;
         }
     }
     

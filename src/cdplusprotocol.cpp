@@ -142,12 +142,16 @@ void CDplusProtocol::Task(void)
         {
             std::cout << "DPlus disconnect packet from " << Ip << std::endl;
             
-            // find client & remove it
+            // find client
             CClients *clients = g_Reflector.GetClients();
             CClient *client = clients->FindClient(Ip, PROTOCOL_DPLUS);
             if ( client != NULL )
             {
+                // remove it
                 clients->RemoveClient(client);
+                // and acknowledge the disconnect
+                EncodeDisconnectPacket(&Buffer);
+                m_Socket.Send(Buffer, Ip);
             }
             g_Reflector.ReleaseClients();
         }

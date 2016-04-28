@@ -157,7 +157,7 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
     // report
     if ( !ok )
     {
-        std::cout << "Gatekeeper blocking transmiting of " << callsign << " @ " << ip << " using protocol " << protocol << std::endl;
+        std::cout << "Gatekeeper blocking transmitting of " << callsign << " @ " << ip << " using protocol " << protocol << std::endl;
     }
     
     // done

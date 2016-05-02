@@ -31,7 +31,7 @@ function ParseTime($Input) {
       case 'feb' : $month = 2; break;
       case 'mar' : $month = 3; break;
       case 'apr' : $month = 4; break;
-      case 'mai' : $month = 5; break;
+      case 'may' : $month = 5; break;
       case 'jun' : $month = 6; break;
       case 'jul' : $month = 7; break;
       case 'aug' : $month = 8; break;

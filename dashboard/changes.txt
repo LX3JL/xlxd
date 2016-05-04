@@ -1,3 +1,10 @@
+xlx db v2.3.1
+
+- "config.inc.php" 	$CallingHome['InterlinkFile'] added
+- "index.php"		added support for interlink visualization
+- "class.reflector.php" callingHome redisigned for interlink visualization	
+- "class.interlink.php"	interlink visualization
+
 xlx db v2.2.3
 
 - "config.inc.php" 	$CallingHome['HashFile'] and $CallingHome['OverrideIPAddress'] added

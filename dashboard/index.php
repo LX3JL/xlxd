@@ -8,7 +8,7 @@ if (!class_exists('Node'))       require_once("./pgs/class.node.php");
 if (!class_exists('xReflector')) require_once("./pgs/class.reflector.php");
 if (!class_exists('Station'))    require_once("./pgs/class.station.php");
 if (!class_exists('Peer'))       require_once("./pgs/class.peer.php");
-
+if (!class_exists('Interlink'))  require_once("./pgs/class.interlink.php");
 
 $Reflector = new xReflector();
 $Reflector->SetFlagFile("./pgs/country.csv");
@@ -48,11 +48,21 @@ if ($CallingHome['Active']) {
          $CallHomeNow = true;
       }
    }
+   
    if ($CallHomeNow || isset($_GET['callhome'])) {
-      $Reflector->SetCallingHome($CallingHome['Active'], $CallingHome['MyDashBoardURL'], $Hash, $CallingHome['ServerURL'], $CallingHome['Country'], $CallingHome['Comment'], $CallingHome['OverrideIPAddress']);
-      $Reflector->PushCallingHome();    
+      $Reflector->SetCallingHome($CallingHome, $Hash);
+      $Reflector->ReadInterlinkFile();
+      $Reflector->PrepareInterlinkXML();
+      $Reflector->PrepareReflectorXML();
+      $Reflector->CallHome();
    }
 }
+else {
+   $Hash = "";
+}
+
+
+
 
 ?><!DOCTYPE html PUBLIC"-//W3C//DTD XHTML 1.0 Strict//EN"
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -82,7 +92,7 @@ if ($CallingHome['Active']) {
      echo '";
       }';
 
-     if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors'))) {
+     if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
          echo '
       setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
      }

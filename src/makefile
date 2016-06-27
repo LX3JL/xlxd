@@ -4,6 +4,7 @@ LDFLAGS=-std=c++11 -pthread
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=xlxd
+RM=rm -f
 
 all: $(SOURCES) $(EXECUTABLE)
 

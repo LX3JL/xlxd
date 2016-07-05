@@ -1,0 +1,87 @@
+xlx db v2.3.1
+
+- "config.inc.php" 	$CallingHome['InterlinkFile'] added
+- "index.php"		added support for interlink visualization
+- "class.reflector.php" callingHome redisigned for interlink visualization	
+- "class.interlink.php"	interlink visualization
+
+xlx db v2.2.3
+
+- "config.inc.php" 	$CallingHome['HashFile'] and $CallingHome['OverrideIPAddress'] added
+- "index.php" 		supports new variables from config.inc.php
+- "class.reflector.php" supports new variables from config.inc.php
+- "country.csv " 	prefixes update	
+
+xlx db v2.2.2
+
+This version is a major release with voluntary self-registration feature build in.
+You need to edit the conf.inc.php to your needs.
+On the first run your personal hash to access the database is place in the server’s /tmp folder.
+Take care to make a backup of this file because this folder is cleaned up after a server reboot.
+
+This version is a major release
+
+xlx db v2.1.6
+
+With this version of the dashboard, serveral parameters
+are free configurable.
+Changes are made in "config.inc.php" 
+
+- "config.inc.php"
+- "index.php"
+- "users.php"
+- "peers.php
+- "repeaters.php"
+
+xlx db v2.1.5
+
+- "class.node.php" added "get prefix
+- "repeaters.php" check for XRF or REF link
+- "country.csv " prefixes update + gate symbol
+- "flags" gate.png 
+
+xlx db v2.1.4
+
+- "class.reflector.php" improved the flag search
+- "country.csv" added serveral prefixes
+- "flags" added Puerto Ricco and Åland Islands
+
+xlx db v2.1.3
+
+- "index.php" added support for multiradio repeaters
+- "users.php" added support for multiradio repeaters
+- "class.reflector.php" added support for multiradio repeaters
+- "repeaters.php" added suffix "D" for "dongle"
+
+xlx db v2.1.2
+
+- "index.php" bugfix to correct an error if XLX name is equal to XLX000
+
+xlx db v2.1.1
+
+- "peers.php" added hyperlink to the peers ip address
+
+xlx db v2.1.0
+ 
+- "index.php" 
+   button "Peers" added
+   button "Repeaters/Nodes" shows now the number of connected devices
+   moved XLX name, version and service uptime to improve view on mobile devices
+
+ - "class.peer.php" added
+ 
+ - "peers.php" added 
+ 
+ - "repeaters.php" limits nodes show up to 100 nodes
+ 
+xlx db v2.0.6
+
+- "index.php" now reads out the XLX service uptime and not the server uptime
+- "country.csv" prefixes update
+- "class.reflector.php" flags showing improvements
+- "users.php" limits user show up to 40 users
+- "repeaters.php" limits nodes show up to 40 nodes
+
+xlx db v2.0.5
+
+- "class.reflector.php" extra callsign checking 

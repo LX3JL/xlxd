@@ -68,12 +68,12 @@ for ($i=0;$i<count($Modules);$i++) {
    }
 }
 
-echo '</tr>';
+echo '</tr><tr>';
 
 for ($i=0;$i<count($Modules);$i++) {
     
-    $Users = $Reflector->GetCallSignsInModules($Modules[$i]);
-   
+   $Users = $Reflector->GetCallSignsInModules($Modules[$i]);
+   echo '<td><table class="table table-hover">';
    $UserCheckedArray = array();
    
    for ($j=0;$j<count($Users);$j++) {
@@ -90,7 +90,10 @@ for ($i=0;$i<count($Modules);$i++) {
             </tr>';
       $UserCheckedArray[] = $Users[$j];
    }
+   echo '</table></td>';
 }
+
+echo '</tr>';
 
 ?>
       </table>

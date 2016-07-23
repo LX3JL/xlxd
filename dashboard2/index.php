@@ -131,7 +131,7 @@ else {
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <span class="navbar-brand">XLX 724 Multiprotocol Gateway</span>
+          <span class="navbar-brand"><?php echo $Reflector->GetReflectorName(); ?> Multiprotocol Gateway</span>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">

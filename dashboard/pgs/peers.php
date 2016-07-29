@@ -37,11 +37,11 @@ $odd = "";
 $Reflector->LoadFlags();
 
 for ($i=0;$i<$Reflector->PeerCount();$i++) {
-         
+
    if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
- 
+
    echo '
-  <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
+   <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center">'.($i+1).'</td>';
    $Name = $Reflector->Peers[$i]->GetCallSign();
    for ($j=1;$j<count($Reflectors);$j++) {
@@ -75,6 +75,6 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    if ($i == $PageOptions['PeerPage']['LimitTo']) { $i = $Reflector->PeerCount()+1; }
 }
 
-?> 
- 
+?>
+
 </table>

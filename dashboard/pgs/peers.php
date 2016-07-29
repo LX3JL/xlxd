@@ -48,7 +48,6 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    for ($j=1;$j<count($Reflectors);$j++) {
       if ($Name === $XML->GetElement($Reflectors[$j], "name")) {
          $URL  = $XML->GetElement($Reflectors[$j], "dashboardurl");
-         break;
       }
    }
    if ($URL) {

@@ -44,14 +44,21 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center">'.($i+1).'</td>';
    $Name = $Reflector->Peers[$i]->GetCallSign();
+   $URL = '';
    for ($j=1;$j<count($Reflectors);$j++) {
       if ($Name === $XML->GetElement($Reflectors[$j], "name")) {
          $URL  = $XML->GetElement($Reflectors[$j], "dashboardurl");
          break;
       }
    }
+   if ($URL) {
+      echo '
+   <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'">'.$Name.'</a></td>'
+   } else {
+      echo '
+   <td>'.$Name.'</td>'
+   }
    echo '
-   <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'">'.$Name.'</a></td>
    <td>'.date("d.m.Y H:i", $Reflector->Peers[$i]->GetLastHeardTime()).'</td>
    <td>'.FormatSeconds(time()-$Reflector->Peers[$i]->GetConnectTime()).' s</td>
    <td align="center">'.$Reflector->Peers[$i]->GetProtocol().'</td>

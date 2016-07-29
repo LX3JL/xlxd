@@ -53,10 +53,10 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    }
    if ($URL) {
       echo '
-   <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'">'.$Name.'</a></td>'
+   <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'">'.$Name.'</a></td>';
    } else {
       echo '
-   <td>'.$Name.'</td>'
+   <td>'.$Name.'</td>';
    }
    echo '
    <td>'.date("d.m.Y H:i", $Reflector->Peers[$i]->GetLastHeardTime()).'</td>

@@ -16,7 +16,7 @@ $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
 
 ?>
 <table class="listingtable">
- <tr>   
+ <tr>
    <th width="25">#</th>
    <th width="100">XLX Peer</th>
    <th width="154">Last Heard</th>

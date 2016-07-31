@@ -2,18 +2,20 @@
 
 $Result = @fopen($CallingHome['ServerURL']."?do=GetReflectorList", "r");
 
-if (!$Result) die("HEUTE GIBTS KEIN BROT");
-
 $INPUT = "";
-while (!feof ($Result)) {
+
+if ($Result) {
+
+   while (!feof ($Result)) {
        $INPUT .= fgets ($Result, 1024);
+   }
+
+   $XML = new ParseXML();
+   $Reflectorlist = $XML->GetElement($INPUT, "reflectorlist");
+   $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
 }
+
 fclose($Result);
-
-$XML = new ParseXML();
-$Reflectorlist = $XML->GetElement($INPUT, "reflectorlist");
-$Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
-
 ?>
 <table class="listingtable">
  <tr>
@@ -50,7 +52,7 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
          $URL  = $XML->GetElement($Reflectors[$j], "dashboardurl");
       }
    }
-   if ($URL) {
+   if ($Result && $URL) {
       echo '
    <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'" style="text-decoration:none;color:#000000;">'.$Name.'</a></td>';
    } else {

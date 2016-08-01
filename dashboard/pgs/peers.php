@@ -52,7 +52,7 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
          $URL  = $XML->GetElement($Reflectors[$j], "dashboardurl");
       }
    }
-   if ($Result && $URL) {
+   if ($Result && (trim($URL) != "")) {
       echo '
    <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'" style="text-decoration:none;color:#000000;">'.$Name.'</a></td>';
    } else {

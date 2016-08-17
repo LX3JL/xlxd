@@ -291,13 +291,13 @@ void CDcsProtocol::HandleQueue(void)
         {
             // encode it
             CBuffer buffer;
-            if ( packet->IsDvFrame() )
-            {
-                EncodeDvPacket(m_DvHeadersCache[iModId], (const CDvFramePacket &)*packet, m_iSeqCounters[iModId]++, &buffer);
-            }
-            else if ( packet->IsLastPacket() )
+            if ( packet->IsLastPacket() )
             {
                 EncodeDvLastPacket(m_DvHeadersCache[iModId], (const CDvFramePacket &)*packet, m_iSeqCounters[iModId]++, &buffer);
+            }
+            else if ( packet->IsDvFrame() )
+            {
+                EncodeDvPacket(m_DvHeadersCache[iModId], (const CDvFramePacket &)*packet, m_iSeqCounters[iModId]++, &buffer);
             }
             
             // send it

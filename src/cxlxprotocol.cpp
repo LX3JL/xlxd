@@ -314,6 +314,8 @@ void CXlxProtocol::HandlePeerLinks(void)
         CCallsignListItem *item = &((list->data())[i]);
         if ( clients->FindClient(item->GetCallsign(), PROTOCOL_XLX) == NULL )
         {
+            // resolve again peer's IP in case it's a dynamic IP
+            item->ResolveIp();
             // send connect packet to re-initiate peer link
             EncodeConnectPacket(&buffer, item->GetModules());
             m_Socket.Send(buffer, item->GetIp(), XLX_PORT);

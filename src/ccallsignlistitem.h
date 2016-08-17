@@ -30,6 +30,11 @@
 #include "cip.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// define
+
+#define URL_MAXLEN          256
+
+////////////////////////////////////////////////////////////////////////////////////////
 // class
 
 class CCallsignListItem
@@ -38,6 +43,7 @@ public:
     // constructor
     CCallsignListItem();
     CCallsignListItem(const CCallsign &, const CIp &, const char *);
+    CCallsignListItem(const CCallsign &, const char *, const char *);
     CCallsignListItem(const CCallsignListItem &);
     
     // destructor
@@ -54,9 +60,13 @@ public:
     const CIp &GetIp(void) const                    { return m_Ip; }
     const char *GetModules(void)                    { return m_Modules; }
     
+    // update
+    void ResolveIp(void)                            { m_Ip = CIp(m_szUrl); }
+    
 protected:
     // data
     CCallsign   m_Callsign;
+    char        m_szUrl[URL_MAXLEN+1];
     CIp         m_Ip;
     char        m_Modules[NB_MODULES_MAX+1];
 };

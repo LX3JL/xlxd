@@ -37,11 +37,13 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
+class CDplusClient;
+
 class CDplusProtocol : public CProtocol
 {
 public:
     // constructor
-    CDplusProtocol() {};
+    CDplusProtocol();
     
     // destructor
     virtual ~CDplusProtocol() {};
@@ -55,6 +57,7 @@ public:
 protected:
     // queue helper
     void HandleQueue(void);
+    void SendDvHeader(CDvHeaderPacket *, CDplusClient *);
     
     // keepalive helpers
     void HandleKeepalives(void);
@@ -84,6 +87,10 @@ protected:
 protected:
     // for keep alive
     CTimePoint          m_LastKeepaliveTime;
+    
+    // for queue header caches
+    std::array<CDvHeaderPacket, NB_OF_MODULES>  m_DvHeadersCache;
+    std::array<uint32, NB_OF_MODULES>           m_iSeqCounters;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

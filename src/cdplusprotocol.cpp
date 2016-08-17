@@ -31,6 +31,17 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// constructor
+
+CDplusProtocol::CDplusProtocol()
+{
+    for ( int i = 0; i < m_iSeqCounters.size(); i++ )
+    {
+        m_iSeqCounters[i] = 0;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // operation
 
 bool CDplusProtocol::Init(void)
@@ -82,7 +93,7 @@ void CDplusProtocol::Task(void)
             
             // handle it
             OnDvFramePacketIn(Frame);
-       }
+        }
         else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
         {
             //std::cout << "DPlus DV header:" << std::endl << *Header << std::endl;
@@ -270,6 +281,17 @@ void CDplusProtocol::HandleQueue(void)
         CPacket *packet = m_Queue.front();
         m_Queue.pop();
         
+        // get our sender's id
+        int iModId = g_Reflector.GetModuleIndex(packet->GetModuleId());
+        
+        // check if it's header and update cache
+        if ( packet->IsDvHeader() )
+        {
+            // this relies on queue feeder setting valid module id
+            m_DvHeadersCache[iModId] = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
+            m_iSeqCounters[iModId] = 0;
+        }
+
         // encode it
         CBuffer buffer;
         if ( EncodeDvPacket(*packet, &buffer) )
@@ -288,30 +310,28 @@ void CDplusProtocol::HandleQueue(void)
                     // check if client is a dextra dongle
                     // then replace RPT2 with XRF instead of REF
                     // if the client type is not yet known, send bothheaders
-                    if ( packet->IsDvHeader() && (client->IsDextraDongle() || !client->HasModule()) )
+                    if ( packet->IsDvHeader() )
                     {
-                        // clone the packet and patch it
-                        CDvHeaderPacket packet2(*((CDvHeaderPacket *)packet));
-                        CCallsign rpt2 = packet2.GetRpt2Callsign();
-                        rpt2.PatchCallsign(0, (const uint8 *)"XRF", 3);
-                        packet2.SetRpt2Callsign(rpt2);
-                        // encode it
-                        CBuffer buffer2;
-                        if ( EncodeDvPacket(packet2, &buffer2) )
+                        // sending header in Dplus is client specific
+                        SendDvHeader((CDvHeaderPacket *)packet, (CDplusClient *)client);
+                    }
+                    else if ( packet->IsDvFrame() )
+                    {
+                        // and send the DV frame
+                         m_Socket.Send(buffer, client->GetIp());
+
+                        // is it time to insert a DVheader copy ?
+                        if ( (m_iSeqCounters[iModId]++ % 21) == 20 )
                         {
-                            // and send it
-                            m_Socket.Send(buffer2, client->GetIp());
-                        }
-                        // client type known ?
-                        if ( !client->HasModule() )
-                        {
-                            // no, send also the genuine packet
-                            m_Socket.Send(buffer, client->GetIp());
+                            // yes, clone it
+                            CDvHeaderPacket packet2(m_DvHeadersCache[iModId]);
+                            // and send it 
+                            SendDvHeader(&packet2, (CDplusClient *)client);
                         }
                     }
                     else
                     {
-                        // no, send the original packet
+                        // otherwise, send the original packet
                         m_Socket.Send(buffer, client->GetIp());
                     }
                 }
@@ -324,6 +344,43 @@ void CDplusProtocol::HandleQueue(void)
         delete packet;
     }
     m_Queue.Unlock();
+}
+
+void CDplusProtocol::SendDvHeader(CDvHeaderPacket *packet, CDplusClient *client)
+{
+    // encode it
+    CBuffer buffer;
+    if ( EncodeDvPacket(*packet, &buffer) )
+    {
+        if ( (client->IsDextraDongle() || !client->HasModule()) )
+        {
+            // clone the packet and patch it
+            CDvHeaderPacket packet2(*((CDvHeaderPacket *)packet));
+            CCallsign rpt2 = packet2.GetRpt2Callsign();
+            rpt2.PatchCallsign(0, (const uint8 *)"XRF", 3);
+            packet2.SetRpt2Callsign(rpt2);
+
+            // encode it
+            CBuffer buffer2;
+            if ( EncodeDvPacket(packet2, &buffer2) )
+            {
+                // and send it
+                m_Socket.Send(buffer2, client->GetIp());
+            }
+
+            // client type known ?
+            if ( !client->HasModule() )
+            {
+                // no, send also the genuine packet
+                m_Socket.Send(buffer, client->GetIp());
+            }
+        } 
+        else
+        {
+            // otherwise, send the original packet
+            m_Socket.Send(buffer, client->GetIp());
+        }
+    }      
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

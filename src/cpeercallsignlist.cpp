@@ -57,14 +57,14 @@ bool CPeerCallsignList::LoadFromFile(const char *filename)
                 {
                     CCallsign callsign(szt);
                     // 2nd token is ip
-                    if ( (szt = ::strtok(NULL, " ,\t")) != NULL )
+                    char *szip;
+                    if ( (szip = ::strtok(NULL, " ,\t")) != NULL )
                     {
-                        CIp ip(szt);
                         // 3rd token is modules list
                         if ( (szt = ::strtok(NULL, " ,\t")) != NULL )
                         {
                             // and load
-                            push_back(CCallsignListItem(callsign, ip, szt));
+                            push_back(CCallsignListItem(callsign, szip, szt));
                         }
                     }
                 }

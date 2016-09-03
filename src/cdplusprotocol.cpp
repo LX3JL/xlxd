@@ -99,7 +99,7 @@ void CDplusProtocol::Task(void)
             //std::cout << "DPlus DV header:" << std::endl << *Header << std::endl;
             
             // callsign muted?
-            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DPLUS) )
+            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DPLUS, Header->GetRpt2Module()) )
             {
                 // handle it
                 OnDvHeaderPacketIn(Header, Ip);
@@ -225,7 +225,7 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
             if ( client != NULL )
             {
                 // now we know if it's a dextra dongle or a genuine dplus node
-                if ( Header->GetRpt2Callsign().HasSameCallsignWithWidlcard(CCallsign("XRF*"))  )
+                if ( Header->GetRpt2Callsign().HasSameCallsignWithWildcard(CCallsign("XRF*"))  )
                 {
                     client->SetDextraDongle();
                 }

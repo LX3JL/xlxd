@@ -349,10 +349,12 @@ void CReflector::XmlReportThread(CReflector *This)
             // and close file
             xmlFile.close();
         }
+#ifndef NO_ERROR_ON_XML_OPEN_FAIL
         else
         {
             std::cout << "Failed to open " << XML_PATH  << std::endl;
         }
+#endif
 
         // and wait a bit
         CTimePoint::TaskSleepFor(XML_UPDATE_PERIOD * 1000);

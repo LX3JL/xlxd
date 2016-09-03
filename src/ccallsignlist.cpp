@@ -44,6 +44,7 @@ bool CCallsignList::LoadFromFile(const char *filename)
 {
     bool ok = false;
     char sz[256];
+    char szStar[2] = "*";
 
     // and load
     std::ifstream file (filename);
@@ -58,10 +59,24 @@ bool CCallsignList::LoadFromFile(const char *filename)
         {
             // remove leading & trailing spaces
             char *szt = TrimWhiteSpaces(sz);
-            // and load if not comment
+            
+            // crack it
             if ( (::strlen(szt) > 0) && (szt[0] != '#') )
             {
-                push_back(CCallsignListItem(CCallsign(szt), CIp(), NULL));
+                // 1st token is callsign
+                if ( (szt = ::strtok(szt, " ,\t")) != NULL )
+                {
+                    CCallsign callsign(szt);
+                    // 2nd token is modules list
+                    szt = ::strtok(NULL, " ,\t");
+                    // if token absent, use wildcard
+                    if ( szt == NULL )
+                    {
+                        szt = szStar;
+                    }
+                    // and add to list
+                    push_back(CCallsignListItem(callsign, CIp(), szt));
+                }
             }
         }
         // close file
@@ -112,15 +127,30 @@ bool CCallsignList::NeedReload(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // compare
 
-bool CCallsignList::IsCallsignListed(const CCallsign &callsign) const
+bool CCallsignList::IsCallsignListedWithWildcard(const CCallsign &callsign) const
 {
     bool listed = false;
 
     for ( int i =  0; (i < size()) && !listed; i++ )
     {
-        listed = (data()[i]).HasSameCallsignWithWidlcard(callsign);
+        listed = (data()[i]).HasSameCallsignWithWildcard(callsign);
     }
 
+    return listed;
+}
+
+bool CCallsignList::IsCallsignListedWithWildcard(const CCallsign &callsign, char module) const
+{
+    bool listed = false;
+    
+    for ( int i =  0; (i < size()) && !listed; i++ )
+    {
+        const CCallsignListItem *item = &(data()[i]);
+        listed = (item->HasSameCallsignWithWildcard(callsign) &&
+                  ((module == ' ') || item->HasModuleListed(module)) );
+
+    }
+    
     return listed;
 }
 

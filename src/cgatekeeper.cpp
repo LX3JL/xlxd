@@ -138,7 +138,7 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
         case PROTOCOL_DPLUS:
         case PROTOCOL_DCS:
             // first check is IP & callsigned listed OK
-            ok &= IsNodeListedOk(callsign, ip);
+            ok &= IsNodeListedOk(callsign, ip, module);
             // todo: then apply any protocol specific authorisation for the operation
             break;
             
@@ -193,7 +193,7 @@ void CGateKeeper::Thread(CGateKeeper *This)
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation helpers
 
-bool CGateKeeper::IsNodeListedOk(const CCallsign &callsign, const CIp &ip) const
+bool CGateKeeper::IsNodeListedOk(const CCallsign &callsign, const CIp &ip, char module) const
 {
     bool ok = true;
     
@@ -207,13 +207,13 @@ bool CGateKeeper::IsNodeListedOk(const CCallsign &callsign, const CIp &ip) const
         const_cast<CCallsignList &>(m_NodeWhiteList).Lock();
         if ( !m_NodeWhiteList.empty() )
         {
-            ok = m_NodeWhiteList.IsCallsignListed(callsign);
+            ok = m_NodeWhiteList.IsCallsignListedWithWildcard(callsign, module);
         }
         const_cast<CCallsignList &>(m_NodeWhiteList).Unlock();
         
         // then check if not blacklisted
         const_cast<CCallsignList &>(m_NodeBlackList).Lock();
-        ok &= !m_NodeBlackList.IsCallsignListed(callsign);
+        ok &= !m_NodeBlackList.IsCallsignListedWithWildcard(callsign);
         const_cast<CCallsignList &>(m_NodeBlackList).Unlock();
     }
     

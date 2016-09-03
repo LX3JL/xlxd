@@ -91,7 +91,7 @@ void CDcsProtocol::Task(void)
             //std::cout << "DCS DV packet" << std::endl;
             
             // callsign muted?
-            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DCS) )
+            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DCS, Header->GetRpt2Module()) )
             {
                 // handle it
                 if ( !OnDvHeaderPacketIn(Header, Ip) )

@@ -69,7 +69,7 @@ public:
     
     // compare
     bool HasSameCallsign(const CCallsign &) const;
-    bool HasSameCallsignWithWidlcard(const CCallsign &) const;
+    bool HasSameCallsignWithWildcard(const CCallsign &) const;
     bool HasSameModule(const CCallsign &) const;
    
     // operators

@@ -48,12 +48,13 @@
 
 #define VERSION_MAJOR               1
 #define VERSION_MINOR               3
-#define VERSION_REVISION            8
+#define VERSION_REVISION            9
 
 // global ------------------------------------------------------
 
 #define RUN_AS_DAEMON
 #define JSON_MONITOR
+//#define NO_ERROR_ON_XML_OPEN_FAIL
 
 // reflector ---------------------------------------------------
 

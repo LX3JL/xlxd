@@ -209,7 +209,7 @@ bool CCallsign::HasSameCallsign(const CCallsign &Callsign) const
     return (::memcmp(m_Callsign, Callsign.m_Callsign, sizeof(m_Callsign)) == 0);
 }
 
-bool CCallsign::HasSameCallsignWithWidlcard(const CCallsign &callsign) const
+bool CCallsign::HasSameCallsignWithWildcard(const CCallsign &callsign) const
 {
     bool same = true;
     bool done = false;

@@ -51,7 +51,7 @@ public:
 
     // compare
     bool HasSameCallsign(const CCallsign &) const;
-    bool HasSameCallsignWithWidlcard(const CCallsign &) const;
+    bool HasSameCallsignWithWildcard(const CCallsign &) const;
     bool HasModuleListed(char) const;
     bool CheckListedModules(char*) const;
     

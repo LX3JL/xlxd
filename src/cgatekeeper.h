@@ -60,7 +60,7 @@ protected:
     static void Thread(CGateKeeper *);
 
     // operation helpers
-    bool IsNodeListedOk(const CCallsign &, const CIp &) const;
+    bool IsNodeListedOk(const CCallsign &, const CIp &, char = ' ') const;
     bool IsPeerListedOk(const CCallsign &, const CIp &, char) const;
     bool IsPeerListedOk(const CCallsign &, const CIp &, char *) const;
     

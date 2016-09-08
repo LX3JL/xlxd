@@ -34,14 +34,16 @@ CPacket::CPacket()
     m_uiPacketId = 0;
     m_uiModuleId = ' ';
     m_uiOriginId = ORIGIN_LOCAL;
+    m_OriginClient = NULL;
 };
 
-CPacket::CPacket(uint16 sid, uint8 pid)
+CPacket::CPacket(const CClient *org, uint16 sid, uint8 pid)
 {
     m_uiStreamId = sid;
     m_uiPacketId = pid;
     m_uiModuleId = ' ';
     m_uiOriginId = ORIGIN_LOCAL;
+    m_OriginClient = org;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

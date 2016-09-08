@@ -66,7 +66,7 @@ protected:
     bool IsValidConnectPacket(const CBuffer &, CCallsign *, char *);
     bool IsValidDisconnectPacket(const CBuffer &, CCallsign *);
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
-    bool IsValidDvPacket(const CBuffer &, CDvHeaderPacket **, CDvFramePacket **);
+    bool IsValidDvPacket(const CBuffer &, CIp &, CDvHeaderPacket **, CDvFramePacket **);
     bool IsIgnorePacket(const CBuffer &);
     
     // packet encoding helpers

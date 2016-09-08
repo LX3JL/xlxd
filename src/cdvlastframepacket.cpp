@@ -33,8 +33,8 @@ CDvLastFramePacket::CDvLastFramePacket()
 {
 }
 
-CDvLastFramePacket::CDvLastFramePacket(const struct dstar_dvframe *DvFrame, uint16 sid, uint8 pid)
-    : CDvFramePacket(DvFrame, sid, pid)
+CDvLastFramePacket::CDvLastFramePacket(const CClient *org, const struct dstar_dvframe *DvFrame, uint16 sid, uint8 pid)
+    : CDvFramePacket(org, DvFrame, sid, pid)
 {
 }
 

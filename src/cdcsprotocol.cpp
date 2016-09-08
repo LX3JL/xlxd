@@ -86,7 +86,7 @@ void CDcsProtocol::Task(void)
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
         // crack the packet
-        if ( IsValidDvPacket(Buffer, &Header, &Frame) )
+        if ( IsValidDvPacket(Buffer, Ip, &Header, &Frame) )
         {
             //std::cout << "DCS DV packet" << std::endl;
             
@@ -309,8 +309,8 @@ void CDcsProtocol::HandleQueue(void)
                 CClient *client = NULL;
                 while ( (client = clients->FindNextClient(PROTOCOL_DCS, &index)) != NULL )
                 {
-                    // is this client busy ?
-                    if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
+                    // is this client busy or the originator ?
+                    if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) && (client != packet->GetOriginClient()) )
                     {
                         // no, send the packet
                         m_Socket.Send(buffer, client->GetIp());
@@ -420,7 +420,7 @@ bool CDcsProtocol::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *call
     return valid;
 }
 
-bool CDcsProtocol::IsValidDvPacket(const CBuffer &Buffer, CDvHeaderPacket **header, CDvFramePacket **frame)
+bool CDcsProtocol::IsValidDvPacket(const CBuffer &Buffer, CIp &Ip, CDvHeaderPacket **header, CDvFramePacket **frame)
 {
     uint8 tag[] = { '0','0','0','1' };
     
@@ -430,21 +430,26 @@ bool CDcsProtocol::IsValidDvPacket(const CBuffer &Buffer, CDvHeaderPacket **head
     
     if ( (Buffer.size() >= 100) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
     {
+        // find the originating client
+        CClients *clients = g_Reflector.GetClients();
+        CClient *client = clients->FindClient(Ip, PROTOCOL_DCS);
+        g_Reflector.ReleaseClients();
+
         // get the header
-        *header = new CDvHeaderPacket((struct dstar_header *)&(Buffer.data()[4]),
+        *header = new CDvHeaderPacket(client, (struct dstar_header *)&(Buffer.data()[4]),
                                      *((uint16 *)&(Buffer.data()[43])), 0x80);
-        
+
         // get the frame
         if ( ((Buffer.data()[45]) & 0x40) != 0 )
         {
             // it's the last frame
-            *frame = new CDvLastFramePacket((struct dstar_dvframe *)&(Buffer.data()[46]),
+            *frame = new CDvLastFramePacket(client, (struct dstar_dvframe *)&(Buffer.data()[46]),
                                              *((uint16 *)&(Buffer.data()[43])), Buffer.data()[45]);
         }
         else
         {
             // it's a regular DV frame
-            *frame = new CDvFramePacket((struct dstar_dvframe *)&(Buffer.data()[46]),
+            *frame = new CDvFramePacket(client, (struct dstar_dvframe *)&(Buffer.data()[46]),
                                          *((uint16 *)&(Buffer.data()[43])), Buffer.data()[45]);
         }
         

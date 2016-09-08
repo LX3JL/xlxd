@@ -37,8 +37,8 @@ CDvFramePacket::CDvFramePacket()
     ::memset(m_uiDvData, 0, sizeof(m_uiDvData));
 }
 
-CDvFramePacket::CDvFramePacket(const struct dstar_dvframe *dvframe, uint16 sid, uint8 pid)
-    : CPacket(sid, pid)
+CDvFramePacket::CDvFramePacket(const CClient *org, const struct dstar_dvframe *dvframe, uint16 sid, uint8 pid)
+    : CPacket(org, sid, pid)
 {
     ::memcpy(m_uiAmbe, dvframe->AMBE, sizeof(m_uiAmbe));
     ::memcpy(m_uiDvData, dvframe->DVDATA, sizeof(m_uiDvData));

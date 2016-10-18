@@ -94,23 +94,17 @@ void CDcsProtocol::Task(void)
             if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DCS, Header->GetRpt2Module()) )
             {
                 // handle it
-                if ( !OnDvHeaderPacketIn(Header, Ip) )
+                OnDvHeaderPacketIn(Header, Ip);
+
+                if ( !Frame->IsLastPacket() )
                 {
-                    if ( !Frame->IsLastPacket() )
-                    {
-                        //std::cout << "DCS DV frame" << std::endl;
-                        OnDvFramePacketIn(Frame);
-                    }
-                    else
-                    {
-                        //std::cout << "DCS DV last frame" << std::endl;
-                        OnDvLastFramePacketIn((CDvLastFramePacket *)Frame);
-                    }
+                    //std::cout << "DCS DV frame" << std::endl;
+                    OnDvFramePacketIn(Frame);
                 }
                 else
                 {
-                    //std::cout << "DCS DV header:" << std::endl << *Header << std::endl;
-                    delete Frame;
+                   //std::cout << "DCS DV last frame" << std::endl;
+                   OnDvLastFramePacketIn((CDvLastFramePacket *)Frame);
                 }
             }
             else

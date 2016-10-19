@@ -74,14 +74,14 @@ void CXlxProtocol::Task(void)
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
         // crack the packet
-        if ( (Frame = IsValidDvFramePacket(Buffer)) != NULL )
+        if ( (Frame = IsValidDvFramePacket(Buffer, Ip)) != NULL )
         {
             //std::cout << "XLX (DExtra) DV frame"  << std::endl;
             
             // handle it
             OnDvFramePacketIn(Frame);
         }
-        else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
+        else if ( (Header = IsValidDvHeaderPacket(Buffer, Ip)) != NULL )
         {
             //std::cout << "XLX (DExtra) DV header:"  << std::endl << *Header << std::endl;
             
@@ -96,7 +96,7 @@ void CXlxProtocol::Task(void)
                 delete Header;
             }
         }
-        else if ( (LastFrame = IsValidDvLastFramePacket(Buffer)) != NULL )
+        else if ( (LastFrame = IsValidDvLastFramePacket(Buffer, Ip)) != NULL )
         {
             //std::cout << "XLX (DExtra) DV last frame" << std::endl;
             
@@ -218,9 +218,9 @@ void CXlxProtocol::HandleQueue(void)
                 CClient *client = NULL;
                 while ( (client = clients->FindNextClient(PROTOCOL_XLX, &index)) != NULL )
                 {
-                    // is this client busy ?
+                    // is this client busy or the originator ?
                     // here check that origin module of the stream is listed in client xlx
-                    if ( !client->IsAMaster() && client->HasThisReflectorModule(packet->GetModuleId()) )
+                    if ( !client->IsAMaster() && client->HasThisReflectorModule(packet->GetModuleId()) && (client != packet->GetOriginClient()) )
                     {
                         // no, send the packet
                         m_Socket.Send(buffer, client->GetIp());

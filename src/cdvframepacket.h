@@ -49,7 +49,7 @@ class CDvFramePacket : public CPacket
 public:
     // constructor
     CDvFramePacket();
-    CDvFramePacket(const struct dstar_dvframe *, uint16 = 0, uint8 = 0);
+    CDvFramePacket(const CClient *, const struct dstar_dvframe *, uint16 = 0, uint8 = 0);
     CDvFramePacket(const CDvFramePacket &);
     
     // destructor

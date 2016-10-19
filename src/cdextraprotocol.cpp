@@ -75,14 +75,14 @@ void CDextraProtocol::Task(void)
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
         // crack the packet
-        if ( (Frame = IsValidDvFramePacket(Buffer)) != NULL )
+        if ( (Frame = IsValidDvFramePacket(Buffer, Ip)) != NULL )
         {
             //std::cout << "DExtra DV frame"  << std::endl;
             
             // handle it
             OnDvFramePacketIn(Frame);
         }
-        else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
+        else if ( (Header = IsValidDvHeaderPacket(Buffer, Ip)) != NULL )
         {
             //std::cout << "DExtra DV header:"  << std::endl << *Header << std::endl;
             //std::cout << "DExtra DV header:"  << std::endl;
@@ -98,7 +98,7 @@ void CDextraProtocol::Task(void)
                 delete Header;
             }
         }
-        else if ( (LastFrame = IsValidDvLastFramePacket(Buffer)) != NULL )
+        else if ( (LastFrame = IsValidDvLastFramePacket(Buffer, Ip)) != NULL )
         {
             //std::cout << "DExtra DV last frame" << std::endl;
             
@@ -226,8 +226,8 @@ void CDextraProtocol::HandleQueue(void)
             CClient *client = NULL;
             while ( (client = clients->FindNextClient(PROTOCOL_DEXTRA, &index)) != NULL )
             {
-                // is this client busy ?
-                if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
+                // is this client busy or the originator ?
+                if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) && (client != packet->GetOriginClient()) )
                 {
                     // no, send the packet
                     int n = packet->IsDvHeader() ? 5 : 1;
@@ -398,15 +398,20 @@ bool CDextraProtocol::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *c
     return valid;
 }
 
-CDvHeaderPacket *CDextraProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer)
+CDvHeaderPacket *CDextraProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CIp &Ip)
 {
     CDvHeaderPacket *header = NULL;
     
     if ( (Buffer.size() == 56) && (Buffer.Compare((uint8 *)"DSVT", 4) == 0) &&
          (Buffer.data()[4] == 0x10) && (Buffer.data()[8] == 0x20) )
     {
+         // find client
+        CClients *clients = g_Reflector.GetClients();
+        CClient *client = clients->FindClient(Ip, PROTOCOL_DEXTRA);
+        g_Reflector.ReleaseClients();
+
         // create packet
-        header = new CDvHeaderPacket((struct dstar_header *)&(Buffer.data()[15]),
+        header = new CDvHeaderPacket(client, (struct dstar_header *)&(Buffer.data()[15]),
                                 *((uint16 *)&(Buffer.data()[12])), 0x80);
         // check validity of packet
         if ( !header->IsValid() )
@@ -418,7 +423,7 @@ CDvHeaderPacket *CDextraProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer)
     return header;
 }
 
-CDvFramePacket *CDextraProtocol::IsValidDvFramePacket(const CBuffer &Buffer)
+CDvFramePacket *CDextraProtocol::IsValidDvFramePacket(const CBuffer &Buffer, CIp &Ip)
 {
     CDvFramePacket *dvframe = NULL;
     
@@ -426,8 +431,13 @@ CDvFramePacket *CDextraProtocol::IsValidDvFramePacket(const CBuffer &Buffer)
          (Buffer.data()[4] == 0x20) && (Buffer.data()[8] == 0x20) &&
          ((Buffer.data()[14] & 0x40) == 0) )
     {
+         // find client
+        CClients *clients = g_Reflector.GetClients();
+        CClient *client = clients->FindClient(Ip, PROTOCOL_DEXTRA);
+        g_Reflector.ReleaseClients();
+
         // create packet
-        dvframe = new CDvFramePacket((struct dstar_dvframe *)&(Buffer.data()[15]),
+        dvframe = new CDvFramePacket(client, (struct dstar_dvframe *)&(Buffer.data()[15]),
                                      *((uint16 *)&(Buffer.data()[12])), Buffer.data()[14]);
         // check validity of packet
         if ( !dvframe->IsValid() )
@@ -439,7 +449,7 @@ CDvFramePacket *CDextraProtocol::IsValidDvFramePacket(const CBuffer &Buffer)
     return dvframe;
 }
 
-CDvLastFramePacket *CDextraProtocol::IsValidDvLastFramePacket(const CBuffer &Buffer)
+CDvLastFramePacket *CDextraProtocol::IsValidDvLastFramePacket(const CBuffer &Buffer, CIp &Ip)
 {
     CDvLastFramePacket *dvframe = NULL;
     
@@ -447,8 +457,13 @@ CDvLastFramePacket *CDextraProtocol::IsValidDvLastFramePacket(const CBuffer &Buf
          (Buffer.data()[4] == 0x20) && (Buffer.data()[8] == 0x20) &&
          ((Buffer.data()[14] & 0x40) != 0) )
     {
+         // find client
+        CClients *clients = g_Reflector.GetClients();
+        CClient *client = clients->FindClient(Ip, PROTOCOL_DEXTRA);
+        g_Reflector.ReleaseClients();
+
         // create packet
-        dvframe = new CDvLastFramePacket((struct dstar_dvframe *)&(Buffer.data()[15]),
+        dvframe = new CDvLastFramePacket(client, (struct dstar_dvframe *)&(Buffer.data()[15]),
                                          *((uint16 *)&(Buffer.data()[12])), Buffer.data()[14]);
         // check validity of packet
         if ( !dvframe->IsValid() )

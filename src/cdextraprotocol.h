@@ -84,9 +84,9 @@ protected:
     bool                IsValidConnectPacket(const CBuffer &, CCallsign *, char *, int *);
     bool                IsValidDisconnectPacket(const CBuffer &, CCallsign *);
     bool                IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
-    CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &);
-    CDvFramePacket      *IsValidDvFramePacket(const CBuffer &);
-    CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &);
+    CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &, CIp &);
+    CDvFramePacket      *IsValidDvFramePacket(const CBuffer &, CIp &);
+    CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &, CIp &);
     
     // packet encoding helpers
     void                EncodeKeepAlivePacket(CBuffer *);

@@ -38,8 +38,8 @@ CDvHeaderPacket::CDvHeaderPacket()
     m_uiCrc = 0;
 }
 
-CDvHeaderPacket::CDvHeaderPacket(const struct dstar_header *buffer, uint16 sid, uint8 pid)
-    : CPacket(sid, pid)
+CDvHeaderPacket::CDvHeaderPacket(const CClient *org, const struct dstar_header *buffer, uint16 sid, uint8 pid)
+    : CPacket(org, sid, pid)
 {
     m_uiFlag1 = buffer->Flag1;
     m_uiFlag2 = buffer->Flag2;

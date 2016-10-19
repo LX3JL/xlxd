@@ -70,9 +70,9 @@ protected:
     bool                IsValidLoginPacket(const CBuffer &, CCallsign *);
     bool                IsValidDisconnectPacket(const CBuffer &);
     bool                IsValidKeepAlivePacket(const CBuffer &);
-    CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &);
-    CDvFramePacket      *IsValidDvFramePacket(const CBuffer &);
-    CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &);
+    CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &, CIp &);
+    CDvFramePacket      *IsValidDvFramePacket(const CBuffer &, CIp &);
+    CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &, CIp &);
     
     // packet encoding helpers
     void                EncodeKeepAlivePacket(CBuffer *);

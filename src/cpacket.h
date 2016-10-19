@@ -35,12 +35,14 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
+class CClient;
+
 class CPacket
 {
 public:
     // constructor
     CPacket();
-    CPacket(uint16 sid, uint8 pid);
+    CPacket(const CClient *, uint16 sid, uint8 pid);
     
     // destructor
     virtual ~CPacket() {};
@@ -49,21 +51,22 @@ public:
     virtual CPacket *Duplicate(void) const;
     
     // identity
-    virtual bool IsDvHeader(void) const     { return false; }
-    virtual bool IsDvFrame(void) const      { return false; }
-    virtual bool IsLastPacket(void) const   { return false; }
+    virtual bool IsDvHeader(void) const           { return false; }
+    virtual bool IsDvFrame(void) const            { return false; }
+    virtual bool IsLastPacket(void) const         { return false; }
     
     // get
-    virtual bool IsValid(void) const        { return true; }
-    uint16 GetStreamId(void) const          { return m_uiStreamId; }
-    uint8  GetPacketId(void) const          { return m_uiPacketId; }
-    uint8  GetModuleId(void) const          { return m_uiModuleId; }
-    bool   IsLocalOrigin(void) const        { return (m_uiOriginId == ORIGIN_LOCAL); }
+    virtual bool IsValid(void) const              { return true; }
+    uint16 GetStreamId(void) const                { return m_uiStreamId; }
+    uint8  GetPacketId(void) const                { return m_uiPacketId; }
+    uint8  GetModuleId(void) const                { return m_uiModuleId; }
+    const CClient * GetOriginClient(void) const   { return m_OriginClient; }
+    bool   IsLocalOrigin(void) const              { return (m_uiOriginId == ORIGIN_LOCAL); }
     
     // set
-    void SetModuleId(uint8 uiId)            { m_uiModuleId = uiId; }
-    void SetLocalOrigin(void)               { m_uiOriginId = ORIGIN_LOCAL; }
-    void SetRemotePeerOrigin(void)          { m_uiOriginId = ORIGIN_PEER; }
+    void SetModuleId(uint8 uiId)                  { m_uiModuleId = uiId; }
+    void SetLocalOrigin(void)                     { m_uiOriginId = ORIGIN_LOCAL; }
+    void SetRemotePeerOrigin(void)                { m_uiOriginId = ORIGIN_PEER; }
 
 protected:
     // data
@@ -71,6 +74,7 @@ protected:
     uint8   m_uiPacketId;
     uint8   m_uiModuleId;
     uint8   m_uiOriginId;
+    const CClient * m_OriginClient;
 };
 
 

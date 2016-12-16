@@ -58,6 +58,7 @@ public:
     // find clients
     CClient *FindClient(const CIp &);
     CClient *FindClient(const CIp &, int);
+    CClient *FindClient(const CIp &, int, char);
     CClient *FindClient(const CCallsign &, const CIp &, int);
     CClient *FindClient(const CCallsign &, char, const CIp &, int);
     CClient *FindClient(const CCallsign &, int);

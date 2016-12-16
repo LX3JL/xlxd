@@ -24,7 +24,7 @@
 
 #include "main.h"
 #include <string.h>
-#include "cxlxclient.h"
+#include "cxlxpeer.h"
 #include "cxlxprotocol.h"
 #include "creflector.h"
 #include "cgatekeeper.h"
@@ -52,6 +52,7 @@ bool CXlxProtocol::Init(void)
     
     // update time
     m_LastKeepaliveTime.Now();
+    m_LastPeersLinkTime.Now();
     
     // done
     return ok;
@@ -69,6 +70,7 @@ void CXlxProtocol::Task(void)
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frame;
     CDvLastFramePacket  *LastFrame;
+    uint8               Major, Minor, Revision;
     
     // any incoming packet ?
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -84,6 +86,7 @@ void CXlxProtocol::Task(void)
         else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
         {
             //std::cout << "XLX (DExtra) DV header:"  << std::endl << *Header << std::endl;
+            //std::cout << "XLX (DExtra) DV header on module " << Header->GetRpt2Module() << std::endl;
             
             // callsign muted?
             if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip) )
@@ -103,49 +106,80 @@ void CXlxProtocol::Task(void)
             // handle it
             OnDvLastFramePacketIn(LastFrame);
         }
-        else if ( IsValidConnectPacket(Buffer, &Callsign, Modules) || IsValidAckPacket(Buffer, &Callsign, Modules)  )
+        else if ( IsValidConnectPacket(Buffer, &Callsign, Modules, &Major, &Minor, &Revision) )
         {
-            std::cout << "XLX connect/ack packet for modules " << Modules << " from " << Callsign << " at " << Ip << std::endl;
+            std::cout << "XLX (" << (int)Major << "." << (int)Minor << "." << (int)Revision
+                      << ") connect packet for modules " << Modules
+                      << " from " << Callsign <<  " at " << Ip << std::endl;
             
-            // already connected ?
-            CClients *clients = g_Reflector.GetClients();
-            if ( clients->FindClient(Callsign, Ip, PROTOCOL_XLX) == NULL )
+            // callsign authorized?
+            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_XLX, Modules) )
             {
-                // callsign authorized?
-                if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_XLX, Modules) )
+                // following is version dependent
+                // for backward compatibility, only send ACK once
+                if ( (Major == 1) && (Minor < 4) )
                 {
-                    // acknowledge the request
-                    EncodeConnectAckPacket(&Buffer, Modules);
-                    m_Socket.Send(Buffer, Ip);
-                    
-                    // create the client
-                    CXlxClient *client = new CXlxClient(Callsign, Ip, Modules);
-                    
-                    // and append
-                    clients->AddClient(client);
+                    // already connected ?
+                    CPeers *peers = g_Reflector.GetPeers();
+                    if ( peers->FindPeer(Callsign, Ip, PROTOCOL_XLX) == NULL )
+                    {
+                        // acknowledge the request
+                        EncodeConnectAckPacket(&Buffer, Modules);
+                        m_Socket.Send(Buffer, Ip);
+                    }
+                    g_Reflector.ReleasePeers();
                 }
                 else
                 {
-                    // deny the request
-                    EncodeConnectNackPacket(&Buffer);
-                    m_Socket.Send(Buffer, Ip);
+                    // acknowledge the request
+                    EncodeConnectAckPacket(&Buffer, Modules);
+                    m_Socket.Send(Buffer, Ip);                    
                 }
             }
-            // done
-            g_Reflector.ReleaseClients();
+            else
+            {
+                // deny the request
+                EncodeConnectNackPacket(&Buffer);
+                m_Socket.Send(Buffer, Ip);
+            }
+        }
+        else if ( IsValidAckPacket(Buffer, &Callsign, Modules)  )
+        {
+            std::cout << "XLX ack packet for modules " << Modules << " from " << Callsign << " at " << Ip << std::endl;
+            
+            // callsign authorized?
+            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_XLX, Modules) )
+            {
+                // already connected ?
+                CPeers *peers = g_Reflector.GetPeers();
+                if ( peers->FindPeer(Callsign, Ip, PROTOCOL_XLX) == NULL )
+                {
+                    // create the new peer
+                    // this also create one client per module
+                    CXlxPeer *peer = new CXlxPeer(Callsign, Ip, Modules);
+                    
+                    // append the peer to reflector peer list
+                    // this also add all new clients to reflector client list
+                    peers->AddPeer(peer);
+                }
+                g_Reflector.ReleasePeers();
+            }
         }
         else if ( IsValidDisconnectPacket(Buffer, &Callsign) )
         {
             std::cout << "XLX disconnect packet from " << Callsign << " at " << Ip << std::endl;
             
-            // find client & remove it
-            CClients *clients = g_Reflector.GetClients();
-            CClient *client = clients->FindClient(Callsign, Ip, PROTOCOL_XLX);
-            if ( client != NULL )
+            // find peer
+            CPeers *peers = g_Reflector.GetPeers();
+            CPeer *peer = peers->FindPeer(Ip, PROTOCOL_XLX);
+            if ( peer != NULL )
             {
-                clients->RemoveClient(client);
+                // remove it from reflector peer list
+                // this also remove all concerned clients from reflector client list
+                // and delete them
+                peers->RemovePeer(peer);
             }
-            g_Reflector.ReleaseClients();
+            g_Reflector.ReleasePeers();
         }
         else if ( IsValidNackPacket(Buffer, &Callsign) )
         {
@@ -155,15 +189,15 @@ void CXlxProtocol::Task(void)
         {
             //std::cout << "XLX keepalive packet from " << Callsign << " at " << Ip << std::endl;
             
-            // find client & keep it alive
-            CClient *GetClient(const CCallsign &, const CIp &, char, int);
-            
-            CClient *client = g_Reflector.GetClients()->FindClient(Callsign, Ip, PROTOCOL_XLX);
-            if ( client != NULL )
+            // find peer
+            CPeers *peers = g_Reflector.GetPeers();
+            CPeer *peer = peers->FindPeer(Ip, PROTOCOL_XLX);
+            if ( peer != NULL )
             {
-                client->Alive();
+                // keep it alive
+                peer->Alive();
             }
-            g_Reflector.ReleaseClients();
+            g_Reflector.ReleasePeers();
         }
         else
         {
@@ -183,11 +217,18 @@ void CXlxProtocol::Task(void)
         // handle keep alives
         HandleKeepalives();
         
+        // update time
+        m_LastKeepaliveTime.Now();
+    }
+    
+    // peer connections
+    if ( m_LastPeersLinkTime.DurationSinceNow() > XLX_RECONNECT_PERIOD )
+    {
         // handle remote peers connections
         HandlePeerLinks();
         
         // update time
-        m_LastKeepaliveTime.Now();
+        m_LastPeersLinkTime.Now();
     }
 }
 
@@ -219,8 +260,7 @@ void CXlxProtocol::HandleQueue(void)
                 while ( (client = clients->FindNextClient(PROTOCOL_XLX, &index)) != NULL )
                 {
                     // is this client busy ?
-                    // here check that origin module of the stream is listed in client xlx
-                    if ( !client->IsAMaster() && client->HasThisReflectorModule(packet->GetModuleId()) )
+                    if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
                     {
                         // no, send the packet
                         m_Socket.Send(buffer, client->GetIp());
@@ -247,35 +287,35 @@ void CXlxProtocol::HandleKeepalives(void)
     CBuffer keepalive;
     EncodeKeepAlivePacket(&keepalive);
     
-    // iterate on clients
-    CClients *clients = g_Reflector.GetClients();
+    // iterate on peers
+    CPeers *peers = g_Reflector.GetPeers();
     int index = -1;
-    CClient *client = NULL;
-    while ( (client = clients->FindNextClient(PROTOCOL_XLX, &index)) != NULL )
+    CPeer *peer = NULL;
+    while ( (peer = peers->FindNextPeer(PROTOCOL_XLX, &index)) != NULL )
     {
         // send keepalive
-        m_Socket.Send(keepalive, client->GetIp());
+        m_Socket.Send(keepalive, peer->GetIp());
         
         // client busy ?
-        if ( client->IsAMaster() )
+        if ( peer->IsAMaster() )
         {
             // yes, just tickle it
-            client->Alive();
+            peer->Alive();
         }
         // otherwise check if still with us
-        else if ( !client->IsAlive() )
+        else if ( !peer->IsAlive() )
         {
             // no, disconnect
             CBuffer disconnect;
             EncodeDisconnectPacket(&disconnect);
-            m_Socket.Send(disconnect, client->GetIp());
+            m_Socket.Send(disconnect, peer->GetIp());
             
             // remove it
-            std::cout << "XLX peer " << client->GetCallsign() << " keepalive timeout" << std::endl;
-            clients->RemoveClient(client);
+            std::cout << "XLX peer " << peer->GetCallsign() << " keepalive timeout" << std::endl;
+            peers->RemovePeer(peer);
         }        
     }
-    g_Reflector.ReleaseClients();
+    g_Reflector.ReleasePeers();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -287,23 +327,22 @@ void CXlxProtocol::HandlePeerLinks(void)
     
     // get the list of peers
     CPeerCallsignList *list = g_GateKeeper.GetPeerList();
-    // todo: analyse possibility of double-lock hang-up
-    CClients *clients = g_Reflector.GetClients();
+    CPeers *peers = g_Reflector.GetPeers();
 
-    // check if all our connected client are still listed by gatekeeper
+    // check if all our connected peers are still listed by gatekeeper
     // if not, disconnect
     int index = -1;
-    CClient *client = NULL;
-    while ( (client = clients->FindNextClient(PROTOCOL_XLX, &index)) != NULL )
+    CPeer *peer = NULL;
+    while ( (peer = peers->FindNextPeer(PROTOCOL_XLX, &index)) != NULL )
     {
-        if ( list->FindListItem(client->GetCallsign()) == NULL )
+        if ( list->FindListItem(peer->GetCallsign()) == NULL )
         {
             // send disconnect packet
             EncodeDisconnectPacket(&buffer);
-            m_Socket.Send(buffer, client->GetIp());
-            std::cout << "Sending disconnect packet to XLX peer " << client->GetCallsign() << std::endl;
+            m_Socket.Send(buffer, peer->GetIp());
+            std::cout << "Sending disconnect packet to XLX peer " << peer->GetCallsign() << std::endl;
             // remove client
-            clients->RemoveClient(client);
+            peers->RemovePeer(peer);
         }
     }
     
@@ -312,7 +351,7 @@ void CXlxProtocol::HandlePeerLinks(void)
     for ( int i = 0; i < list->size(); i++ )
     {
         CCallsignListItem *item = &((list->data())[i]);
-        if ( clients->FindClient(item->GetCallsign(), PROTOCOL_XLX) == NULL )
+        if ( peers->FindPeer(item->GetCallsign(), PROTOCOL_XLX) == NULL )
         {
             // resolve again peer's IP in case it's a dynamic IP
             item->ResolveIp();
@@ -324,7 +363,7 @@ void CXlxProtocol::HandlePeerLinks(void)
     }
     
     // done
-    g_Reflector.ReleaseClients();
+    g_Reflector.ReleasePeers();
     g_GateKeeper.ReleasePeerList();
 }
 
@@ -349,7 +388,7 @@ bool CXlxProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
     {
         // no stream open yet, open a new one
         // find this client
-        CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_XLX);
+        CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_XLX, Header->GetRpt2Module());
         if ( client != NULL )
         {
             // and try to open the stream
@@ -414,7 +453,7 @@ bool CXlxProtocol::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *call
 }
 
 
-bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *modules)
+bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *modules, uint8 *major, uint8 *minor, uint8 *rev)
 {
     bool valid = false;
     if ((Buffer.size() == 39) && (Buffer.data()[0] == 'L') && (Buffer.data()[38] == 0))
@@ -422,6 +461,9 @@ bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsi
         callsign->SetCallsign((const uint8 *)&(Buffer.data()[1]), 8);
         ::strcpy(modules, (const char *)&(Buffer.data()[12]));
         valid = callsign->IsValid();
+        *major = Buffer.data()[9];
+        *minor = Buffer.data()[10];
+        *rev = Buffer.data()[11];
         for ( int i = 0; i < ::strlen(modules); i++ )
         {
             valid &= IsLetter(modules[i]);

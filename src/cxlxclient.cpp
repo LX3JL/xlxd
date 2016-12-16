@@ -32,31 +32,16 @@
 
 CXlxClient::CXlxClient()
 {
-    ::memset(m_ReflectorModules, 0, sizeof(m_ReflectorModules));
 }
 
-CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char *reflectorModules)
-: CClient(callsign, ip)
+CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
+: CClient(callsign, ip, reflectorModule)
 {
-    ::memset(m_ReflectorModules, 0, sizeof(m_ReflectorModules));
-    if ( reflectorModules != NULL )
-    {
-        while ( *reflectorModules != 0x00 )
-        {
-            if ( (*reflectorModules >= 'A') && (*reflectorModules < ('A'+ NB_OF_MODULES)) )
-            {
-                ::strncat(m_ReflectorModules, reflectorModules, 1);
-            }
-            reflectorModules++;
-        }
-    }
-    
 }
 
 CXlxClient::CXlxClient(const CXlxClient &client)
 : CClient(client)
 {
-    ::strcpy(m_ReflectorModules, client.m_ReflectorModules);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -66,35 +51,4 @@ bool CXlxClient::IsAlive(void) const
 {
     return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-// get
-
-bool CXlxClient::HasThisReflectorModule(char module) const
-{
-    return (::strchr(m_ReflectorModules, module) != NULL);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// reporting
-
-void CXlxClient::WriteXml(std::ofstream &xmlFile)
-{
-    xmlFile << "<PEER>" << std::endl;
-    xmlFile << "\t<Callsign>" << m_Callsign << "</Callsign>" << std::endl;
-    xmlFile << "\t<IP>" << m_Ip << "</IP>" << std::endl;
-    xmlFile << "\t<LinkedModule>" << m_ReflectorModules << "</LinkedModule>" << std::endl;
-    xmlFile << "\t<Protocol>" << GetProtocolName() << "</Protocol>" << std::endl;
-    char mbstr[100];
-    if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&m_ConnectTime)))
-    {
-        xmlFile << "\t<ConnectTime>" << mbstr << "</ConnectTime>" << std::endl;
-    }
-    if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&m_LastHeardTime)))
-    {
-        xmlFile << "\t<LastHeardTime>" << mbstr << "</LastHeardTime>" << std::endl;
-    }
-    xmlFile << "</PEER>" << std::endl;
-}
-
 

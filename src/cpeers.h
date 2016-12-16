@@ -1,9 +1,9 @@
 //
-//  cnotification.h
+//  cpeers.h
 //  xlxd
 //
-//  Created by Jean-Luc on 05/12/2015.
-//  Copyright © 2015 Jean-Luc. All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 10/12/2016.
+//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,47 +22,52 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
+#ifndef cpeers_h
+#define cpeers_h
 
-#ifndef cnotification_h
-#define cnotification_h
+#include "cpeer.h"
 
-#include "ccallsign.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// define
 
-// Id
-#define NOTIFICATION_NONE           0
-#define NOTIFICATION_CLIENTS        1
-#define NOTIFICATION_USERS          2
-#define NOTIFICATION_STREAM_OPEN    3
-#define NOTIFICATION_STREAM_CLOSE   4
-#define NOTIFICATION_PEERS          5
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CNotification
+class CPeers
 {
 public:
-    // constructor
-    CNotification();
-    CNotification(const CNotification &);
-    CNotification(int);
-    CNotification(int, const CCallsign &);
+    // constructors
+    CPeers();
     
-    // destructor
-    ~CNotification() {};
+    // destructors
+    virtual ~CPeers();
     
-    // get
-    int GetId(void) const                       { return m_iId; }
-    const CCallsign &GetCallsign(void) const    { return m_Callsign; }
+    // locks
+    void Lock(void)                     { m_Mutex.lock(); }
+    void Unlock(void)                   { m_Mutex.unlock(); }
     
+    // manage peers
+    int     GetSize(void) const         { return (int)m_Peers.size(); }
+    void    AddPeer(CPeer *);
+    void    RemovePeer(CPeer *);
+    CPeer   *GetPeer(int);
+    
+    // find peers
+    CPeer *FindPeer(const CIp &, int);
+    CPeer *FindPeer(const CCallsign &, const CIp &, int);
+    CPeer *FindPeer(const CCallsign &, int);
+
+    // iterate on peers
+    CPeer *FindNextPeer(int, int*);
+
 protected:
     // data
-    int         m_iId;
-    CCallsign   m_Callsign;
-    
+    std::mutex               m_Mutex;
+    std::vector<CPeer *>     m_Peers;
 };
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cnotification_h */
+#endif /* cpeers_h */

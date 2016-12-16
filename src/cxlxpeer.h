@@ -1,9 +1,9 @@
 //
-//  cnotification.h
+//  cxlxpeer.h
 //  xlxd
 //
-//  Created by Jean-Luc on 05/12/2015.
-//  Copyright © 2015 Jean-Luc. All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 10/12/2016.
+//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,47 +22,34 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
+#ifndef cxlxpeer_h
+#define cxlxpeer_h
 
-#ifndef cnotification_h
-#define cnotification_h
-
-#include "ccallsign.h"
+#include "cpeer.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-
-// Id
-#define NOTIFICATION_NONE           0
-#define NOTIFICATION_CLIENTS        1
-#define NOTIFICATION_USERS          2
-#define NOTIFICATION_STREAM_OPEN    3
-#define NOTIFICATION_STREAM_CLOSE   4
-#define NOTIFICATION_PEERS          5
+//
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CNotification
+class CXlxPeer : public CPeer
 {
 public:
-    // constructor
-    CNotification();
-    CNotification(const CNotification &);
-    CNotification(int);
-    CNotification(int, const CCallsign &);
+    // constructors
+    CXlxPeer();
+    CXlxPeer(const CCallsign &, const CIp &, char *);
+    CXlxPeer(const CXlxPeer &);
     
     // destructor
-    ~CNotification() {};
+    ~CXlxPeer();
     
-    // get
-    int GetId(void) const                       { return m_iId; }
-    const CCallsign &GetCallsign(void) const    { return m_Callsign; }
-    
-protected:
-    // data
-    int         m_iId;
-    CCallsign   m_Callsign;
-    
+    // status
+    bool IsAlive(void) const;
+    // identity
+    int GetProtocol(void) const                 { return PROTOCOL_XLX; }
+    const char *GetProtocolName(void) const     { return "XLX"; }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cnotification_h */
+#endif /* cxlxpeer_h */

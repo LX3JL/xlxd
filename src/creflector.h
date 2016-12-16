@@ -27,6 +27,7 @@
 
 #include "cusers.h"
 #include "cclients.h"
+#include "cpeers.h"
 #include "cprotocols.h"
 #include "cpacketstream.h"
 #include "cnotificationqueue.h"
@@ -67,6 +68,10 @@ public:
     CClients  *GetClients(void)                     { m_Clients.Lock(); return &m_Clients; }
     void      ReleaseClients(void)                  { m_Clients.Unlock(); }
     
+    // peers
+    CPeers   *GetPeers(void)                        { m_Peers.Lock(); return &m_Peers; }
+    void      ReleasePeers(void)                    { m_Peers.Unlock(); }
+    
     // stream opening & closing
     CPacketStream *OpenStream(CDvHeaderPacket *, CClient *);
     bool IsStreaming(char);
@@ -82,6 +87,7 @@ public:
     char GetModuleLetter(int i) const               { return 'A' + (char)i; }
     
     // notifications
+    void OnPeersChanged(void);
     void OnClientsChanged(void);
     void OnUsersChanged(void);
     void OnStreamOpen(const CCallsign &);
@@ -114,7 +120,8 @@ protected:
     
     // objects
     CUsers          m_Users;            // sorted list of lastheard stations
-    CClients        m_Clients;          // list of linked repeaters/nodes
+    CClients        m_Clients;          // list of linked repeaters/nodes/peers's modules
+    CPeers          m_Peers;            // list of linked peers
     CProtocols      m_Protocols;        // list of supported protocol handlers
     
     // queues

@@ -421,6 +421,7 @@ void CReflector::JsonReportThread(CReflector *This)
                 switch ( notification.GetId() )
                 {
                     case NOTIFICATION_CLIENTS:
+                    case NOTIFICATION_PEERS:
                         //std::cout << "Monitor updating nodes table" << std::endl;
                         This->SendJsonNodesObject(Socket, Ip);
                         break;
@@ -454,6 +455,15 @@ void CReflector::JsonReportThread(CReflector *This)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // notifications
+
+void CReflector::OnPeersChanged(void)
+{
+    CNotification notification(NOTIFICATION_PEERS);
+    
+    m_Notifications.Lock();
+    m_Notifications.push(notification);
+    m_Notifications.Unlock();
+}
 
 void CReflector::OnClientsChanged(void)
 {
@@ -544,23 +554,20 @@ void CReflector::WriteXmlFile(std::ofstream &xmlFile)
     // linked peers
     xmlFile << "<" << m_Callsign << "linked peers>" << std::endl;
     // lock
-    CClients *clients = GetClients();
-    // iterate on clients
-    for ( int i = 0; i < clients->GetSize(); i++ )
+    CPeers *peers = GetPeers();
+    // iterate on peers
+    for ( int i = 0; i < peers->GetSize(); i++ )
     {
-        if ( clients->GetClient(i)->IsPeer() )
-        {
-            clients->GetClient(i)->WriteXml(xmlFile);
-        }
+        peers->GetPeer(i)->WriteXml(xmlFile);
     }
     // unlock
-    ReleaseClients();
+    ReleasePeers();
     xmlFile << "</" << m_Callsign << "linked peers>" << std::endl;
     
     // linked nodes
     xmlFile << "<" << m_Callsign << "linked nodes>" << std::endl;
     // lock
-    clients = GetClients();
+    CClients *clients = GetClients();
     // iterate on clients
     for ( int i = 0; i < clients->GetSize(); i++ )
     {

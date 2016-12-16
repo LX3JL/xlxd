@@ -40,7 +40,7 @@ class CXlxClient : public CClient
 public:
     // constructors
     CXlxClient();
-    CXlxClient(const CCallsign &, const CIp &, char * = NULL);
+    CXlxClient(const CCallsign &, const CIp &, char = ' ');
     CXlxClient(const CXlxClient &);
     
     // destructor
@@ -54,16 +54,8 @@ public:
     // status
     bool IsAlive(void) const;
 
-    // get
-    bool HasThisReflectorModule(char) const;
-
     // reporting
-    void WriteXml(std::ofstream &);
-
-protected:
-    // linked to
-    char m_ReflectorModules[NB_OF_MODULES+1];
-    
+    void WriteXml(std::ofstream &) {}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

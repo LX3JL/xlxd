@@ -1,9 +1,9 @@
 //
-//  cclient.h
+//  cpeer.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 10/12/2016.
+//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -19,16 +19,16 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cclient_h
-#define cclient_h
+#ifndef cpeer_h
+#define cpeer_h
 
 #include "ctimepoint.h"
 #include "cip.h"
 #include "ccallsign.h"
-#include "cbuffer.h"
+#include "cclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -36,66 +36,59 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CClient
+class CPeer
 {
 public:
     // constructors
-    CClient();
-    CClient(const CCallsign &, const CIp &, char = ' ');
-    CClient(const CClient &);
+    CPeer();
+    CPeer(const CCallsign &, const CIp &, char *);
+    CPeer(const CPeer &);
     
     // destructor
-    virtual ~CClient() {};
+    virtual ~CPeer();
     
     // operators
-    bool operator ==(const CClient &) const;
+    bool operator ==(const CPeer &) const;
     
     // get
     const CCallsign &GetCallsign(void) const            { return m_Callsign; }
     const CIp &GetIp(void) const                        { return m_Ip; }
-    bool HasModule(void) const                          { return m_Callsign.HasModule(); }
-    char GetModule(void) const                          { return m_Callsign.GetModule(); }
-    char GetReflectorModule(void) const                 { return m_ReflectorModule; }
-   
+    char *GetModulesModules(void)                       { return m_ReflectorModules; }
+    
     // set
-    void SetModule(char c)                              { m_Callsign.SetModule(c); }
-    void SetReflectorModule(char c)                     { m_ReflectorModule = c; }
     
     // identity
     virtual int GetProtocol(void) const                 { return PROTOCOL_NONE; }
     virtual int GetProtocolRevision(void) const         { return 0; }
     virtual const char *GetProtocolName(void) const     { return "none"; }
-    virtual bool IsNode(void) const                     { return false; }
-    virtual bool IsPeer(void) const                     { return false; }
-    virtual bool IsDextraDongle(void) const             { return false; }
-    virtual void SetDextraDongle(void)                  { }
     
     // status
+    virtual bool IsAMaster(void) const;
     virtual void Alive(void);
     virtual bool IsAlive(void) const                    { return false; }
-    virtual bool IsAMaster(void) const                  { return (m_ModuleMastered != ' '); }
-    virtual void SetMasterOfModule(char c)              { m_ModuleMastered = c; }
-    virtual void NotAMaster(void)                       { m_ModuleMastered = ' '; }
     virtual void Heard(void)                            { m_LastHeardTime = std::time(NULL); }
+    
+    // clients access
+    int     GetNbClients(void) const                    { return (int)m_Clients.size(); }
+    void    ClearClients(void)                          { m_Clients.clear(); }
+    CClient *GetClient(int);
     
     // reporting
     virtual void WriteXml(std::ofstream &);
     virtual void GetJsonObject(char *);
-
+    
 protected:
     // data
-    CCallsign   m_Callsign;
-    CIp         m_Ip;
+    CCallsign               m_Callsign;
+    CIp                     m_Ip;
+    char                    m_ReflectorModules[NB_MODULES_MAX+1];
+    std::vector<CClient *>  m_Clients;
     
-    // linked to
-    char        m_ReflectorModule;
-
     // status
-    char        m_ModuleMastered;
-    CTimePoint  m_LastKeepaliveTime;
-    std::time_t m_ConnectTime;
-    std::time_t m_LastHeardTime;
+    CTimePoint              m_LastKeepaliveTime;
+    std::time_t             m_ConnectTime;
+    std::time_t             m_LastHeardTime;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cclient_h */
+#endif /* cpeer_h */

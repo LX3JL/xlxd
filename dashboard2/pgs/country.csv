@@ -1,3 +1,4 @@
+
 Afghanistan;AF;YA-T6
 Aland Islands;AX;OH0
 Albania;AL;ZA
@@ -19,7 +20,7 @@ Bahrain;BH;A9
 Bangladesh;BD;S2
 Barbados;BB;8P
 Belarus;BY;EU-EV-EW
-Belgium;BE;ON
+Belgium;BE;ON-OS
 Belize;BZ;V3
 Benin;BJ;TY
 Bermuda;BM;VP9
@@ -43,7 +44,7 @@ Cayman Islands;KY;ZF
 Central African Republic;CF;TL
 Chad;TD;TT
 Chile;CL;CA-CB-CC-CD-CE
-China;CN;BY
+China;CN;BA-BB-BC-BD-BE-BF-BG-BH-BI-BJ-BK-BL-BM-BN-BO-BP-BQ-BR-BS-BT-BU-BV-BW-BX-BY-BZ
 Christmas Island;CX;VK9X
 Cocos (Keeling) Islands;CC;VK9C
 Colombia;CO;HJ-HK-5J-5K
@@ -217,7 +218,7 @@ Swaziland;SZ;3DA
 Sweden;SE;SA-SB-SC-SD-SE-SF-SG-SH-SI-SJ-SK-SL-SM-7S-8S
 Switzerland;CH;HB
 Syrian Arab Republic;SY;YK
-Taiwan Province of China;TW;BU-BV-BW-BX-BM-BO
+Taiwan Province of China;TW;BM-BO-BU-BV-BW-BX
 Tajikistan;TJ;EY
 Tanzania United Republic of;TZ;5H-5I
 Thailand;TH;HS-E2
@@ -235,7 +236,7 @@ Uganda;UG;5X
 Ukraine;UA;UR-US-UT-UU-UV-UW-UX-UY-UZ
 United Arab Emirates;AE;A6
 United Kingdom;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-MB-MM-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GX
-United States;US;K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KA-KB-KC-KD-KE-KF-KG-KI-KJ-KK-KM-KN-KO-KQ-KR-KS-KT-KU-KV-KW-KX-KY-KZ-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-WD-WF-WR-WV-WX-WZ-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NE-NG-NN-NO-NQ-NS-NW-AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK
+United States;US;AA-AB-AC-AD-AE-AF-AG-AH-AI-AJ-AK-AL-K0-K1-K2-K3-K4-K5-K6-K7-K8-K9-KA-KB-KC-KD-KE-KF-KG-KH-KI-KJ-KK-KL-KM-KN-KO-KP-KQ-KR-KS-KT-KU-KV-KW-KX-KY-KZ-N0-N1-N2-N3-N4-N5-N6-N7-N8-N9-NA-NB-NC-ND-NE-NF-NG-NH-NI-NJ-NK-NL-NM-NN-NO-NP-NQ-NR-NS-NT-NU-NV-NW-NX-NY-NZ-W0-W1-W2-W3-W4-W5-W6-W7-W8-W9-WA-WB-WC-WD-WE-WF-WG-WH-WI-WJ-WK-WL-WM-WN-WO-WP-WQ-WR-WS-WT-WU-WV-WW-WX-WY-WZ
 United States Minor Outlying Islands;UM;
 Uruguay;UY;CV-CW-CX
 Uzbekistan;UZ;UJ-UK-UL-UM

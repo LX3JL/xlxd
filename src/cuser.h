@@ -35,7 +35,7 @@ class CUser
 public:
     // constructor
     CUser();
-    CUser(const CCallsign &, const CCallsign &, const CCallsign &);
+    CUser(const CCallsign &, const CCallsign &, const CCallsign &, const CCallsign &);
     CUser(const CUser &);
     
     // destructor
@@ -56,6 +56,7 @@ protected:
     // data
     CCallsign   m_My;
     CCallsign   m_Rpt1;
+    CCallsign   m_Rpt2;
     CCallsign   m_Xlx;
     std::time_t m_LastHeardTime;
 };

@@ -35,17 +35,23 @@ if ($CallingHome['Active']) {
       }
    }
    else {
-      include($CallingHome['HashFile']);
-      if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
-         $Ressource = @fopen($CallingHome['HashFile'],"w");
-         if ($Ressource) {
-            @fwrite($Ressource, "<?php\n");
-            @fwrite($Ressource, "\n".'$LastSync = '.time().';');
-            @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
-            @fwrite($Ressource, "\n\n".'?>');
-            @fclose($Ressource);
+      if (is_readable($CallingHome['HashFile'])) {
+         include($CallingHome['HashFile']);
+         if (isset($Hash)) {
+            if (strlen($Hash) > 4) {
+               if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
+                  $Ressource = @fopen($CallingHome['HashFile'],"w");
+                  if ($Ressource) {
+                     @fwrite($Ressource, "<?php\n");
+                     @fwrite($Ressource, "\n".'$LastSync = '.time().';');
+                     @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
+                     @fwrite($Ressource, "\n\n".'?>');
+                     @fclose($Ressource);
+                  }
+                  $CallHomeNow = true;
+               }
+            }
          }
-         $CallHomeNow = true;
       }
    }
    

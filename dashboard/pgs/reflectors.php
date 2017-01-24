@@ -18,7 +18,7 @@ $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
 
 
 <table class="listingtable">
- <tr>   
+ <tr>
    <th width="40">#</th>
    <th width="75">Reflector</th>
    <th width="120">Country</th>
@@ -30,15 +30,15 @@ $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
 $odd = "";
 
 for ($i=0;$i<count($Reflectors);$i++) {
-   
+
    $NAME          = $XML->GetElement($Reflectors[$i], "name");
    $COUNTRY       = $XML->GetElement($Reflectors[$i], "country");
    $LASTCONTACT   = $XML->GetElement($Reflectors[$i], "lastcontact");
    $COMMENT       = $XML->GetElement($Reflectors[$i], "comment");
    $DASHBOARDURL  = $XML->GetElement($Reflectors[$i], "dashboardurl");
-   
+
    if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
-   
+
    echo '
  <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center">'.($i+1).'</td>
@@ -51,5 +51,3 @@ for ($i=0;$i<count($Reflectors);$i++) {
 
 ?>
 </table>
-   
-   

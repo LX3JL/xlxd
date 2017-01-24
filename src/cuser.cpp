@@ -35,10 +35,11 @@ CUser::CUser()
     m_LastHeardTime = std::time(NULL);
 }
 
-CUser::CUser(const CCallsign &my, const CCallsign &rpt1, const CCallsign &xlx)
+CUser::CUser(const CCallsign &my, const CCallsign &rpt1, const CCallsign &rpt2, const CCallsign &xlx)
 {
     m_My = my;
     m_Rpt1 = rpt1;
+    m_Rpt2 = rpt2;
     m_Xlx = xlx;
     m_LastHeardTime = std::time(NULL);
 }
@@ -47,6 +48,7 @@ CUser::CUser(const CUser &user)
 {
     m_My = user.m_My;
     m_Rpt1 = user.m_Rpt1;
+    m_Rpt2 = user.m_Rpt2;
     m_Xlx = user.m_Xlx;
     m_LastHeardTime = user.m_LastHeardTime;
 }
@@ -56,7 +58,7 @@ CUser::CUser(const CUser &user)
 
 bool CUser::operator ==(const CUser &user) const
 {
-    return ((user.m_My == m_My) && (user.m_Rpt1 == m_Rpt1)  && (user.m_Xlx == m_Xlx));
+    return ((user.m_My == m_My) && (user.m_Rpt1 == m_Rpt1) && (user.m_Rpt2 == m_Rpt2)  && (user.m_Xlx == m_Xlx));
 }
 
 
@@ -74,8 +76,9 @@ void CUser::WriteXml(std::ofstream &xmlFile)
     xmlFile << "<STATION>" << std::endl;
     xmlFile << "\t<Callsign>" << m_My << "</Callsign>" << std::endl;
     xmlFile << "\t<Via node>" << m_Rpt1 << "</Via node>" << std::endl;
+    xmlFile << "\t<On module>" << m_Rpt2.GetModule() << "</On module>" << std::endl;
     xmlFile << "\t<Via peer>" << m_Xlx << "</Via peer>" << std::endl;
-    
+
     char mbstr[100];
     if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&m_LastHeardTime)))
     {

@@ -243,7 +243,7 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         g_Reflector.ReleaseClients();
         
         // update last heard
-        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via);
+        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
         g_Reflector.ReleaseUsers();
     }
     else

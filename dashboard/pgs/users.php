@@ -22,9 +22,9 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
    echo '
   <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
-   <td align="center" width="35">';
+   <td align="center" valign="middle" width="35">';
    if ($i==0 && $Reflector->Stations[$i]->GetLastHeardTime() > (time() - 60)) {
-      echo '<img src="./img/radio-waves-hi.png" />';
+      echo '<img src="./img/tx.gif" style="margin-top:3px;" height="20"/>';
    }
    else {
       echo ($i+1);
@@ -67,6 +67,7 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
 <?php 
 
 $Modules = $Reflector->GetModules();
+sort($Modules, SORT_STRING);
 echo '
  <tr>';
 for ($i=0;$i<count($Modules);$i++) {

@@ -132,3 +132,9 @@ background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237
    padding-top       : 3px;
    border            : 1px #60A1DE solid;
 }
+
+.smalllink {
+   font-size         : 12pt;
+   text-decoration   : none;
+   color             : #0E0789;
+}

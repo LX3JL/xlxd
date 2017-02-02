@@ -38,6 +38,14 @@ if (isset($_POST['do'])) {
    }
 }
 
+if (isset($_GET['do'])) {
+   if ($_GET['do'] == "resetfilter") {
+      $_SESSION['FilterModule'] = null;
+      $_SESSION['FilterCallSign'] = null;
+   }
+}
+   
+
 ?>
 <table border="0">
    <tr>
@@ -58,7 +66,12 @@ if ($PageOptions['UserPage']['ShowFilter']) {
                   <input type="text" class="FilterField" value="'.$_SESSION['FilterCallSign'].'" name="txtSetCallsignFilter" placeholder="Callsign" />
                   <input type="submit" value="Apply" class="FilterSubmit" />
                </form>
-            </td>
+            </td>';
+   if (($_SESSION['FilterModule'] != null) || ($_SESSION['FilterCallSign'] != null)) {               
+      echo '
+         <td><a href="./index.php?do=resetfilter" class="smalllink">Disable filters</a></td>';
+   }  
+   echo '            
             <td align="right" style="padding-right:3px;">
                <form name="frmFilterModule" method="post" action="./index.php">
                   <input type="hidden" name="do" value="SetFilter" />

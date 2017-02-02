@@ -1,5 +1,7 @@
 <?php
 
+session_start();
+
 if (file_exists("./pgs/functions.php"))  { require_once("./pgs/functions.php");  } else { die("functions.php does not exist.");  }
 if (file_exists("./pgs/config.inc.php")) { require_once("./pgs/config.inc.php"); } else { die("config.inc.php does not exist."); }
 
@@ -35,23 +37,17 @@ if ($CallingHome['Active']) {
       }
    }
    else {
-      if (is_readable($CallingHome['HashFile'])) {
-         include($CallingHome['HashFile']);
-         if (isset($Hash)) {
-            if (strlen($Hash) > 4) {
-               if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
-                  $Ressource = @fopen($CallingHome['HashFile'],"w");
-                  if ($Ressource) {
-                     @fwrite($Ressource, "<?php\n");
-                     @fwrite($Ressource, "\n".'$LastSync = '.time().';');
-                     @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
-                     @fwrite($Ressource, "\n\n".'?>');
-                     @fclose($Ressource);
-                  }
-                  $CallHomeNow = true;
-               }
-            }
+      include($CallingHome['HashFile']);
+      if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
+         $Ressource = @fopen($CallingHome['HashFile'],"w");
+         if ($Ressource) {
+            @fwrite($Ressource, "<?php\n");
+            @fwrite($Ressource, "\n".'$LastSync = '.time().';');
+            @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
+            @fwrite($Ressource, "\n\n".'?>');
+            @fclose($Ressource);
          }
+         $CallHomeNow = true;
       }
    }
    
@@ -100,7 +96,7 @@ else {
 
      if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
          echo '
-      setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
+         setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
      }
      echo '
 

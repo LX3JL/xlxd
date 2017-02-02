@@ -99,12 +99,12 @@ void CDcsProtocol::Task(void)
                 if ( !Frame->IsLastPacket() )
                 {
                     //std::cout << "DCS DV frame" << std::endl;
-                    OnDvFramePacketIn(Frame);
+                    OnDvFramePacketIn(Frame, &Ip);
                 }
                 else
                 {
                    //std::cout << "DCS DV last frame" << std::endl;
-                   OnDvLastFramePacketIn((CDvLastFramePacket *)Frame);
+                   OnDvLastFramePacketIn((CDvLastFramePacket *)Frame, &Ip);
                 }
             }
             else
@@ -245,6 +245,12 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         // update last heard
         g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
         g_Reflector.ReleaseUsers();
+        
+        // delete header if needed
+        if ( !newstream )
+        {
+            delete Header;
+        }
     }
     else
     {

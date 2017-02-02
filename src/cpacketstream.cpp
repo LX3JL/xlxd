@@ -73,3 +73,15 @@ void CPacketStream::Push(CPacket *Packet)
     push(Packet);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// get
+
+const CIp *CPacketStream::GetOwnerIp(void)
+{
+    if ( m_OwnerClient != NULL )
+    {
+        return &(m_OwnerClient->GetIp());
+    }
+    return NULL;
+}
+

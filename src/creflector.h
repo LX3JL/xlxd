@@ -101,6 +101,7 @@ protected:
     
     // streams
     CPacketStream *GetStream(char);
+    bool          IsStreamOpen(const CDvHeaderPacket *);
     char          GetStreamModule(CPacketStream *);
     
     // xml helpers

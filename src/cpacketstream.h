@@ -55,7 +55,9 @@ public:
     
     // get
     CClient         *GetOwnerClient(void)           { return m_OwnerClient; }
+    const CIp       *GetOwnerIp(void);
     bool            IsExpired(void) const           { return (m_LastPacketTime.DurationSinceNow() > STREAM_TIMEOUT); }
+    bool            IsOpen(void) const              { return m_bOpen; }
     uint16          GetStreamId(void) const         { return m_uiStreamId; }
     const CCallsign &GetUserCallsign(void) const    { return m_DvHeader.GetMyCallsign(); }
 

@@ -134,10 +134,10 @@ bool CProtocol::EncodeDvPacket(const CPacket &packet, CBuffer *buffer) const
 ////////////////////////////////////////////////////////////////////////////////////////
 // streams helpers
 
-void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame)
+void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
 {
     // find the stream
-    CPacketStream *stream = GetStream(Frame->GetStreamId());
+    CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream != NULL )
     {
         //std::cout << "DV frame" << std::endl;
@@ -148,10 +148,10 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame)
     }
 }
 
-void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame)
+void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
 {
     // find the stream
-    CPacketStream *stream = GetStream(Frame->GetStreamId());
+    CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream != NULL )
     {
         // push
@@ -167,16 +167,23 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame)
 ////////////////////////////////////////////////////////////////////////////////////////
 // stream handle helpers
 
-CPacketStream *CProtocol::GetStream(uint16 uiStreamId)
+CPacketStream *CProtocol::GetStream(uint16 uiStreamId, const CIp *Ip)
 {
     CPacketStream *stream = NULL;
+    
+    // find if we have a stream with same streamid in our cache
     for ( int i = 0; (i < m_Streams.size()) && (stream == NULL); i++ )
     {
         if ( m_Streams[i]->GetStreamId() == uiStreamId )
         {
-            stream = m_Streams[i];
+            // if Ip not NULL, also check if IP match
+            if ( (Ip != NULL) && (*Ip == *(m_Streams[i]->GetOwnerIp())) )
+            {
+                stream = m_Streams[i];
+            }
         }
     }
+    // done
     return stream;
 }
 

@@ -92,7 +92,7 @@ void CDplusProtocol::Task(void)
             //std::cout << "DPlus DV frame" << std::endl;
             
             // handle it
-            OnDvFramePacketIn(Frame);
+            OnDvFramePacketIn(Frame, &Ip);
         }
         else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
         {
@@ -114,7 +114,7 @@ void CDplusProtocol::Task(void)
             //std::cout << "DPlus DV last frame" << std::endl;
             
             // handle it
-            OnDvLastFramePacketIn(LastFrame);
+            OnDvLastFramePacketIn(LastFrame, &Ip);
        }
         else if ( IsValidConnectPacket(Buffer) )
         {
@@ -250,6 +250,12 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
             // update last heard
             g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
             g_Reflector.ReleaseUsers();
+
+            // delete header if needed
+            if ( !newstream )
+            {
+                delete Header;
+            }
         }
         else
         {

@@ -108,3 +108,27 @@ background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237
    padding           : 15px;
    margin            : 5px;
 }
+
+.FilterField {
+   font-size         : 10pt;
+   text-decoration   : none,
+   color             : #000000;
+   background-color  : #FFFFFF;
+   width             : 150px;
+   height            : 20px;
+   padding-left      : 5px;
+   padding-top       : 3px;
+   border            : 1px #60A1DE solid;
+}
+
+.FilterSubmit {
+   font-size         : 10pt;
+   text-decoration   : none,
+   color             : #000000;
+   background-color  : #FFFFFF;
+   height            : 26px;
+   width             : 60px;
+   padding-left      : 5px;
+   padding-top       : 3px;
+   border            : 1px #60A1DE solid;
+}

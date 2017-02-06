@@ -1,3 +1,11 @@
+xlx db v2.3.5
+
+now the page refresh is now suspended until you leave the filte fields.
+
+- "index.php"
+- "users.php"
+- "config.inc.php"
+
 xlx db v2.3.4
 
 add filter function to the dashboard. It can be enabled or disabled via the config.inc.php

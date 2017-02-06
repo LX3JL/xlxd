@@ -85,7 +85,8 @@ else {
    if ($PageOptions['PageRefreshActive']) {
       echo '
    <script>
-
+      var PageRefresh;
+      
       function ReloadPage() {
          document.location.href = "./index.php';
      if (isset($_GET['show'])) {
@@ -96,10 +97,13 @@ else {
 
      if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
          echo '
-         setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
+     PageRefresh = setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
      }
      echo '
 
+      function SuspendPageRefresh() {
+        clearTimeout(PageRefresh);
+      }
    </script>';
    }
 ?>

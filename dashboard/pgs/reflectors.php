@@ -16,7 +16,6 @@ $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
 
 ?>
 
-
 <table class="listingtable">
  <tr>
    <th width="40">#</th>

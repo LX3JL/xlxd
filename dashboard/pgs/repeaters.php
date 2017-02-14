@@ -1,5 +1,5 @@
 <table class="listingtable">
- <tr>   
+ <tr>
    <th width="25">#</th>
    <th width="60">Flag</th>
    <th width="100">DV Station</th>
@@ -22,9 +22,9 @@ $odd = "";
 $Reflector->LoadFlags();
 
 for ($i=0;$i<$Reflector->NodeCount();$i++) {
-         
+
    if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
- 
+
    echo '
   <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center">'.($i+1).'</td>
@@ -36,7 +36,7 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    <td><a href="http://www.aprs.fi/'.$Reflector->Nodes[$i]->GetCallSign();
    if ($Reflector->Nodes[$i]->GetSuffix() != "") echo '-'.$Reflector->Nodes[$i]->GetSuffix();
    echo '" class="pl" target="_blank">'.$Reflector->Nodes[$i]->GetCallSign();
-   if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.$Reflector->Nodes[$i]->GetSuffix(); } 
+   if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.$Reflector->Nodes[$i]->GetSuffix(); }
    echo '</a></td>
    <td>';
    if (($Reflector->Nodes[$i]->GetPrefix() == 'REF') || ($Reflector->Nodes[$i]->GetPrefix() == 'XRF')) {
@@ -52,7 +52,7 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
          case 'C' : echo '2m'; break;
          case 'D' : echo 'Dongle'; break;
          case 'G' : echo 'Internet-Gateway'; break;
-         default  : 
+         default  : echo '';
       }
    }
    echo '</td>
@@ -79,6 +79,6 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    if ($i == $PageOptions['RepeatersPage']['LimitTo']) { $i = $Reflector->NodeCount()+1; }
 }
 
-?> 
- 
+?>
+
 </table>

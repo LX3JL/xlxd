@@ -68,7 +68,7 @@
 #define PROTOCOL_NONE               0
 #define PROTOCOL_DEXTRA             1
 #define PROTOCOL_DPLUS              2
-#define PROTOCOL_DCS                3
+#define PROTOCOL_DCX                3
 #define PROTOCOL_XLX                4
 
 // DExtra
@@ -81,10 +81,10 @@
 #define DPLUS_KEEPALIVE_PERIOD      1                               // in seconds
 #define DPLUS_KEEPALIVE_TIMEOUT     (DPLUS_KEEPALIVE_PERIOD*10)     // in seconds
 
-// DCS
-#define DCS_PORT                    30051                           // UDP port
-#define DCS_KEEPALIVE_PERIOD        1                               // in seconds
-#define DCS_KEEPALIVE_TIMEOUT       (DCS_KEEPALIVE_PERIOD*30)       // in seconds
+// DCX
+#define DCX_PORT                    30051                           // UDP port
+#define DCX_KEEPALIVE_PERIOD        1                               // in seconds
+#define DCX_KEEPALIVE_TIMEOUT       (DCX_KEEPALIVE_PERIOD*30)       // in seconds
 
 // XLX
 #define XLX_PORT                    10002                           // UDP port

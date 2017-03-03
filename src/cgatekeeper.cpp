@@ -98,7 +98,7 @@ bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol
         // repeaters
         case PROTOCOL_DEXTRA:
         case PROTOCOL_DPLUS:
-        case PROTOCOL_DCS:
+        case PROTOCOL_DCX:
             // first check is IP & callsigned listed OK
             ok &= IsNodeListedOk(callsign, ip);
             // todo: then apply any protocol specific authorisation for the operation
@@ -136,7 +136,7 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
         case PROTOCOL_ANY:
         case PROTOCOL_DEXTRA:
         case PROTOCOL_DPLUS:
-        case PROTOCOL_DCS:
+        case PROTOCOL_DCX:
             // first check is IP & callsigned listed OK
             ok &= IsNodeListedOk(callsign, ip, module);
             // todo: then apply any protocol specific authorisation for the operation

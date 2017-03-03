@@ -75,7 +75,7 @@ bool CProtocols::Init(void)
         m_Protocols[1] = new CDplusProtocol;
         ok &= m_Protocols[1]->Init();
         
-        // create and initialize DCS
+        // create and initialize DCX
         delete m_Protocols[2];
         m_Protocols[2] = new CDcsProtocol;
         ok &= m_Protocols[2]->Init();

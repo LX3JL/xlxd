@@ -48,5 +48,5 @@ CDcsClient::CDcsClient(const CDcsClient &client)
 
 bool CDcsClient::IsAlive(void) const
 {
-    return (m_LastKeepaliveTime.DurationSinceNow() < DCS_KEEPALIVE_TIMEOUT);
+    return (m_LastKeepaliveTime.DurationSinceNow() < DCX_KEEPALIVE_TIMEOUT);
 }

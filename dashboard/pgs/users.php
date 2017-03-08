@@ -151,7 +151,7 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    <td align="center" width="30">'.$Reflector->Stations[$i]->GetModule().'</td>
  </tr>';
    }
-   if ($i == 39) { $i = $Reflector->StationCount()+1; }
+   if ($i == $PageOptions['LastHeardPage']['LimitTo']) { $i = $Reflector->StationCount()+1; }
 }
 
 ?> 

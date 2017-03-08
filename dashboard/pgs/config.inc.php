@@ -33,6 +33,7 @@ $PageOptions['PeerPage']['LimitTo']                  = 99;            			// Numb
 $PageOptions['PeerPage']['IPModus']                  = 'ShowFullIP';  			// See possible options above
 $PageOptions['PeerPage']['MasqueradeCharacter']      = '*';           			// Character used for  masquerade
 
+$PageOptions['LastHeardPage']['LimitTo']             = 39;                      // Number of stations to show
 
 $PageOptions['ModuleNames'] = array();                                			// Module nomination
 $PageOptions['ModuleNames']['A']                     = 'Int.';

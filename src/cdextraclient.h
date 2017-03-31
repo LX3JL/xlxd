@@ -48,7 +48,7 @@ public:
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_DEXTRA; }
     int GetProtocolRevision(void) const         { return m_ProtRev; }
-    const char *GetProtocolName(void) const     { return "Dextra"; }
+    const char *GetProtocolName(void) const     { return "DExtra"; }
     bool IsNode(void) const                     { return true; }
     
     // status

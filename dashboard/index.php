@@ -116,7 +116,7 @@ else {
       <div id="menu">
          <table border="0">
             <tr>
-               <td><a href="./index.php" class="menulink">Users / Modules</a></td><td><a href="./index.php?show=repeaters" class="menulink">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td><td><a href="./index.php?show=peers" class="menulink">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td><td><a href="./index.php?show=reflectors" class="menulink">Reflectorlist</a></td><td><a href="./index.php?show=liveircddb" class="menulink">D-Star live</a></td>
+               <td><a href="./index.php" class="menulink">Users / Modules</a></td><td><a href="./index.php?show=repeaters" class="menulink">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td><td><a href="./index.php?show=peers" class="menulink">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td><td><a href="./index.php?show=reflectors" class="menulink">Reflectorlist</a></td><td><a href="./index.php?show=liveircddb" class="menulink">D-Star live</a></td><td><a href="./index.php?show=xlxadmin" class="menulink">XLX Admin</a></td>
             </tr>
           </table>
       </div>
@@ -138,6 +138,7 @@ else {
       case 'users'      : require_once("./pgs/users.php"); break;
       case 'repeaters'  : require_once("./pgs/repeaters.php"); break;
       case 'liveircddb' : require_once("./pgs/liveircddb.php"); break;
+      case 'xlxadmin'   : require_once("./pgs/xlxadmin.php"); break;
       case 'peers'      : require_once("./pgs/peers.php"); break;
       case 'reflectors' : require_once("./pgs/reflectors.php"); break;
       default           : require_once("./pgs/users.php");

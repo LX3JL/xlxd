@@ -173,52 +173,61 @@ CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client
     // clients MUST have bee locked by the caller
     // so we can freely access it within the fuction
 
-    // check if client is valid candidate
-    if ( m_Clients.IsClient(client) && !client->IsAMaster() )
+    // check if streamid is valid
+    if ( DvHeader->GetStreamId() != 0 )
     {
-        // check if no stream with same streamid already open
-        // to prevent loops
-        if ( !IsStreamOpen(DvHeader) )
+        // check if client is valid candidate
+        if ( m_Clients.IsClient(client) && !client->IsAMaster() )
         {
-            // get the module's queue
-            char module = DvHeader->GetRpt2Module();
-            CPacketStream *stream = GetStream(module);
-            if ( stream != NULL )
+            // check if no stream with same streamid already open
+            // to prevent loops
+            if ( !IsStreamOpen(DvHeader) )
             {
-                // lock it
-                stream->Lock();
-                // is it available ?
-                if ( stream->Open(*DvHeader, client) )
+                // get the module's queue
+                char module = DvHeader->GetRpt2Module();
+                CPacketStream *stream = GetStream(module);
+                if ( stream != NULL )
                 {
-                    // stream open, mark client as master
-                    // so that it can't be deleted
-                    client->SetMasterOfModule(module);
+                    // lock it
+                    stream->Lock();
+                    // is it available ?
+                    if ( stream->Open(*DvHeader, client) )
+                    {
+                        // stream open, mark client as master
+                        // so that it can't be deleted
+                        client->SetMasterOfModule(module);
 
-                    // update last heard time
-                    client->Heard();
-                    retStream = stream;
+                        // update last heard time
+                        client->Heard();
+                        retStream = stream;
 
-                    // and push header packet
-                    stream->Push(DvHeader);
+                        // and push header packet
+                        stream->Push(DvHeader);
 
-                    // report
-                    std::cout << "Opening stream on module " << module << " for client " << client->GetCallsign()
-                              << " with sid " << DvHeader->GetStreamId() << std::endl;
+                        // report
+                        std::cout << "Opening stream on module " << module << " for client " << client->GetCallsign()
+                                  << " with sid " << DvHeader->GetStreamId() << std::endl;
 
-                    // notify
-                    g_Reflector.OnStreamOpen(stream->GetUserCallsign());
+                        // notify
+                        g_Reflector.OnStreamOpen(stream->GetUserCallsign());
 
+                    }
+                    // unlock now
+                    stream->Unlock();
                 }
-                // unlock now
-                stream->Unlock();
+            }
+            else
+            {
+                // report
+                std::cout << "Detected stream loop on module " << DvHeader->GetRpt2Module() << " for client " << client->GetCallsign()
+                          << " with sid " << DvHeader->GetStreamId() << std::endl;
             }
         }
-        else
-        {
-            // report
-            std::cout << "Detected stream loop on module " << DvHeader->GetRpt2Module() << " for client " << client->GetCallsign()
-                      << " with sid " << DvHeader->GetStreamId() << std::endl;
-        }
+    }
+    else
+    {
+        // report
+        std::cout << "Detected null stream id for client " << client->GetCallsign() << std::endl;
     }
 
     // done

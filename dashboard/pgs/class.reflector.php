@@ -418,6 +418,7 @@ class xReflector {
    <country>'.$this->CallingHomeCountry.'</country>
    <comment>'.$this->CallingHomeComment.'</comment>
    <ip>'.$this->CallingHomeOverrideIP.'</ip>
+   <reflectorversion>'.$this->Version.'</reflectorversion>
 </reflector>';
    }
       

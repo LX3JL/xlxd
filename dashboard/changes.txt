@@ -1,3 +1,10 @@
+xlx db v2.3.6
+
+add xlx reflector version to calling home.
+
+- "config.inc.php"
+- "class.reflector.php"
+
 xlx db v2.3.5
 
 now the page refresh is now suspended until you leave the filte fields.

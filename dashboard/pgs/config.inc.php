@@ -16,7 +16,7 @@ $PageOptions = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';		    // Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.3.4';       			// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.3.6';       			// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;          			// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';       			// Page refresh time in miliseconds
@@ -33,6 +33,7 @@ $PageOptions['PeerPage']['LimitTo']                  = 99;            			// Numb
 $PageOptions['PeerPage']['IPModus']                  = 'ShowFullIP';  			// See possible options above
 $PageOptions['PeerPage']['MasqueradeCharacter']      = '*';           			// Character used for  masquerade
 
+$PageOptions['LastHeardPage']['LimitTo']             = 39;                      // Number of stations to show
 
 $PageOptions['ModuleNames'] = array();                                			// Module nomination
 $PageOptions['ModuleNames']['A']                     = 'Int.';

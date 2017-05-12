@@ -14,7 +14,7 @@ h1 {
    height               : 115px;
    background-color     : #FFFFFF;
    width                : 100%;
-   background-image     : url('../../db_v2.3.6/img/dvc.jpg');
+   background-image     : url('../img/dvc.jpg');
    background-repeat    : no-repeat;
    background-position  : 98.5%;
    position             : absolute;

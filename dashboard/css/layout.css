@@ -57,6 +57,19 @@ h1 {
    margin-left          : 10px;
    background-color     : #FFFFC6;
    color                : #000000;
+}
+
+ .menulinkactive {
+   font-size            : 14pt;
+   text-decoration      : none;
+   border               : 1px #000000 solid;
+   padding-left         : 10px;
+   padding-top          : 3px;
+   padding-bottom       : 3px;
+   padding-right        : 10px;
+   margin-left          : 10px;
+   background-color     : #87dcfc;
+   color                : #000000;
 } 
 
 .pl {

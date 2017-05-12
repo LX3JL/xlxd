@@ -106,6 +106,8 @@ else {
       }
    </script>';
    }
+   
+   if (!isset($_GET['show'])) $_GET['show'] = "";
 ?>
 </head>
 <body>
@@ -116,7 +118,7 @@ else {
       <div id="menu">
          <table border="0">
             <tr>
-               <td><a href="./index.php" class="menulink">Users / Modules</a></td><td><a href="./index.php?show=repeaters" class="menulink">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td><td><a href="./index.php?show=peers" class="menulink">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td><td><a href="./index.php?show=reflectors" class="menulink">Reflectorlist</a></td><td><a href="./index.php?show=liveircddb" class="menulink">D-Star live</a></td>
+               <td><a href="./index.php" class="menulink<?php if ($_GET['show'] == '') { echo 'active'; } ?>">Users / Modules</a></td><td><a href="./index.php?show=repeaters" class="menulink<?php if ($_GET['show'] == 'repeaters') { echo 'active'; } ?>">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td><td><a href="./index.php?show=peers" class="menulink<?php if ($_GET['show'] == 'peers') { echo 'active'; } ?>">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td><td><a href="./index.php?show=reflectors" class="menulink<?php if ($_GET['show'] == 'reflectors') { echo 'active'; } ?>">Reflectorlist</a></td><td><a href="./index.php?show=liveircddb" class="menulink<?php if ($_GET['show'] == 'liveircddb') { echo 'active'; } ?>">D-Star live</a></td>
             </tr>
           </table>
       </div>
@@ -133,7 +135,6 @@ else {
       }
    }
 
-   if (!isset($_GET['show'])) $_GET['show'] = "";
    switch ($_GET['show']) {
       case 'users'      : require_once("./pgs/users.php"); break;
       case 'repeaters'  : require_once("./pgs/repeaters.php"); break;

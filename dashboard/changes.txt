@@ -1,3 +1,11 @@
+xlx db v2.3.7
+
+add background button color change on active page.
+
+- "config.inc.php"
+- "layout.css"
+- "index.php"
+
 xlx db v2.3.6
 
 add xlx reflector version to calling home.

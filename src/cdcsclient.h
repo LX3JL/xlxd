@@ -46,8 +46,8 @@ public:
     virtual ~CDcsClient() {};
     
     // identity
-    int GetProtocol(void) const                 { return PROTOCOL_DCS; }
-    const char *GetProtocolName(void) const     { return "DCS"; }
+    int GetProtocol(void) const                 { return PROTOCOL_DCX; }
+    const char *GetProtocolName(void) const     { return "DCX"; }
     bool IsNode(void) const                     { return true; }
     
     // status

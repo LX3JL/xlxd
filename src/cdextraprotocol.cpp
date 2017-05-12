@@ -41,7 +41,7 @@ bool CDextraProtocol::Init(void)
     ok = CProtocol::Init();
     
     // update the reflector callsign
-    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRF", 3);
+    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRX", 3);
     
     // create our socket
     ok &= m_Socket.Open(DEXTRA_PORT);
@@ -369,7 +369,7 @@ bool CDextraProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *cal
         {
             *revision = 1;
         }
-        else if ( callsign->HasSameCallsignWithWildcard(CCallsign("XRF*")) )
+        else if ( callsign->HasSameCallsignWithWildcard(CCallsign("XRX*")) )
         {
             *revision = 2;
         }
@@ -476,10 +476,10 @@ void CDextraProtocol::EncodeKeepAlivePacket(CBuffer *Buffer)
 
 void CDextraProtocol::EncodeConnectAckPacket(CBuffer *Buffer, int ProtRev)
 {
-   // is it for a XRF or repeater
+   // is it for a XRX or repeater
     if ( ProtRev == 2 )
     {
-        // XRFxxx
+        // XRXxxx
         uint8 rm = (Buffer->data())[8];
         uint8 lm = (Buffer->data())[9];
         Buffer->clear();

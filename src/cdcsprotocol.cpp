@@ -52,13 +52,13 @@ bool CDcsProtocol::Init(void)
     ok = CProtocol::Init();
     
     // update the reflector callsign
-    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"DCS", 3);
+    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"DCX", 3);
     
     // create our socket
-    ok &= m_Socket.Open(DCS_PORT);
+    ok &= m_Socket.Open(DCX_PORT);
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << DCS_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << DCX_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
     
     // update time
@@ -88,22 +88,22 @@ void CDcsProtocol::Task(void)
         // crack the packet
         if ( IsValidDvPacket(Buffer, &Header, &Frame) )
         {
-            //std::cout << "DCS DV packet" << std::endl;
+            //std::cout << "DCX DV packet" << std::endl;
             
             // callsign muted?
-            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DCS, Header->GetRpt2Module()) )
+            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DCX, Header->GetRpt2Module()) )
             {
                 // handle it
                 OnDvHeaderPacketIn(Header, Ip);
 
                 if ( !Frame->IsLastPacket() )
                 {
-                    //std::cout << "DCS DV frame" << std::endl;
+                    //std::cout << "DCX DV frame" << std::endl;
                     OnDvFramePacketIn(Frame, &Ip);
                 }
                 else
                 {
-                   //std::cout << "DCS DV last frame" << std::endl;
+                   //std::cout << "DCX DV last frame" << std::endl;
                    OnDvLastFramePacketIn((CDvLastFramePacket *)Frame, &Ip);
                 }
             }
@@ -115,10 +115,10 @@ void CDcsProtocol::Task(void)
         }
         else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule) )
         {
-            std::cout << "DCS connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
+            std::cout << "DCX connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
             
             // callsign authorized?
-            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DCS) && g_Reflector.IsValidModule(ToLinkModule) )
+            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DCX) && g_Reflector.IsValidModule(ToLinkModule) )
             {
                 // valid module ?
                 if ( g_Reflector.IsValidModule(ToLinkModule) )
@@ -136,7 +136,7 @@ void CDcsProtocol::Task(void)
                 }
                 else
                 {
-                    std::cout << "DCS node " << Callsign << " connect attempt on non-existing module" << std::endl;
+                    std::cout << "DCX node " << Callsign << " connect attempt on non-existing module" << std::endl;
                     
                     // deny the request
                     EncodeConnectNackPacket(Callsign, ToLinkModule, &Buffer);
@@ -153,11 +153,11 @@ void CDcsProtocol::Task(void)
         }
         else if ( IsValidDisconnectPacket(Buffer, &Callsign) )
         {
-            std::cout << "DCS disconnect packet from " << Callsign << " at " << Ip << std::endl;
+            std::cout << "DCX disconnect packet from " << Callsign << " at " << Ip << std::endl;
             
             // find client
             CClients *clients = g_Reflector.GetClients();
-            CClient *client = clients->FindClient(Ip, PROTOCOL_DCS);
+            CClient *client = clients->FindClient(Ip, PROTOCOL_DCX);
             if ( client != NULL )
             {
                 // remove it
@@ -170,13 +170,13 @@ void CDcsProtocol::Task(void)
         }
         else if ( IsValidKeepAlivePacket(Buffer, &Callsign) )
         {
-            //std::cout << "DCS keepalive packet from " << Callsign << " at " << Ip << std::endl;
+            //std::cout << "DCX keepalive packet from " << Callsign << " at " << Ip << std::endl;
             
             // find all clients with that callsign & ip and keep them alive
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
-            while ( (client = clients->FindNextClient(Callsign, Ip, PROTOCOL_DCS, &index)) != NULL )
+            while ( (client = clients->FindNextClient(Callsign, Ip, PROTOCOL_DCX, &index)) != NULL )
             {
                 client->Alive();
             }
@@ -185,12 +185,12 @@ void CDcsProtocol::Task(void)
         else if ( IsIgnorePacket(Buffer) )
         {
             // valid but ignore packet
-            //std::cout << "DCS ignored packet from " << Ip << std::endl;
+            //std::cout << "DCX ignored packet from " << Ip << std::endl;
         }
         else
         {
             // invalid packet
-            std::cout << "DCS packet (" << Buffer.size() << ") from " << Ip << std::endl;
+            std::cout << "DCX packet (" << Buffer.size() << ") from " << Ip << std::endl;
         }
     }
     
@@ -201,7 +201,7 @@ void CDcsProtocol::Task(void)
     HandleQueue();
     
     // keep client alive
-    if ( m_LastKeepaliveTime.DurationSinceNow() > DCS_KEEPALIVE_PERIOD )
+    if ( m_LastKeepaliveTime.DurationSinceNow() > DCX_KEEPALIVE_PERIOD )
     {
         //
         HandleKeepalives();
@@ -226,7 +226,7 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         CCallsign via(Header->GetRpt1Callsign());
         
         // find this client
-        CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DCS);
+        CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DCX);
         if ( client != NULL )
         {
             // get client callsign
@@ -307,7 +307,7 @@ void CDcsProtocol::HandleQueue(void)
                 CClients *clients = g_Reflector.GetClients();
                 int index = -1;
                 CClient *client = NULL;
-                while ( (client = clients->FindNextClient(PROTOCOL_DCS, &index)) != NULL )
+                while ( (client = clients->FindNextClient(PROTOCOL_DCX, &index)) != NULL )
                 {
                     // is this client busy ?
                     if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
@@ -332,7 +332,7 @@ void CDcsProtocol::HandleQueue(void)
 
 void CDcsProtocol::HandleKeepalives(void)
 {
-    // DCS protocol sends and monitors keepalives packets
+    // DCX protocol sends and monitors keepalives packets
     // event if the client is currently streaming
     // so, send keepalives to all
     CBuffer keepalive1;
@@ -342,7 +342,7 @@ void CDcsProtocol::HandleKeepalives(void)
     CClients *clients = g_Reflector.GetClients();
     int index = -1;
     CClient *client = NULL;
-    while ( (client = clients->FindNextClient(PROTOCOL_DCS, &index)) != NULL )
+    while ( (client = clients->FindNextClient(PROTOCOL_DCX, &index)) != NULL )
     {
         // encode client's specific keepalive packet
         CBuffer keepalive2;
@@ -367,7 +367,7 @@ void CDcsProtocol::HandleKeepalives(void)
             m_Socket.Send(disconnect, client->GetIp());
             
             // remove it
-            std::cout << "DCS client " << client->GetCallsign() << " keepalive timeout" << std::endl;
+            std::cout << "DCX client " << client->GetCallsign() << " keepalive timeout" << std::endl;
             clients->RemoveClient(client);
         }
         

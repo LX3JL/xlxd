@@ -106,6 +106,6 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - TCP port 22        (ssh) optional  TCP port 10022
  - UDP port 30001     (DExtra protocol)
  - UPD port 20001     (DPlus protocol)
- - UDP port 30051     (DCS protocol)
+ - UDP port 30051     (DCX protocol)
 
 © 2016 Luc Engelmann LX1IQ

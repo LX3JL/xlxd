@@ -45,7 +45,7 @@
 //
 //  rev 2:
 //      this is specific to KI4KLF dxrfd reflector
-//      the protocol is detected by looking at "XRF" in connect packet callsign
+//      the protocol is detected by looking at "XRX" in connect packet callsign
 //      the protocol require a specific connect ack packet
 //      the protocol also implement a workaround for detecting stream's module
 //          as dxrfd soes not set DV header RPT2 properly.

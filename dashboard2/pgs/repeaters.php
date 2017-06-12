@@ -25,8 +25,9 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
   <tr class="table-center">
    <td>'.($i+1).'</td>
    <td>';
-   if (file_exists("./img/flags/".$Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign()).".png")) {
-      echo '<img src="./img/flags/'.$Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign()).'.png" class="table-flag" alt="">';
+   list ($Flag, $Name) = $Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign());
+   if (file_exists("./img/flags/".$Flag.".png")) {
+      echo '<img src="./img/flags/'.$Flag.'.png" class="table-flag" alt="'.$Name.'" title="'.$Name.'">';
    }
    echo '</td>
    <td><a href="http://www.aprs.fi/'.$Reflector->Nodes[$i]->GetCallSign();

@@ -29,8 +29,9 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
   <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center">'.($i+1).'</td>
    <td align="center">';
-   if (file_exists("./img/flags/".$Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign()).".png")) {
-      echo '<img src="./img/flags/'.$Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign()).'.png" height="15" />';
+   list ($Flag, $Name) = $Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign());
+   if (file_exists("./img/flags/".$Flag.".png")) {
+      echo '<img src="./img/flags/'.$Flag.'.png" height="15" alt="'.$Name.'" title="'.$Name.'" />';
    }
    echo '</td>
    <td><a href="http://www.aprs.fi/'.$Reflector->Nodes[$i]->GetCallSign();

@@ -31,7 +31,7 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    <td align="center">';
    list ($Flag, $Name) = $Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign());
    if (file_exists("./img/flags/".$Flag.".png")) {
-      echo '<img src="./img/flags/'.$Flag.'.png" height="15" alt="'.$Name.'" title="'.$Name.'" />';
+      echo '<a href="#" class="tip"><img src="./img/flags/'.$Flag.'.png" height="15" alt="'.$Name.'" /><span>'.$Name.'</span></a>';
    }
    echo '</td>
    <td><a href="http://www.aprs.fi/'.$Reflector->Nodes[$i]->GetCallSign();

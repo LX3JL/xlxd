@@ -10,6 +10,36 @@ h1 {
    font-size            : 25pt;
 }
 
+a.tip {
+   text-decoration      : none;
+}
+
+a.tip:hover {
+   position             : relative;
+}
+
+a.tip span {
+   display              : none
+}
+
+a.tip:hover span {
+   background           : #000000;
+   opacity              : 0.8;
+   border               : none;
+   border-radius        : 5px 5px 5px 5px;
+   font-family          : calibri, verdana, arial, comic sans;
+   font-size            : 12pt;
+   text-decoration      : none;
+   white-space          : nowrap;
+   color                : #FFFFFF;
+   padding              : 6px 6px 6px 6px;
+   margin               : 10px;
+   display              : block;
+   z-index              : 50; 
+   position             : absolute;
+   top                  : 10px;
+}
+
 #top {
    height               : 115px;
    background-color     : #FFFFFF;

@@ -267,6 +267,7 @@ class xReflector {
             while (($z < count($this->Flagarray[$j]['DXCC'])) && (!$FoundFlag)) {
                if (trim($Prefix) == trim($this->Flagarray[$j]['DXCC'][$z])) {
                   $Image = $this->Flagarray[$j]['ISO'];
+                  $Name = $this->Flagarray[$j]['Country'];
                   $FoundFlag = true;
                }
                $z++;
@@ -275,7 +276,7 @@ class xReflector {
          }
          $Letters--;
       }
-      return strtolower($Image);
+      return array(strtolower($Image), $Name);
    }
    
    public function GetModules() {

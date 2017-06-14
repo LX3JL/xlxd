@@ -171,9 +171,9 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
             }
          }
          if ($Result && (trim($URL) != "")) {
-            echo ' / <a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Peer.'" style="text-decoration:none;color:#000000;">'.$Reflector->Stations[$i]->GetPeer().'</a>';
+            echo ' / <a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Peer.'" style="text-decoration:none;color:#000000;">'.$Peer.'</a>';
          } else {
-            echo ' / '.$Reflector->Stations[$i]->GetPeer();
+            echo ' / '.$Peer;
          }
       }
       echo '</td>

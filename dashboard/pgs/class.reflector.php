@@ -258,6 +258,7 @@ class xReflector {
       $Image     = "";
       $FoundFlag = false;
       $Letters = 4;
+	  $Name = "";
       while (($Letters >= 2) && (!$FoundFlag)) {
          $j = 0;
          $Prefix = substr($Callsign, 0, $Letters);

@@ -25,14 +25,14 @@
 
 Hardware compatibility.
 ======================
-This version of ambed is compatible with FTDI's USB-3003 and USB-3012 device
+This version of ambed is compatible with DVSI's USB-3003 and USB-3012 device
 
 Available transcoding channels:
 
 device		DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
 ----------------------------------------------------------------------
 USB-3003	1				1				1
-USB-3012	4				4				4
+USB-3012	6				6				8
 
 multiple USB-3xxx can be used at the same time.
 

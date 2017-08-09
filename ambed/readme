@@ -1,0 +1,103 @@
+//
+//  readme
+//  ambed
+//
+//  Created by Jean-Luc Deltombe (LX3JL) on 09/07/2017.
+//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//
+// ----------------------------------------------------------------------------
+//    This file is part of ambed.
+//
+//    xlxd is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    xlxd is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+// ----------------------------------------------------------------------------
+
+
+Hardware compatibility.
+======================
+This version of ambed is compatible with FTDI's USB-3003 and USB-3012 device
+
+Available transcoding channels:
+
+device		DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
+----------------------------------------------------------------------
+USB-3003	1				1				1
+USB-3012	4				4				4
+
+multiple USB-3xxx can be used at the same time.
+
+Instructions:
+=============
+
+1) Installation of FTDI drivers
+
+Download from FTDI web site the latest D2XX driver package (tested on 1.4.6).
+Follow FTDI provided documentation for installation and testing of the drivers.
+
+
+2) installation of g++ compiler
+
+# apt-get install build-essential
+# apt-get install g++-4.7
+
+2) download and compile ambed
+
+# git clone https://github.com/LX3JL/xlxd.git
+# cd xlxd/ambed/
+# make
+# make clean
+# make install
+
+3) configuring ambed startup script
+
+# nano /ambed/run
+
+edit following line to match your IP:
+
+sudo /ambed/ambed 127.0.0.1 &
+
+if ambed is running on same machine than xlxd, use default 127.0.0.1
+otherwise use the machine own IP
+
+
+4) running ambed
+
+note:
+Due to specific FTDI driver implementation, ambed must be running
+with roor privilege, and cannot be run as a daemon.
+So ambed will display the information and error messages in the
+terminal it has been started from
+
+plug at least one USB-3xxx USB device
+
+# cd /ambed
+# ./run
+ 
+ 
+during initialisation phase, ambed will scan all USB port to discover
+and configure ans report status of all available USB-3xxx devices
+
+
+5) stoping ambed
+
+find PID of ambed process, using for example ps
+
+# ps ax | grep ambed
+
+and kill the process
+
+# kill xxxx
+
+where xxxx is PID found previously.
+
+

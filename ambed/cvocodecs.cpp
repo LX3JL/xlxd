@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include <string.h>
+#include "cusb3000interface.h"
 #include "cusb3003interface.h"
 #include "cvocodecs.h"
 
@@ -101,10 +102,16 @@ bool CVocodecs::Init(void)
             // another unsed USB-3003 avaliable for a pair ?
             bool found = false;
             int j = i+1;
-            while ( !found && (j < m_FtdiDeviceDescrs.size()) &&
-                    !(m_FtdiDeviceDescrs[j]->IsUsb3003() && !m_FtdiDeviceDescrs[i]->IsUsed()) )
+            while ( !found && (j < m_FtdiDeviceDescrs.size()) )
             {
-                j++;
+                if ( m_FtdiDeviceDescrs[j]->IsUsb3003() && !m_FtdiDeviceDescrs[i]->IsUsed() )
+                {
+                    found = true;
+                }
+                else
+                {
+                    j++;
+                }
             }
             
             // pair ?
@@ -122,6 +129,33 @@ bool CVocodecs::Init(void)
                 m_FtdiDeviceDescrs[i]->SetUsed(true);
             }
         }
+        else if ( m_FtdiDeviceDescrs[i]->IsUsb3000() && !m_FtdiDeviceDescrs[i]->IsUsed() )
+        {
+            // another unsed USB-3000 avaliable for a pair ?
+            bool found = false;
+            int j = i+1;
+            while ( !found && (j < m_FtdiDeviceDescrs.size()) )
+            {
+                if ( m_FtdiDeviceDescrs[j]->IsUsb3000() && !m_FtdiDeviceDescrs[i]->IsUsed() )
+                {
+                    found = true;
+                }
+                else
+                {
+                    j++;
+                }
+            }
+            
+            // pair ?
+            if ( found )
+            {
+                // yes!
+                iNbCh += InitUsb3000Pair(*m_FtdiDeviceDescrs[i], *m_FtdiDeviceDescrs[j]);
+                m_FtdiDeviceDescrs[i]->SetUsed(true);
+                m_FtdiDeviceDescrs[j]->SetUsed(true);
+            }
+            // otherwise anonther unused USB-3003 for a pair ?            
+       }
     }
     
     if ( ok )
@@ -358,6 +392,45 @@ int CVocodecs::InitUsb3003Pair(const CFtdiDeviceDescr &descr1, const CFtdiDevice
         // cleanup
         delete Usb3003A;
         delete Usb3003B;
+    }
+    
+    // done
+    return nStreams;
+}
+
+int CVocodecs::InitUsb3000Pair(const CFtdiDeviceDescr &descr1, const CFtdiDeviceDescr &descr2)
+{
+    int nStreams = 0;
+    
+    // create the interfaces for the two 3000 chips
+    CUsb3000Interface *Usb3000A = new CUsb3000Interface(descr1.GetVid(), descr1.GetPid(), "USB-3000", descr1.GetSerialNumber());
+    CUsb3000Interface *Usb3000B = new CUsb3000Interface(descr2.GetVid(), descr2.GetPid(), "USB-3000", descr2.GetSerialNumber());
+    
+    // init the interfaces
+    if ( Usb3000A->Init(CODEC_AMBEPLUS) && Usb3000B->Init(CODEC_AMBE2PLUS) )
+    {
+        CVocodecChannel *Channel;
+        // create all channels
+        {
+            // ch1
+            Channel = new CVocodecChannel(Usb3000A, 0, Usb3000B, 0, CODECGAIN_AMBEPLUS);
+            m_Channels.push_back(Channel);
+            Usb3000A->AddChannel(Channel);
+            Usb3000B->AddChannel(Channel);
+            // ch2
+            Channel = new CVocodecChannel(Usb3000B, 0, Usb3000A, 0, CODECGAIN_AMBE2PLUS);
+            m_Channels.push_back(Channel);
+            Usb3000A->AddChannel(Channel);
+            Usb3000B->AddChannel(Channel);
+            // done
+            nStreams = 2;
+        }
+    }
+    else
+    {
+        // cleanup
+        delete Usb3000A;
+        delete Usb3000B;
     }
     
     // done

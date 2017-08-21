@@ -90,16 +90,16 @@ public:
 
 protected:
     // decoder helper
-    bool IsValidChannelPacket(const CBuffer &, int *, CAmbePacket *);
-    bool IsValidSpeechPacket(const CBuffer &, int *, CVoicePacket *);
+    virtual bool IsValidChannelPacket(const CBuffer &, int *, CAmbePacket *)    { return false; }
+    virtual bool IsValidSpeechPacket(const CBuffer &, int *, CVoicePacket *)    { return false; }
     
     // encoder helpers
-    void EncodeChannelPacket(CBuffer *, int, CAmbePacket *);
-    void EncodeSpeechPacket(CBuffer *, int, CVoicePacket *);
+    virtual void EncodeChannelPacket(CBuffer *, int, CAmbePacket *) {}
+    virtual void EncodeSpeechPacket(CBuffer *, int, CVoicePacket *) {}
     
     // low level
-    bool OpenDevice(void);
-    virtual bool SoftResetDevice(void)  { return false; }
+    virtual bool OpenDevice(void)   { return false; }
+    virtual bool ResetDevice(void)  { return false; }
     bool ReadDeviceVersion(void);
     bool DisableParity(void);
     virtual bool ConfigureDevice(void)  { return false; }

@@ -67,7 +67,7 @@ bool CUsb3xxxInterface::Init(void)
     {
         // reset
     	//std::cout << "Reseting " << m_szDeviceName << "device" << std::endl;
-        if ( ok &= SoftResetDevice() )
+        if ( ok &= ResetDevice() )
         {
             // read version
     		//std::cout << "Reading " << m_szDeviceName << " device version" << std::endl;
@@ -265,129 +265,7 @@ void CUsb3xxxInterface::Task(void)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// decoder helper
-
-bool CUsb3xxxInterface::IsValidChannelPacket(const CBuffer &buffer, int *ch, CAmbePacket *packet)
-{
-    bool valid = false;
-    uint8 tag[] = { PKT_HEADER,0x00,0x0C,PKT_CHANNEL };
-    
-    if ( (buffer.size() == 16) && (buffer.Compare(tag, sizeof(tag)) == 0))
-    {
-        *ch = buffer.data()[4] - PKT_CHANNEL0;
-        if ( *ch == 0 )
-            packet->SetCodec(CODEC_AMBEPLUS);
-        else if ( *ch == 1 )
-            packet->SetCodec(CODEC_AMBE2PLUS);
-        else
-            packet->SetCodec(CODEC_NONE);
-        packet->SetAmbe(&(buffer.data()[7]));
-        valid = (*ch < GetNbChannels());
-        //std::cout << "CHAN " << *ch << " " << buffer.size() << " " << (int)buffer[6] << std::endl;
-    }
-    return valid;
-}
-
-bool CUsb3xxxInterface::IsValidSpeechPacket(const CBuffer &buffer, int *ch, CVoicePacket *packet)
-{
-    bool valid = false;
-    
-    if ( (buffer.size() > 6) &&
-         (buffer.data()[0] == PKT_HEADER) && (buffer.data()[3] == PKT_SPEECH) &&
-         (buffer.data()[5] == PKT_SPEECHD) )
-    {
-        *ch = buffer.data()[4] - PKT_CHANNEL0;
-        packet->SetVoice(&(buffer.data()[7]), buffer.data()[6] * 2);
-        valid = (*ch < GetNbChannels());
-        //std::cout << "SPCH " << *ch << " " << buffer.size() << std::endl;
-    }
-    return valid;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// encoder helpers
-
-void CUsb3xxxInterface::EncodeChannelPacket(CBuffer *buffer, int ch, CAmbePacket *packet)
-{
-    uint size = (uint16)packet->GetAmbeSize() + 3;
-    buffer->clear();
-    buffer->Append((uint8)PKT_HEADER);
-    buffer->Append((uint8)HIBYTE(size));
-    buffer->Append((uint8)LOBYTE(size));
-    buffer->Append((uint8)PKT_CHANNEL);
-    buffer->Append((uint8)(PKT_CHANNEL0+ch));
-    buffer->Append((uint8)(PKT_CHAND));
-    buffer->Append((uint8)(packet->GetAmbeSize()*8));
-    buffer->Append(packet->GetAmbe(), packet->GetAmbeSize());
-}
-
-void CUsb3xxxInterface::EncodeSpeechPacket(CBuffer *buffer, int ch, CVoicePacket *packet)
-{
-    uint16 size = (uint16)packet->GetVoiceSize() + 3;
-    buffer->clear();
-    buffer->Append((uint8)PKT_HEADER);
-    buffer->Append((uint8)HIBYTE(size));
-    buffer->Append((uint8)LOBYTE(size));
-    buffer->Append((uint8)PKT_SPEECH);
-    buffer->Append((uint8)(PKT_CHANNEL0+ch));
-    buffer->Append((uint8)PKT_SPEECHD);
-    buffer->Append((uint8)(packet->GetVoiceSize()/2));
-    buffer->Append(packet->GetVoice(), packet->GetVoiceSize());
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // low level
-
-
-bool CUsb3xxxInterface::OpenDevice(void)
-{
-    {
-        FT_STATUS ftStatus;
-        int baudrate = 921600;
-        
-        //sets serial VID/PID for a Standard Device NOTE:  This is for legacy purposes only.  This can be ommitted.
-        ftStatus = FT_SetVIDPID(m_uiVid, m_uiPid);
-        if (ftStatus != FT_OK) {FTDI_Error((char *)"FT_SetVIDPID", ftStatus ); return false; }
-        
-        //ftStatus = FT_OpenEx((PVOID)m_szDeviceSerial, FT_OPEN_BY_SERIAL_NUMBER, &m_FtdiHandle);
-        ftStatus = FT_OpenEx((PVOID)m_szDeviceName, FT_OPEN_BY_DESCRIPTION, &m_FtdiHandle);
-        baudrate = 921600;
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_OpenEx", ftStatus ); return false; }
-        
-        CTimePoint::TaskSleepFor(50);
-        FT_Purge(m_FtdiHandle, FT_PURGE_RX | FT_PURGE_TX );
-        CTimePoint::TaskSleepFor(50);
-        
-        ftStatus = FT_SetDataCharacteristics(m_FtdiHandle, FT_BITS_8, FT_STOP_BITS_1, FT_PARITY_NONE);
-        if ( ftStatus != FT_OK ) { FTDI_Error((char *)"FT_SetDataCharacteristics", ftStatus ); return false; }
-        
-        ftStatus = FT_SetFlowControl(m_FtdiHandle, FT_FLOW_RTS_CTS, 0x11, 0x13);
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetFlowControl", ftStatus ); return false; }
-        
-        ftStatus = FT_SetRts (m_FtdiHandle);
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetRts", ftStatus ); return false; }
-        
-        //for usb-3012 pull DTR high to take AMBE3003 out of reset.
-        //for other devices noting is connected to DTR so it is a dont care
-        ftStatus = FT_ClrDtr(m_FtdiHandle);
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_ClrDtr", ftStatus); return false; }
-        
-        ftStatus = FT_SetBaudRate(m_FtdiHandle, baudrate );
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetBaudRate", ftStatus ); return false; }
-        
-        ftStatus = FT_SetLatencyTimer(m_FtdiHandle, 4);
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetLatencyTimer", ftStatus ); return false; }
-        
-        ftStatus = FT_SetUSBParameters(m_FtdiHandle, USB3XXX_MAXPACKETSIZE, 0);
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetUSBParameters", ftStatus ); return false; }
-        
-        ftStatus = FT_SetTimeouts(m_FtdiHandle, 200, 200 );
-        if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetTimeouts", ftStatus ); return false; }
-        
-       // done
-        return true;
-    }
-}
 
 bool CUsb3xxxInterface::ReadDeviceVersion(void)
 {
@@ -561,85 +439,6 @@ bool CUsb3xxxInterface::FTDI_read_bytes(FT_HANDLE ftHandle, char *buffer, int le
     return ok;
 }
 
-/*
-int CUsb3xxxInterface::FTDI_read_packet(FT_HANDLE ftHandle, char *pkt, int maxlen)
-{
-    FT_STATUS ftStatus;
-    int nr;
-    int plen;
-    int offset = 0;
-    int nrt;
-    int len;
-    
-    // first read 4 bytes header
-    len = 4;
-    nrt = 0;
-    offset = 0;
-    do
-    {
-        ftStatus = FT_Read( ftHandle, (LPVOID)&pkt[offset], len, (LPDWORD)&nr );
-        if (ftStatus != FT_OK)
-        {
-            FTDI_Error((char *)"FT_Read C0", ftStatus );
-            return 0;
-        }
-        len -= nr;
-        nrt += nr;
-        offset += nr;
-    } while (len > 0);
-    
-    if (nrt != 4)
-    {
-        std::cout << "FTDI_read_packet nrt = " << nrt << std::endl;
-        return 0;
-    }
-    
-    // get packet payload length
-    plen = (pkt[1] & 0x00ff);
-    plen <<= 8;
-    plen += (pkt[2] & 0x00ff);
-    if (plen+4 > maxlen)
-    {
-        std::cout << "FTDI_read_packet supplied buffer is not large enough for packet" << std::endl;
-        plen = maxlen-4;
-    }
-    
-    // and read payload
-    len = plen;
-    nrt = 0;
-    offset = 4;
-    do
-    {
-        ftStatus = FT_Read( ftHandle, (LPVOID)&pkt[offset], len, (LPDWORD)&nr );
-        if (ftStatus != FT_OK)
-        {
-            FTDI_Error((char *)"FT_Read C1", ftStatus );
-            return 0;
-        }
-        len -= nr;
-        nrt += nr;
-        offset += nr;
-    } while (len > 0);
-    
-    if (nrt != plen)
-    {
-        std::cout << "FTDI_read_packet nrt = " << nrt << " plen = " << plen << std::endl;
-        //printf("reading packet nrt=%d plen=%d\n", nrt, plen );
-        //printf("pkt[0]=0x%02x\n", pkt[0] & 0x00ff );
-        //printf("pkt[1]=0x%02x\n", pkt[1] & 0x00ff );
-        //printf("pkt[2]=0x%02x\n", pkt[2] & 0x00ff );
-        //printf("pkt[3]=0x%02x\n", pkt[3] & 0x00ff );
-        //printf("pkt[4]=0x%02x\n", pkt[4] & 0x00ff );
-        //printf("pkt[5]=0x%02x\n", pkt[5] & 0x00ff );
-        return 0;
-    }
-    
-    //NOTE: we could extract the channel data from the packet, but for this
-    //simple example, the whole packet is echoed back for decoding so
-    //we don't bother extracting the channel data
-    return plen+4;
-}
-*/
 bool CUsb3xxxInterface::FTDI_write_packet(FT_HANDLE ft_handle, const char *pkt, int len)
 {
     FT_STATUS ftStatus;

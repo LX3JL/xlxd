@@ -1,8 +1,8 @@
 //
-//  cusb3003interface.h
+//  cusb3000interface.h
 //  ambed
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 23/04/2017.
+//  Created by Jean-Luc Deltombe (LX3JL) on 21/08/2017.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,8 +22,9 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cusb3003interface_h
-#define cusb3003interface_h
+#ifndef cusb3000interface_h
+#define cusb3000interface_h
+
 
 #include "ftd2xx.h"
 #include "cbuffer.h"
@@ -32,31 +33,31 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
-#define USB3003_NB_CH       3
+#define USB3000_NB_CH       1
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CUsb3003Interface : public CUsb3xxxInterface
+class CUsb3000Interface : public CUsb3xxxInterface
 {
 public:
     // constructors
-    CUsb3003Interface(uint32, uint32, const char *, const char *);
+    CUsb3000Interface(uint32, uint32, const char *, const char *);
     
     // destructor
-    virtual ~CUsb3003Interface() {}
+    virtual ~CUsb3000Interface() {}
     
     // initialization
     bool Init(uint8);
     
     // manage channels
-    int GetNbChannels(void) const       { return USB3003_NB_CH; }
+    int GetNbChannels(void) const       { return USB3000_NB_CH; }
     uint8 GetChannelCodec(int) const;
     
     // manage vocodec channels
     CVocodecChannel *GetChannelWithChannelIn(int);
     CVocodecChannel *GetChannelWithChannelOut(int);
-
+    
 protected:
     // decoder helper
     bool IsValidChannelPacket(const CBuffer &, int *, CAmbePacket *);
@@ -72,8 +73,8 @@ protected:
     bool ConfigureDevice(void);
     
     // data
-    uint8   m_uiChCodecs[USB3003_NB_CH];
+    uint8   m_uiChCodec;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cusb3003interface_h */
+#endif /* cusb3000interface_h */

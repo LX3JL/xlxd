@@ -25,22 +25,22 @@
 
 Hardware compatibility.
 ======================
-This version of ambed is compatible with DVSI's USB-3003, USB-3003, USB-3012 device
+This version of ambed is compatible with DVSI's USB-3000, USB-3003, USB-3012 device
 and ThumbDV
 
 Available transcoding channels per device:
 
 device			DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
-----------------------------------------------------------------------
-USB-3000(pair)	1				1				2
+----------------------------------------------------------------------------------------------------
+USB-3000(pair)		1				1				2
 USB-3003		1				1				1
-USB-3003(pair)	3				3				not tested
+USB-3003(pair)		3				3				not tested
 USB-3012		6				6				8
 
 Multiple USB-3xxx can be used at the same time.
 You need to use USB-3000 by pairs.
 ThumbDV is recognized as USB-3000.
-
+ 
 
 Instructions:
 =============

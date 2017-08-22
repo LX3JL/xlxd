@@ -40,7 +40,7 @@ USB-3012		6				6				8
 Multiple USB-3xxx can be used at the same time.
 You need to use USB-3000 by pairs.
 ThumbDV is recognized as USB-3000.
- 
+ThumbDV must be programed with FT-Prog (Provided by FTDI) by modifying device description as "USB-3000".
 
 Instructions:
 =============

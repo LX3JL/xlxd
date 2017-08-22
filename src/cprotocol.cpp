@@ -140,7 +140,7 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream != NULL )
     {
-        //std::cout << "DV frame" << std::endl;
+        //std::cout << "DV frame" << "from "  << *Ip << std::endl;
         // and push
         stream->Lock();
         stream->Push(Frame);
@@ -239,6 +239,19 @@ bool CProtocol::IsLetter(char c) const
 bool CProtocol::IsSpace(char c) const
 {
     return (c == ' ');
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// DestId to Module helper
+
+char CProtocol::DmrDstIdToModule(uint32 tg) const
+{
+    return ((char)((tg % 26)-1) + 'A');
+}
+
+uint32 CProtocol::ModuleToDmrDestId(char m) const
+{
+    return (uint32)(m - 'A')+1;
 }
 
 

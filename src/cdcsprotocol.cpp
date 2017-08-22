@@ -29,18 +29,6 @@
 #include "creflector.h"
 #include "cgatekeeper.h"
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructor
-
-CDcsProtocol::CDcsProtocol()
-{
-    for ( int i = 0; i < m_iSeqCounters.size(); i++ )
-    {
-        m_iSeqCounters[i] = 0;
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation
 
@@ -95,7 +83,7 @@ void CDcsProtocol::Task(void)
             {
                 // handle it
                 OnDvHeaderPacketIn(Header, Ip);
-
+                
                 if ( !Frame->IsLastPacket() )
                 {
                     //std::cout << "DCS DV frame" << std::endl;
@@ -103,8 +91,8 @@ void CDcsProtocol::Task(void)
                 }
                 else
                 {
-                   //std::cout << "DCS DV last frame" << std::endl;
-                   OnDvLastFramePacketIn((CDvLastFramePacket *)Frame, &Ip);
+                    //std::cout << "DCS DV last frame" << std::endl;
+                    OnDvLastFramePacketIn((CDvLastFramePacket *)Frame, &Ip);
                 }
             }
             else
@@ -284,8 +272,8 @@ void CDcsProtocol::HandleQueue(void)
         if ( packet->IsDvHeader() )
         {
             // this relies on queue feeder setting valid module id
-            m_DvHeadersCache[iModId] = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
-            m_iSeqCounters[iModId] = 0;
+            m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
+            m_StreamsCache[iModId].m_iSeqCounter = 0;
         }
         else
         {
@@ -293,11 +281,19 @@ void CDcsProtocol::HandleQueue(void)
             CBuffer buffer;
             if ( packet->IsLastPacket() )
             {
-                EncodeDvLastPacket(m_DvHeadersCache[iModId], (const CDvFramePacket &)*packet, m_iSeqCounters[iModId]++, &buffer);
+                EncodeDvLastPacket(
+                                   m_StreamsCache[iModId].m_dvHeader,
+                                   (const CDvFramePacket &)*packet,
+                                   m_StreamsCache[iModId].m_iSeqCounter++,
+                                   &buffer);
             }
             else if ( packet->IsDvFrame() )
             {
-                EncodeDvPacket(m_DvHeadersCache[iModId], (const CDvFramePacket &)*packet, m_iSeqCounters[iModId]++, &buffer);
+                EncodeDvPacket(
+                               m_StreamsCache[iModId].m_dvHeader,
+                               (const CDvFramePacket &)*packet,
+                               m_StreamsCache[iModId].m_iSeqCounter++,
+                               &buffer);
             }
             
             // send it
@@ -558,9 +554,6 @@ void CDcsProtocol::EncodeDvPacket(const CDvHeaderPacket &Header, const CDvFrameP
 
 void CDcsProtocol::EncodeDvLastPacket(const CDvHeaderPacket &Header, const CDvFramePacket &DvFrame, uint32 iSeq, CBuffer *Buffer) const
 {
-    //uint8 tag[] = { 0x4e,0x8d,0x32,0x88,0x26,0x1a,0x3f,0x61,0xe8,0x55,0x55,0x55 };
-    
     EncodeDvPacket(Header, DvFrame, iSeq, Buffer);
     (Buffer->data())[45] |= 0x40;
-    //Buffer->Ser
 }

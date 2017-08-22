@@ -40,7 +40,8 @@ class CDvLastFramePacket : public CDvFramePacket
 public:
     // constructor
     CDvLastFramePacket();
-    CDvLastFramePacket(const struct dstar_dvframe *, uint16 = 0, uint8 = 0);
+    CDvLastFramePacket(const struct dstar_dvframe *, uint16, uint8);
+    CDvLastFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
     CDvLastFramePacket(const CDvLastFramePacket &);
     
     // destructor
@@ -50,7 +51,8 @@ public:
     CPacket *Duplicate(void) const;
     
     // identity
-    bool IsLastPacket(void) const      { return true; }
+    bool IsLastPacket(void) const           { return true; }
+    bool HaveTranscodableAmbe(void) const   { return false; }
 };
 
 

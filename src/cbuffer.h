@@ -44,16 +44,24 @@ public:
     void Append(uint8, int);
     void Append(uint8);
     void Append(uint16);
+    void Append(uint32);
     void Append(const char *);
+    void ReplaceAt(int, uint8);
+    void ReplaceAt(int, uint16);
+    void ReplaceAt(int, uint32);
+    void ReplaceAt(int, const uint8 *, int);
     
     // operation
     int Compare(uint8 *, int) const;
     int Compare(uint8 *, int, int) const;
     
-    
     // operator
     bool operator ==(const CBuffer &) const;
     bool operator ==(const char *) const;
+    operator const char *() const;
+    
+    // debug
+    void DebugDump(std::ofstream &) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

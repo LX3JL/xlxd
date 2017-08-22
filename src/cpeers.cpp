@@ -85,7 +85,7 @@ void CPeers::AddPeer(CPeer *peer)
         // append peer to reflector peer list
         m_Peers.push_back(peer);
         std::cout << "New peer " << peer->GetCallsign() << " at " << peer->GetIp()
-                  << " added with protocol " << peer->GetProtocolName()  << std::endl;
+                  << " added with protocol " << peer->GetProtocol()  << std::endl;
         // and append all peer's client to reflector client list
         // it is double lock safe to lock Clients list after Peers list
         CClients *clients = g_Reflector.GetClients();

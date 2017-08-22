@@ -31,17 +31,6 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// constructor
-
-CDplusProtocol::CDplusProtocol()
-{
-    for ( int i = 0; i < m_iSeqCounters.size(); i++ )
-    {
-        m_iSeqCounters[i] = 0;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // operation
 
 bool CDplusProtocol::Init(void)
@@ -53,7 +42,6 @@ bool CDplusProtocol::Init(void)
     
     // update the reflector callsign
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"REF", 3);
-    //m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRF", 3);
     
     // create our socket
     ok &= m_Socket.Open(DPLUS_PORT);
@@ -250,7 +238,7 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
             // update last heard
             g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
             g_Reflector.ReleaseUsers();
-
+            
             // delete header if needed
             if ( !newstream )
             {
@@ -294,8 +282,8 @@ void CDplusProtocol::HandleQueue(void)
         if ( packet->IsDvHeader() )
         {
             // this relies on queue feeder setting valid module id
-            m_DvHeadersCache[iModId] = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
-            m_iSeqCounters[iModId] = 0;
+            m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
+            m_StreamsCache[iModId].m_iSeqCounter = 0;
         }
 
         // encode it
@@ -327,11 +315,11 @@ void CDplusProtocol::HandleQueue(void)
                          m_Socket.Send(buffer, client->GetIp());
 
                         // is it time to insert a DVheader copy ?
-                        if ( (m_iSeqCounters[iModId]++ % 21) == 20 )
+                        if ( (m_StreamsCache[iModId].m_iSeqCounter++ % 21) == 20 )
                         {
                             // yes, clone it
-                            CDvHeaderPacket packet2(m_DvHeadersCache[iModId]);
-                            // and send it 
+                            CDvHeaderPacket packet2(m_StreamsCache[iModId].m_dvHeader);
+                            // and send it
                             SendDvHeader(&packet2, (CDplusClient *)client);
                         }
                     }

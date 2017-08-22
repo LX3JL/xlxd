@@ -55,6 +55,7 @@ public:
     const CIp &GetIp(void) const                        { return m_Ip; }
     bool HasModule(void) const                          { return m_Callsign.HasModule(); }
     char GetModule(void) const                          { return m_Callsign.GetModule(); }
+    bool HasReflectorModule(void) const                 { return m_ReflectorModule != ' '; }
     char GetReflectorModule(void) const                 { return m_ReflectorModule; }
    
     // set
@@ -64,6 +65,7 @@ public:
     // identity
     virtual int GetProtocol(void) const                 { return PROTOCOL_NONE; }
     virtual int GetProtocolRevision(void) const         { return 0; }
+    virtual int GetCodec(void) const                    { return CODEC_NONE; }
     virtual const char *GetProtocolName(void) const     { return "none"; }
     virtual bool IsNode(void) const                     { return false; }
     virtual bool IsPeer(void) const                     { return false; }

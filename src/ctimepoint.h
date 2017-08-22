@@ -39,7 +39,7 @@ public:
     virtual ~CTimePoint() {}
     
     // operation
-    void   Now(void)                  { m_TimePoint = std::chrono::steady_clock::now(); }
+    void   Now(void)                        { m_TimePoint = std::chrono::steady_clock::now(); }
     double DurationSinceNow(void) const;
     
     // task

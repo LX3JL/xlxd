@@ -27,6 +27,8 @@
 #include "cdplusprotocol.h"
 #include "cdcsprotocol.h"
 #include "cxlxprotocol.h"
+#include "cdmrplusprotocol.h"
+#include "cdmrmmdvmprotocol.h"
 #include "cprotocols.h"
 
 
@@ -84,6 +86,16 @@ bool CProtocols::Init(void)
         delete m_Protocols[3];
         m_Protocols[3] = new CXlxProtocol;
         ok &= m_Protocols[3]->Init();
+        
+        // create and initialize DMRPLUS
+        delete m_Protocols[4];
+        m_Protocols[4] = new CDmrplusProtocol;
+        ok &= m_Protocols[4]->Init();
+        
+        // create and initialize DMRMMDVM
+        delete m_Protocols[5];
+        m_Protocols[5] = new CDmrmmdvmProtocol;
+        ok &= m_Protocols[5]->Init();
     }
     m_Mutex.unlock();
    

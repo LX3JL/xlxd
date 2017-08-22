@@ -107,5 +107,6 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 30001     (DExtra protocol)
  - UPD port 20001     (DPlus protocol)
  - UDP port 30051     (DCS protocol)
+ - UDP port 62030     (MMDVM home brew protocol)
 
 © 2016 Luc Engelmann LX1IQ

@@ -75,7 +75,7 @@ void CVocodecChannel::Close(void)
         PurgeAllQueues();
         std::cout << "Vocodec channel " <<
         m_InterfaceIn->GetName() << ":" << (int)m_iChannelIn << " -> " <<
-        m_InterfaceIn->GetName() << ":" << (int)m_iChannelOut << " closed" << std::endl;
+        m_InterfaceOut->GetName() << ":" << (int)m_iChannelOut << " closed" << std::endl;
     }
 }
 

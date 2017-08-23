@@ -14,7 +14,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	$(RM) *.o
+	$(RM) xlxd *.o
 
 install:
 	mkdir -p /xlxd

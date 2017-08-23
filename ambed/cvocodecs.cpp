@@ -348,8 +348,8 @@ int CVocodecs::InitUsb3003Pair(const CFtdiDeviceDescr &descr1, const CFtdiDevice
     int nStreams = 0;
     
     // create the interfaces for the two 3003 chips
-    CUsb3003Interface *Usb3003A = new CUsb3003Interface(descr1.GetVid(), descr1.GetPid(), "USB-3003", descr1.GetSerialNumber());
-    CUsb3003Interface *Usb3003B = new CUsb3003Interface(descr2.GetVid(), descr2.GetPid(), "USB-3003", descr2.GetSerialNumber());
+    CUsb3003Interface *Usb3003A = new CUsb3003Interface(descr1.GetVid(), descr1.GetPid(), "USB-3003_A", descr1.GetSerialNumber());
+    CUsb3003Interface *Usb3003B = new CUsb3003Interface(descr2.GetVid(), descr2.GetPid(), "USB-3003_B", descr2.GetSerialNumber());
     
     // init the interfaces
     if ( Usb3003A->Init(CODEC_AMBEPLUS) && Usb3003B->Init(CODEC_AMBE2PLUS) )
@@ -403,8 +403,8 @@ int CVocodecs::InitUsb3000Pair(const CFtdiDeviceDescr &descr1, const CFtdiDevice
     int nStreams = 0;
     
     // create the interfaces for the two 3000 chips
-    CUsb3000Interface *Usb3000A = new CUsb3000Interface(descr1.GetVid(), descr1.GetPid(), "USB-3000", descr1.GetSerialNumber());
-    CUsb3000Interface *Usb3000B = new CUsb3000Interface(descr2.GetVid(), descr2.GetPid(), "USB-3000", descr2.GetSerialNumber());
+    CUsb3000Interface *Usb3000A = new CUsb3000Interface(descr1.GetVid(), descr1.GetPid(), "USB-3000_A", descr1.GetSerialNumber());
+    CUsb3000Interface *Usb3000B = new CUsb3000Interface(descr2.GetVid(), descr2.GetPid(), "USB-3000_B", descr2.GetSerialNumber());
     
     // init the interfaces
     if ( Usb3000A->Init(CODEC_AMBEPLUS) && Usb3000B->Init(CODEC_AMBE2PLUS) )

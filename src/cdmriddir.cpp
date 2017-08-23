@@ -63,7 +63,7 @@ bool CDmridDir::RefreshContent(void)
     CBuffer buffer;
     
     // get file from xlxapi server
-    if ( (ok = HttpGet("xlxapi.rlx.lu", "/api/exportdmr.php", 80, &buffer)) )
+    if ( (ok = HttpGet("xlxapi.rlx.lu", "api/exportdmr.php", 80, &buffer)) )
     {
         // clear directory
         m_CallsignMap.clear();
@@ -207,7 +207,7 @@ bool CDmridDir::HttpGet(const char *hostname, const char *filename, int port, CB
             {
                 // send the GET request
                 char request[DMRID_HTTPGET_SIZEMAX];
-                ::sprintf(request, "GET /%s HTTP/1.0\nFrom: %s\nUser-Agent: xlxd\n\n",
+                ::sprintf(request, "GET /%s HTTP/1.0\r\nFrom: %s\r\nUser-Agent: xlxd\r\n\r\n",
                           filename, (const char *)g_Reflector.GetCallsign());
                 ::write(sock_id, request, strlen(request));
 

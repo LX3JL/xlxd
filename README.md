@@ -69,6 +69,13 @@ Please use the stable version listed above, we cannot support others.
 ```
 # pico /etc/init.d/xlxd
 ```
+###### Download the dmrid.dat from the XLXAPI server to your xlxd folder
+...
+# wget -O /xlxd/dmrid.dat http://xlxapi.rlx.lu/api/exportdmr.php
+...
+
+###### Check your FTDI driver and install the AMBE service according to the readme in AMBEd
+...
 
 ###### Last step is to declare the service for automatic startup and shutdown
 ```
@@ -107,5 +114,8 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 30001     (DExtra protocol)
  - UPD port 20001     (DPlus protocol)
  - UDP port 30051     (DCS protocol)
+ - UDP port 8880      (DMR+ DMO mode)
+ - UDP port 62030     (MMDVM protocol)
+ - UDP port 10100     (AMBE transcoding port)
 
 © 2016 Luc Engelmann LX1IQ

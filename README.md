@@ -70,12 +70,12 @@ Please use the stable version listed above, we cannot support others.
 # pico /etc/init.d/xlxd
 ```
 ###### Download the dmrid.dat from the XLXAPI server to your xlxd folder
-...
-'wget -O /xlxd/dmrid.dat http://xlxapi.rlx.lu/api/exportdmr.php'
-...
+```
+# wget -O /xlxd/dmrid.dat http://xlxapi.rlx.lu/api/exportdmr.php
+```
 
 ###### Check your FTDI driver and install the AMBE service according to the readme in AMBEd
-...
+```
 
 ###### Last step is to declare the service for automatic startup and shutdown
 ```

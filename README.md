@@ -55,8 +55,8 @@ Please use the stable version listed above, we cannot support others.
 ```
 # git clone https://github.com/LX3JL/xlxd.git
 # cd xlxd/src/
-# make
 # make clean
+# make
 # make install
 ```
 

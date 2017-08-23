@@ -39,11 +39,21 @@
 
 class CDplusClient;
 
+class CDPlusStreamCacheItem
+{
+public:
+    CDPlusStreamCacheItem()     { m_iSeqCounter = 0; }
+    ~CDPlusStreamCacheItem()    {}
+    
+    CDvHeaderPacket m_dvHeader;
+    uint8           m_iSeqCounter;
+};
+
 class CDplusProtocol : public CProtocol
 {
 public:
     // constructor
-    CDplusProtocol();
+    CDplusProtocol() {};
     
     // destructor
     virtual ~CDplusProtocol() {};
@@ -89,8 +99,7 @@ protected:
     CTimePoint          m_LastKeepaliveTime;
     
     // for queue header caches
-    std::array<CDvHeaderPacket, NB_OF_MODULES>  m_DvHeadersCache;
-    std::array<uint32, NB_OF_MODULES>           m_iSeqCounters;
+    std::array<CDPlusStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

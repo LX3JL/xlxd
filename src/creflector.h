@@ -58,7 +58,9 @@ public:
     void SetCallsign(const CCallsign &callsign)     { m_Callsign = callsign; }
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
     void SetListenIp(const CIp &ip)                 { m_Ip = ip; }
+    void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
     const CIp &GetListenIp(void) const              { return m_Ip; }
+    const CIp &GetTrasncoderIp(void) const          { return m_AmbedIp; }
     
     // operation
     bool Start(void);
@@ -118,6 +120,7 @@ protected:
     // identity
     CCallsign       m_Callsign;
     CIp             m_Ip;
+    CIp             m_AmbedIp;
     
     // objects
     CUsers          m_Users;            // sorted list of lastheard stations
@@ -136,6 +139,11 @@ protected:
     
     // notifications
     CNotificationQueue  m_Notifications;
+    
+public:
+#ifdef DEBUG_DUMPFILE
+    std::ofstream        m_DebugFile;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

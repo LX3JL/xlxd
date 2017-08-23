@@ -78,12 +78,54 @@ void CBuffer::Append(uint16 ui)
     ::memcpy(&(data()[n]), &ui, sizeof(uint16));
 }
 
+void CBuffer::Append(uint32 ui)
+{
+    int n = (int)size();
+    resize(n+sizeof(uint32));
+    ::memcpy(&(data()[n]), &ui, sizeof(uint32));
+}
+
 void CBuffer::Append(const char *sz)
 {
     Append((uint8 *)sz, (int)strlen(sz));
     Append((uint8)0x00);
 }
 
+void CBuffer::ReplaceAt(int i, uint8 ui)
+{
+    if ( size() < (i+sizeof(uint8)) )
+    {
+        resize(i+sizeof(uint8));
+    }
+    *(uint8 *)(&(data()[i])) = ui;
+}
+
+void CBuffer::ReplaceAt(int i, uint16 ui)
+{
+    if ( size() < (i+sizeof(uint16)) )
+    {
+        resize(i+sizeof(uint16));
+    }
+    *(uint16 *)(&(data()[i])) = ui;
+}
+
+void CBuffer::ReplaceAt(int i, uint32 ui)
+{
+    if ( size() < (i+sizeof(uint32)) )
+    {
+        resize(i+sizeof(uint32));
+    }
+    *(uint32 *)(&(data()[i])) = ui;
+}
+
+void CBuffer::ReplaceAt(int i, const uint8 *ptr, int len)
+{
+    if ( size() < (i+len) )
+    {
+        resize(i+len);
+    }
+    ::memcpy(&(data()[i]), ptr, len);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation
@@ -129,3 +171,31 @@ bool CBuffer::operator ==(const char *sz) const
     }
     return false;
 }
+
+CBuffer::operator const char *() const
+{
+    return (const char *)data();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// debug
+
+void CBuffer::DebugDump(std::ofstream &debugout) const
+{
+    for ( int i = 0; i < size(); i++ )
+    {
+        char sz[16];
+        //sprintf(sz, "%02X", data()[i]);
+        sprintf(sz, "0x%02X", data()[i]);
+        debugout << sz;
+        if ( i == size()-1 )
+        {
+            debugout << std::endl;
+        }
+        else
+        {
+            debugout << ',';
+        }
+    }
+}
+

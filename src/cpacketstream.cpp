@@ -32,7 +32,9 @@ CPacketStream::CPacketStream()
 {
     m_bOpen = false;
     m_uiStreamId = 0;
+    m_uiPacketCntr = 0;
     m_OwnerClient = NULL;
+    m_CodecStream = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -48,9 +50,11 @@ bool CPacketStream::Open(const CDvHeaderPacket &DvHeader, CClient *client)
         // update status
         m_bOpen = true;
         m_uiStreamId = DvHeader.GetStreamId();
+        m_uiPacketCntr = 0;
         m_DvHeader = DvHeader;
         m_OwnerClient = client;
         m_LastPacketTime.Now();
+        m_CodecStream = g_Transcoder.GetStream(this, client->GetCodec());
         ok = true;
     }
     return ok;
@@ -62,6 +66,8 @@ void CPacketStream::Close(void)
     m_bOpen = false;
     m_uiStreamId = 0;
     m_OwnerClient = NULL;
+    g_Transcoder.ReleaseStream(m_CodecStream);
+    m_CodecStream = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -69,8 +75,50 @@ void CPacketStream::Close(void)
 
 void CPacketStream::Push(CPacket *Packet)
 {
+    // update stream dependent packet data
     m_LastPacketTime.Now();
-    push(Packet);
+    Packet->UpdatePids(m_uiPacketCntr++);
+    // transcoder avaliable ?
+    if ( m_CodecStream != NULL )
+    {
+        // todo: verify no possibilty of double lock here
+        m_CodecStream->Lock();
+        {
+            // transcoder ready & frame need transcoding ?
+            if ( m_CodecStream->IsConnected() && Packet->HaveTranscodableAmbe() )
+            {
+                // yes, push packet to trancoder queue
+                // trancoder will push it after transcoding
+                // is completed
+                m_CodecStream->push(Packet);
+            }
+            else
+            {
+                // no, just bypass tarnscoder
+                push(Packet);
+            }
+        }
+        m_CodecStream->Unlock();
+    }
+    else
+    {
+        // otherwise, push direct push
+        push(Packet);
+    }
+}
+
+bool CPacketStream::IsEmpty(void) const
+{
+    bool bEmpty = empty();
+    
+    // also check no packets still in Codec stream's queue
+    if ( bEmpty && (m_CodecStream != NULL) )
+    {
+        bEmpty &= m_CodecStream->IsEmpty();
+    }
+
+    // done
+    return bEmpty;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

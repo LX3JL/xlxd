@@ -40,7 +40,7 @@ class CCallsign
 public:
     // contructors
     CCallsign();
-    CCallsign(const char *);
+    CCallsign(const char *, uint32 = 0);
     CCallsign(const CCallsign &);
     
     // destructor
@@ -49,11 +49,13 @@ public:
     // status
     bool IsValid(void) const;
     bool HasSuffix(void) const;
-    bool HasModule(void) const      { return m_Module != ' '; }
+    bool HasModule(void) const                { return m_Module != ' '; }
     
     // set
-    void SetCallsign(const char *);
-    void SetCallsign(const uint8 *, int);
+    void SetCallsign(const char *, bool = true);
+    void SetCallsign(const uint8 *, int, bool = true);
+    void SetDmrid(uint32, bool = true);
+    void SetDmrid(const uint8 *, bool = true);
     void SetModule(char);
     void SetSuffix(const char *);
     void SetSuffix(const uint8 *, int);
@@ -64,12 +66,14 @@ public:
     // get
     void GetCallsign(uint8 *) const;
     void GetCallsignString(char *) const;
+    uint32 GetDmrid(void) const             { return m_uiDmrid; }
     void GetSuffix(uint8 *) const;
-    char GetModule(void) const     { return m_Module; }
+    char GetModule(void) const              { return m_Module; }
     
     // compare
     bool HasSameCallsign(const CCallsign &) const;
     bool HasSameCallsignWithWildcard(const CCallsign &) const;
+    bool HasLowerCallsign(const CCallsign &) const;
     bool HasSameModule(const CCallsign &) const;
    
     // operators
@@ -88,6 +92,7 @@ protected:
     char    m_Suffix[CALLSUFFIX_LEN];
     char    m_Module;
     char	m_sz[CALLSIGN_LEN+CALLSUFFIX_LEN+5];
+    uint32  m_uiDmrid;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

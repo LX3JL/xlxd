@@ -87,16 +87,17 @@ int main(int argc, const char * argv[])
 #endif
 
     // check arguments
-    if ( argc != 3 )
+    if ( argc != 4 )
     {
-        std::cout << "Usage: xlxd callsign ip" << std::endl;
-        std::cout << "example: xlxd XLX999 192.168.178.212" << std::endl;
+        std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
+        std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
         return 1;
     }
 
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);
     g_Reflector.SetListenIp(CIp(argv[2]));
+    g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
   
     // and let it run
     if ( !g_Reflector.Start() )
@@ -116,8 +117,14 @@ int main(int argc, const char * argv[])
     }
 #else
     // wait any key
-    //for (;;);
-    std::cin.get();
+    for (;;)
+    {
+        std::cin.get();
+#ifdef DEBUG_DUMPFILE
+        g_Reflector.m_DebugFile.close();
+        g_Reflector.m_DebugFile.open("/Users/jeanluc/Desktop/dmrdebug.txt");
+#endif
+    }
 #endif
     
     // and wait for end

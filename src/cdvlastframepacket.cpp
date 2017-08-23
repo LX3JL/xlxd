@@ -33,11 +33,22 @@ CDvLastFramePacket::CDvLastFramePacket()
 {
 }
 
+// dstar constructor
+
 CDvLastFramePacket::CDvLastFramePacket(const struct dstar_dvframe *DvFrame, uint16 sid, uint8 pid)
     : CDvFramePacket(DvFrame, sid, pid)
 {
 }
 
+// dmr constructor
+
+CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, const uint8 *sync, uint16 sid, uint8 pid, uint8 spid)
+    : CDvFramePacket(ambe, sync, sid, pid, spid)
+{
+}
+
+// copy constructor
+    
 CDvLastFramePacket::CDvLastFramePacket(const CDvLastFramePacket &DvFrame)
     : CDvFramePacket(DvFrame)
 {

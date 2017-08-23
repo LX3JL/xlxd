@@ -28,10 +28,12 @@
 #include "cpacketqueue.h"
 #include "ctimepoint.h"
 #include "cdvheaderpacket.h"
+#include "ctranscoder.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define STREAM_TIMEOUT      (0.200)
+//#define STREAM_TIMEOUT      (0.600)
+#define STREAM_TIMEOUT      (1.600)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -52,6 +54,7 @@ public:
     // push & pop
     void Push(CPacket *);
     void Tickle(void)                               { m_LastPacketTime.Now(); }
+    bool IsEmpty(void) const;
     
     // get
     CClient         *GetOwnerClient(void)           { return m_OwnerClient; }
@@ -65,9 +68,11 @@ protected:
     // data
     bool                m_bOpen;
     uint16              m_uiStreamId;
+    uint32              m_uiPacketCntr;
     CClient             *m_OwnerClient;
     CTimePoint          m_LastPacketTime;
     CDvHeaderPacket     m_DvHeader;
+    CCodecStream        *m_CodecStream;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

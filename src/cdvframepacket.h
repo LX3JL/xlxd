@@ -33,6 +33,9 @@
 #define AMBE_SIZE       9
 #define DVDATA_SIZE     3
 
+#define AMBEPLUS_SIZE   9
+#define DVSYNC_SIZE     7
+
 // typedef & structures
 
 struct __attribute__ ((__packed__))dstar_dvframe
@@ -46,10 +49,12 @@ struct __attribute__ ((__packed__))dstar_dvframe
 
 class CDvFramePacket : public CPacket
 {
+friend class CCodecStream;
 public:
     // constructor
     CDvFramePacket();
-    CDvFramePacket(const struct dstar_dvframe *, uint16 = 0, uint8 = 0);
+    CDvFramePacket(const struct dstar_dvframe *, uint16, uint8);
+    CDvFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
     CDvFramePacket(const CDvFramePacket &);
     
     // destructor
@@ -59,19 +64,35 @@ public:
     CPacket *Duplicate(void) const;
     
     // identity
-    bool IsDvFrame(void) const          { return true; }
+    bool IsDvFrame(void) const              { return true; }
+    bool HaveTranscodableAmbe(void) const   { return true; }
     
     // get
-    const uint8 *GetAmbe(void) const    { return m_uiAmbe; }
-    const uint8 *GetDvData(void) const  { return m_uiDvData; }
+    const uint8 *GetAmbe(uint8) const;
+    const uint8 *GetAmbe(void) const        { return m_uiAmbe; }
+    const uint8 *GetAmbePlus(void) const    { return m_uiAmbePlus; }
+    const uint8 *GetDvData(void) const      { return m_uiDvData; }
+    const uint8 *GetDvSync(void) const      { return m_uiDvSync; }
+    
+    // set
+    void SetDvData(uint8 *);
+    void SetAmbe(uint8, uint8 *);
 
     // operators
     bool operator ==(const CDvFramePacket &) const;
+
+protected:
+    // get
+    uint8 *GetAmbeData(void)                { return m_uiAmbe; }
+    uint8 *GetAmbePlusData(void)            { return m_uiAmbePlus; }
     
 protected:
-    // data
+    // data (dstar)
     uint8       m_uiAmbe[AMBE_SIZE];
     uint8       m_uiDvData[DVDATA_SIZE];
+    // data (dmr)
+    uint8       m_uiAmbePlus[AMBEPLUS_SIZE];
+    uint8       m_uiDvSync[DVSYNC_SIZE];
 };
 
 

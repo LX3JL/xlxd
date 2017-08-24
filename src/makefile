@@ -14,11 +14,11 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	$(RM) xlxd *.o
+	$(RM) $(EXECUTABLE) *.o
 
 install:
 	mkdir -p /xlxd
-	cp ./xlxd /xlxd/
+	cp $(EXECUTABLE) /xlxd/
 	cp -i ../config/xlxd.blacklist /xlxd/
 	cp -i ../config/xlxd.whitelist /xlxd/
 	cp -i ../config/xlxd.interlink /xlxd/

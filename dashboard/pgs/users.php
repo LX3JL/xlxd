@@ -1,5 +1,22 @@
 <?php
 
+$Result = @fopen($CallingHome['ServerURL']."?do=GetReflectorList", "r");
+
+$INPUT = "";
+
+if ($Result) {
+
+   while (!feof ($Result)) {
+       $INPUT .= fgets ($Result, 1024);
+   }
+
+   $XML = new ParseXML();
+   $Reflectorlist = $XML->GetElement($INPUT, "reflectorlist");
+   $Reflectors    = $XML->GetAllElements($Reflectorlist, "reflector");
+}
+
+fclose($Result);
+
 if (!isset($_SESSION['FilterCallSign'])) {
    $_SESSION['FilterCallSign'] = null;
 }
@@ -144,8 +161,20 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
    <td width="60">'.$Reflector->Stations[$i]->GetSuffix().'</td>
    <td width="50" align="center"><a href="http://www.aprs.fi/'.$Reflector->Stations[$i]->GetCallsignOnly().'" class="pl" target="_blank"><img src="./img/sat.png" /></a></td>
    <td width="150">'.$Reflector->Stations[$i]->GetVia();
-      if ($Reflector->Stations[$i]->GetPeer() != $Reflector->GetReflectorName()) {
-         echo ' / '.$Reflector->Stations[$i]->GetPeer();
+      $Peer = '';
+      $URL = '';
+      $Peer = $Reflector->Stations[$i]->GetPeer();
+      if ($Peer != $Reflector->GetReflectorName()) {
+         for ($j=1;$j<count($Reflectors);$j++) {
+            if ($Peer === $XML->GetElement($Reflectors[$j], "name")) {
+               $URL  = $XML->GetElement($Reflectors[$j], "dashboardurl");
+            }
+         }
+         if ($Result && (trim($URL) != "")) {
+            echo ' / <a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Peer.'" style="text-decoration:none;color:#000000;">'.$Peer.'</a>';
+         } else {
+            echo ' / '.$Peer;
+         }
       }
       echo '</td>
    <td width="150">'.@date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()).'</td>

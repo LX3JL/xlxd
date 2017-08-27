@@ -49,7 +49,7 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
          case 'C' : echo '2m'; break;
          case 'D' : echo 'Dongle'; break;
          case 'G' : echo 'Internet-Gateway'; break;
-         default  : 
+         default  : echo '';
       }
    }
    echo '</td>

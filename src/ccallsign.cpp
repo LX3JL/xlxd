@@ -69,6 +69,7 @@ CCallsign::CCallsign(const char *sz, uint32 dmrid)
         if ( callsign != NULL )
         {
             ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+	    ::memcpy(m_Suffix, "DMR ", sizeof(m_Suffix));
         }
     }
 }

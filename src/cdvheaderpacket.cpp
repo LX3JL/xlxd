@@ -68,6 +68,8 @@ CDvHeaderPacket::CDvHeaderPacket(uint32 my, const CCallsign &ur, const CCallsign
     m_csRPT1 = rpt1;
     m_csRPT2 = rpt2;
     m_csMY = CCallsign("", my);
+    // Modify by BU2EA, this will set DMR user suffix as DMR
+    m_csMY.SetSuffix(DMR_SUFFIX);
 }
 
 // copy constructor

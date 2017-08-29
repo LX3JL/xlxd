@@ -31,7 +31,7 @@
 #define CALLSIGN_LEN        8
 #define CALLSUFFIX_LEN      4
 
-#define DMR_SUFFIX			"DMR"
+#define DMR_SUFFIX			"xDMR"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class

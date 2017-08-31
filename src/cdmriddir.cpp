@@ -104,7 +104,7 @@ bool CDmridDir::RefreshContent(void)
     }
     
     // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR id from online database " << std::endl;
+    std::cout << "Read " << m_DmridMap.size() << " DMR IDs from online database " << std::endl;
     
     // done
     return ok;
@@ -170,7 +170,7 @@ bool CDmridDir::RefreshContent(void)
     }
     
     // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR id from local file " << std::endl;
+    std::cout << "Read " << m_DmridMap.size() << " DMR IDs from local file " << std::endl;
     
     // done
     return ok;

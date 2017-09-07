@@ -51,8 +51,8 @@ public:
     
     // get
     bool IsUsed(void) const                 {return m_bUsed; }
-    bool IsUsb3000(void) const              { return (::strcmp(m_szDescription, "USB-3000") == 0); }
-    bool IsUsb3003(void) const              { return (::strcmp(m_szDescription, "USB-3003") == 0); }
+    bool IsUsb3000(void) const              { return (::strcmp(m_szDescription, "USB-3000") == 0 || ::strcmp(m_szDescription, "ThumbDV") == 0); }
+    bool IsUsb3003(void) const              { return (::strcmp(m_szDescription, "USB-3003") == 0 || ::strcmp(m_szDescription, "ThumbDV-3") == 0); }
     bool IsUsb3012(void) const              { return (::strcmp(m_szDescription, "USB-3012 A") == 0); }
     uint32 GetVid(void) const               { return m_uiVid; }
     uint32 GetPid(void) const               { return m_uiPid; }

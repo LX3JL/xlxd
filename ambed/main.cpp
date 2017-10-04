@@ -29,6 +29,18 @@
 #include "syslog.h"
 #include <sys/stat.h>
 
+#ifndef RUN_AS_DAEMON
+#include <csignal>
+namespace {
+volatile std::sig_atomic_t gSignalStatus = 0;
+}
+void signal_handler(int signal)
+{
+  //std::cout << "Ctrl-C pressed" << std::endl;
+  gSignalStatus = signal;
+}
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // global objects
 
@@ -113,9 +125,12 @@ int main(int argc, const char * argv[])
         CTimePoint::TaskSleepFor(60000);
     }
 #else
-    // wait any key
-    for (;;);
-    //std::cin.get();
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    while(gSignalStatus == 0) {
+      CTimePoint::TaskSleepFor(300);
+    }
+    std::cout << "Termination requested...." << std::endl;
 #endif
     
     // and wait for end

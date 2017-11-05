@@ -114,8 +114,12 @@ int main(int argc, const char * argv[])
     }
 #else
     // wait any key
-    for (;;);
-    //std::cin.get();
+    for (;;)
+    {
+        // sleep 60 seconds
+        CTimePoint::TaskSleepFor(60000);
+        //std::cin.get();
+    }
 #endif
     
     // and wait for end

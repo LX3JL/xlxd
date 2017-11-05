@@ -254,7 +254,7 @@ bool CUsb3000Interface::ResetDevice(void)
     {
         FTDI_write_packet(m_FtdiHandle, zeropacket, sizeof(zeropacket));
     }
-
+    
     
     // write soft-reset packet
     if ( FTDI_write_packet(m_FtdiHandle, txpacket, sizeof(txpacket)) )

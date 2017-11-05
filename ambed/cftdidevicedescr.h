@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include "ftd2xx.h"
+#include "cvocodecchannel.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
@@ -38,6 +39,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
+class CUsb3000Interface;
+class CUsb3003Interface;
+
 class CFtdiDeviceDescr
 {
 public:
@@ -48,12 +52,14 @@ public:
     
     // destructor
     virtual ~CFtdiDeviceDescr() {}
-    
+ 
+    // interface factory
+    static int CreateInterface(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
+    static int CreateInterfacePair(CFtdiDeviceDescr *, CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
+
     // get
-    bool IsUsed(void) const                 {return m_bUsed; }
-    bool IsUsb3000(void) const              { return (::strcmp(m_szDescription, "USB-3000") == 0); }
-    bool IsUsb3003(void) const              { return (::strcmp(m_szDescription, "USB-3003") == 0); }
-    bool IsUsb3012(void) const              { return (::strcmp(m_szDescription, "USB-3012 A") == 0); }
+    bool IsUsed(void) const                 { return m_bUsed; }
+    int  GetNbChannels(void) const;
     uint32 GetVid(void) const               { return m_uiVid; }
     uint32 GetPid(void) const               { return m_uiPid; }
     const char *GetDescription(void) const  { return m_szDescription; }
@@ -61,7 +67,18 @@ public:
     
     // set
     void SetUsed(bool used)                 { m_bUsed = used; }
-    
+
+protected:
+    // factory helper
+    static int  CreateUsb3012(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
+    static int  CreateUsb3006(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
+    static int  CreateUsb3003(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
+    static int  CreatePair(CUsb3003Interface *, CUsb3003Interface *, std::vector<CVocodecChannel *>*);
+    static int  CreatePair(CUsb3003Interface *, CUsb3000Interface *, std::vector<CVocodecChannel *>*);
+    static int  CreatePair(CUsb3000Interface *, CUsb3000Interface *, std::vector<CVocodecChannel *>*);
+    static CUsb3003Interface *InstantiateUsb3003(CFtdiDeviceDescr *);
+    static CUsb3000Interface *InstantiateUsb3000(CFtdiDeviceDescr *);
+  
 protected:
     // status
     bool    m_bUsed;

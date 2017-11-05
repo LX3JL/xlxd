@@ -3,7 +3,7 @@
 //  ambed
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 09/07/2017.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Copyright © 2017 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of ambed.
@@ -25,23 +25,30 @@
 
 Hardware compatibility.
 ======================
-This version of ambed is compatible with DVSI's USB-3000, USB-3003, USB-3012 device
-and ThumbDV
+This version of ambed is compatible with:
+- DF2ET's AMBE3003USB opensource device (https://github.com/phl0/AMBE3003USB)
+- LX3JL's USB-3006 opensource device (https://github.com/lx3jl/usb-3006)
+- DVSI's USB-3000 device
+- DVSI's USB-3003 device
+- DVSI's USB-3012 device
+- NWDR's ThumbDV device
+- NWDR's ThumbDV-3 device
 
 Available transcoding channels per device:
 
 device			DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
 ----------------------------------------------------------------------
-USB-3000(pair)	1				1				2
-USB-3003		1				1				1
-USB-3003(pair)	3				3				not tested
-USB-3012		6				6				8
+3000(pair)		1				1				2
+3003			1				1				1
+3003(pair)		3				3				not tested
+3003-3000(pair)	2				2				not tested
+3006			3				3				4
+3012			6				6				8
 
-Multiple USB-3xxx can be used at the same time.
-You need to use USB-3000 by pairs.
-ThumbDV is recognized as USB-3000.
-ThumbDV must be programed with FT-Prog (Provided by FTDI) by modifying device description as "USB-3000".
-
+Multiple devices can be used at the same time.
+You need to use 3000 by pairs or paired with a 3003
+Do not to use USB hubs as they have proven making
+system behaviour unreliable.
 
 Instructions:
 =============

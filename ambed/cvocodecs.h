@@ -56,10 +56,10 @@ public:
 protected:
     // initialisation helpers
     bool DiscoverFtdiDevices(void);
-    int InitUsb3012(const CFtdiDeviceDescr &);
-    int InitUsb3003(const CFtdiDeviceDescr &);
-    int InitUsb3003Pair(const CFtdiDeviceDescr &, const CFtdiDeviceDescr &);
-    int InitUsb3000Pair(const CFtdiDeviceDescr &, const CFtdiDeviceDescr &);
+    
+    // helpers
+    bool IsEven(int i) const        { return ((i % 2) == 0); }
+    bool IsOdd(int i) const         { return !IsEven(i); }
     
 protected:
     // array of interfaces

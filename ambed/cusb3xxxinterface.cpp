@@ -65,7 +65,7 @@ bool CUsb3xxxInterface::Init(void)
     std::cout << "Opening " << m_szDeviceName << ":" << m_szDeviceSerial << " device" << std::endl;
     if ( ok &= OpenDevice() )
     {
-        // reset
+         // reset
     	//std::cout << "Reseting " << m_szDeviceName << "device" << std::endl;
         if ( ok &= ResetDevice() )
         {

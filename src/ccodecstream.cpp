@@ -95,7 +95,7 @@ bool CCodecStream::Init(uint16 uiPort)
     m_bStopThread = false;
     
     // create server's IP
-    m_Ip = g_Reflector.GetTrasncoderIp();
+    m_Ip = g_Reflector.GetTranscoderIp();
     m_uiPort = uiPort;
     
     // create our socket

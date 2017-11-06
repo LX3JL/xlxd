@@ -60,7 +60,7 @@ public:
     void SetListenIp(const CIp &ip)                 { m_Ip = ip; }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
     const CIp &GetListenIp(void) const              { return m_Ip; }
-    const CIp &GetTrasncoderIp(void) const          { return m_AmbedIp; }
+    const CIp &GetTranscoderIp(void) const          { return m_AmbedIp; }
     
     // operation
     bool Start(void);

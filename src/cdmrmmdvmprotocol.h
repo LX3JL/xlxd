@@ -89,10 +89,10 @@ protected:
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &, uint8, uint8);
     
     // packet decoding helpers
-    bool IsValidConnectPacket(const CBuffer &, CCallsign *);
-    bool IsValidAuthenticationPacket(const CBuffer &, CCallsign *);
+    bool IsValidConnectPacket(const CBuffer &, CCallsign *, const CIp &);
+    bool IsValidAuthenticationPacket(const CBuffer &, CCallsign *, const CIp &);
     bool IsValidDisconnectPacket(const CBuffer &, CCallsign *);
-    bool IsValidConfigPacket(const CBuffer &, CCallsign *);
+    bool IsValidConfigPacket(const CBuffer &, CCallsign *, const CIp &);
     bool IsValidOptionPacket(const CBuffer &, CCallsign *);
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
     bool IsValidRssiPacket(const CBuffer &, CCallsign *, int *);

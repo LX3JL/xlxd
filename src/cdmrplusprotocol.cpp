@@ -125,7 +125,7 @@ void CDmrplusProtocol::Task(void)
                 delete Header;
             }
         }
-        else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule) )
+        else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule, Ip) )
         {
             //std::cout << "DMRplus keepalive/connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
             
@@ -404,7 +404,7 @@ void CDmrplusProtocol::HandleKeepalives(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // packet decoding helpers
 
-bool CDmrplusProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *reflectormodule)
+bool CDmrplusProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *reflectormodule, const CIp &Ip)
 {
     bool valid = false;
     if ( Buffer.size() == 31 )
@@ -421,7 +421,7 @@ bool CDmrplusProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *ca
         valid = (callsign->IsValid() && (std::isupper(*reflectormodule) || (*reflectormodule == ' ')) );
         if ( !valid)
         {
-            std::cout << "DMRplus connect packet from unrecognized id " << (int)callsign->GetDmrid()  << std::endl;
+            std::cout << "DMRplus connect packet from IP address " << Ip << " / unrecognized id " << (int)callsign->GetDmrid()  << std::endl;
         }
     }
     return valid;

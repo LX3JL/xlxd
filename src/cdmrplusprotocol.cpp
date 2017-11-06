@@ -414,7 +414,7 @@ bool CDmrplusProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *ca
         sz[8] = 0;
         uint32 dmrid = atoi(sz);
         callsign->SetDmrid(dmrid, true);
-        callsign->SetModule('B');
+        callsign->SetModule(DMRPLUS_MODULE_ID);
         ::memcpy(sz, &Buffer.data()[8], 4);
         sz[4] = 0;
         *reflectormodule = DmrDstIdToModule(atoi(sz));
@@ -437,7 +437,7 @@ bool CDmrplusProtocol::IsValidDisconnectPacket(const CBuffer &Buffer, CCallsign 
         sz[8] = 0;
         uint32 dmrid = atoi(sz);
         callsign->SetDmrid(dmrid, true);
-        callsign->SetModule('B');
+        callsign->SetModule(DMRPLUS_MODULE_ID);
         *reflectormodule = Buffer.data()[11] - '0' + 'A';
         valid = (callsign->IsValid() && std::isupper(*reflectormodule));
     }
@@ -467,7 +467,7 @@ bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffe
             // build DVHeader
             CCallsign csMY =  CCallsign("", uiSrcId);
             CCallsign rpt1 = CCallsign("", uiSrcId);
-            rpt1.SetModule('B');
+            rpt1.SetModule(DMRPLUS_MODULE_ID);
             CCallsign rpt2 = m_ReflectorCallsign;
             rpt2.SetModule(DmrDstIdToModule(uiDstId));
             uint32 uiStreamId = IpToStreamId(Ip);

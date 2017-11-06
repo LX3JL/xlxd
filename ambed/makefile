@@ -14,9 +14,9 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	$(RM) *.o
+	$(RM) $(EXECUTABLE) *.o
 
 install:
 	mkdir -p /ambed
-	cp ./ambed /ambed/
+	cp $(EXECUTABLE) /ambed/
 	cp ./run /ambed/

@@ -95,28 +95,28 @@ int CFtdiDeviceDescr::CreateInterfacePair(CFtdiDeviceDescr *descr1, CFtdiDeviceD
     int iNbChs = 0;
 
     // create interface objects
-    if ( (descr1->GetNbChannels() == 1) && (descr1->GetNbChannels() == 1) )
+    if ( (descr1->GetNbChannels() == 1) && (descr2->GetNbChannels() == 1) )
     {
         // create 3000-3000 pair
         CUsb3000Interface *Usb3000A = InstantiateUsb3000(descr1);
         CUsb3000Interface *Usb3000B = InstantiateUsb3000(descr2);
         iNbChs = CreatePair(Usb3000A, Usb3000B, channels);
     }
-    else if ( (descr1->GetNbChannels() == 3) && (descr1->GetNbChannels() == 1) )
+    else if ( (descr1->GetNbChannels() == 3) && (descr2->GetNbChannels() == 1) )
     {
         // create 3003-3000 pair
         CUsb3003Interface *Usb3003 = InstantiateUsb3003(descr1);
         CUsb3000Interface *Usb3000 = InstantiateUsb3000(descr2);
         iNbChs = CreatePair(Usb3003, Usb3000, channels);
    }
-    else if ( (descr1->GetNbChannels() == 1) && (descr1->GetNbChannels() == 3) )
+    else if ( (descr1->GetNbChannels() == 1) && (descr2->GetNbChannels() == 3) )
     {
         // create 3000-3003 pair
         CUsb3000Interface *Usb3000 = InstantiateUsb3000(descr1);
         CUsb3003Interface *Usb3003 = InstantiateUsb3003(descr2);
         iNbChs = CreatePair(Usb3003, Usb3000, channels);
     }
-    else if ( (descr1->GetNbChannels() == 3) && (descr1->GetNbChannels() == 3) )
+    else if ( (descr1->GetNbChannels() == 3) && (descr2->GetNbChannels() == 3) )
     {
         // create 3003-3003 pair
         CUsb3003Interface *Usb3003A = InstantiateUsb3003(descr1);
@@ -390,7 +390,7 @@ int CFtdiDeviceDescr::CreatePair(CUsb3000Interface *Usb3000A, CUsb3000Interface 
             Usb3000A->AddChannel(Channel);
             Usb3000B->AddChannel(Channel);
             // ch2
-            Channel = new CVocodecChannel(Usb3000A, 0, Usb3000B, 0, CODECGAIN_AMBE2PLUS);
+            Channel = new CVocodecChannel(Usb3000B, 0, Usb3000A, 0, CODECGAIN_AMBE2PLUS);
             channels->push_back(Channel);
             Usb3000A->AddChannel(Channel);
             Usb3000B->AddChannel(Channel);

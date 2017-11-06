@@ -95,7 +95,7 @@ bool CUsb3003DF2ETInterface::ResetDevice(void)
     int len, i;
     char rxpacket[100];
     
-    std::cout << "Trying DF2ET-3003 soft reset" << std::endl;
+    std::cout << "Trying AMBE3003USB soft reset" << std::endl;
     
     DWORD n, b;
     char txpacket[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -135,13 +135,13 @@ bool CUsb3003DF2ETInterface::ResetDevice(void)
     ok = ((len == 7) && (rxpacket[4] == PKT_READY));
     if ( ok )
     {
-        std::cout << "DF2ET-3003 soft reset succeeded" << std::endl;
+        std::cout << "AMBE3003USB soft reset succeeded" << std::endl;
     }
     else
     {
-        std::cout << "DF2ET-3003 soft reset failed" << std::endl;
+        std::cout << "AMBE3003USB soft reset failed" << std::endl;
         
-        std::cout << "Trying DF2ET-3003 hard reset" << std::endl;
+        std::cout << "Trying AMBE3003USB hard reset" << std::endl;
         
         ftStatus = FT_ClrDtr( m_FtdiHandle );
         CTimePoint::TaskSleepFor(10);
@@ -152,11 +152,11 @@ bool CUsb3003DF2ETInterface::ResetDevice(void)
         ok = ((len == 7) && (rxpacket[4] == PKT_READY));
         if ( ok )
         {
-            std::cout << "DF2ET-3003 hard reset succeeded" << std::endl;
+            std::cout << "AMBE3003USB hard reset succeeded" << std::endl;
         }
         else
         {
-            std::cout << "DF2ET-3003 hard reset failed" << std::endl;
+            std::cout << "AMBE3003USB hard reset failed" << std::endl;
         }
     }
     return ok;

@@ -85,7 +85,7 @@ void CClients::AddClient(CClient *client)
         // and append
         m_Clients.push_back(client);
         std::cout << "New client " << client->GetCallsign() << " at " << client->GetIp() 
-                  << " added with protocol " << client->GetProtocol();
+                  << " added with protocol " << client->GetProtocolName();
         if ( client->GetReflectorModule() != ' ' )
         {
             std::cout << " on module " << client->GetReflectorModule();
@@ -110,7 +110,7 @@ void CClients::RemoveClient(CClient *client)
             {
                 // remove it
                 std::cout << "Client " << m_Clients[i]->GetCallsign() << " at " << m_Clients[i]->GetIp()
-                          << " removed with protocol " << client->GetProtocol();
+                          << " removed with protocol " << client->GetProtocolName();
                 if ( client->GetReflectorModule() != ' ' )
                 {
                     std::cout << " on module " << client->GetReflectorModule();

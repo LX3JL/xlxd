@@ -491,7 +491,7 @@ int CFtdiDeviceDescr::CreatePair(CUsb3003Interface *Usb3003A, CUsb3000Interface 
             Usb3003A->AddChannel(Channel);
             Usb3000B->AddChannel(Channel);
             // ch4
-            Channel = new CVocodecChannel(Usb3000B, 2, Usb3003A, 2, CODECGAIN_AMBE2PLUS);
+            Channel = new CVocodecChannel(Usb3000B, 0, Usb3003A, 2, CODECGAIN_AMBE2PLUS);
             channels->push_back(Channel);
             Usb3003A->AddChannel(Channel);
             Usb3000B->AddChannel(Channel);

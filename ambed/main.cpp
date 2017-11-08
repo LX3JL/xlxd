@@ -97,7 +97,7 @@ int main(int argc, const char * argv[])
     g_AmbeServer.SetListenIp(CIp(argv[1]));
     
     // and let it run
-    std::cout << "Starting AMBEd" << std::endl << std::endl;
+    std::cout << "Starting AMBEd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << std::endl << std::endl;
     if ( !g_AmbeServer.Start() )
     {
         std::cout << "Error starting AMBEd" << std::endl;

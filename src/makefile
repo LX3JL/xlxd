@@ -18,7 +18,7 @@ clean:
 
 install:
 	mkdir -p /xlxd
-	cp $(EXECUTABLE) /xlxd/
+	cp -f $(EXECUTABLE) /xlxd/
 	cp -i ../config/xlxd.blacklist /xlxd/
 	cp -i ../config/xlxd.whitelist /xlxd/
 	cp -i ../config/xlxd.interlink /xlxd/

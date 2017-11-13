@@ -45,6 +45,7 @@ CCodecStream::CCodecStream(uint16 uiId, uint8 uiCodecIn, uint8 uiCodecOut)
     m_bConnected = false;
     m_iAmbeSrcPtr = 0;
     m_iAmbeDestPtr = 0;
+    m_uiNbTotalPacketSent = 0;
     m_uiNbPacketSent = 0;
     m_uiNbPacketReceived = 0;
     m_uiNbPacketBad = 0;
@@ -120,6 +121,7 @@ bool CCodecStream::Init(uint16 uiPort)
         m_pThread = new std::thread(CCodecStream::Thread, this);
         m_bConnected = true;
         m_FrameTimer.Now();
+        m_uiNbTotalPacketSent = 0;
         ResetStats();
     }
     else
@@ -181,11 +183,12 @@ void CCodecStream::Task(void)
             
             // and increment pointer
             m_iAmbeSrcPtr = (m_iAmbeSrcPtr + 1) % m_AmbeSrc.size();
+         m_uiNbTotalPacketSent++;
             m_uiNbPacketSent++;
         }*/
         
         // any packt to send to trancoder ?
-        uint32 uiNbPacketToSend = (uint32)(m_FrameTimer.DurationSinceNow() * 50.0) - m_uiNbPacketSent;
+        uint32 uiNbPacketToSend = (uint32)(m_FrameTimer.DurationSinceNow() * 50.0) - m_uiNbTotalPacketSent;
         if ( uiNbPacketToSend > 0 )
         {
             for ( int i = 0; i < uiNbPacketToSend; i++ )
@@ -196,6 +199,7 @@ void CCodecStream::Task(void)
                 
                 // and increment pointer
                 m_iAmbeSrcPtr = (m_iAmbeSrcPtr + 1) % m_AmbeSrc.size();
+                m_uiNbTotalPacketSent++;
                 m_uiNbPacketSent++;
             }
         }
@@ -283,15 +287,19 @@ void CCodecStream::ResetStats(void)
 
 void CCodecStream::DisplayStats(void)
 {
-    //double fps = (double)m_uiNbPacketSent / m_StatsTimer.DurationSinceNow();
-    double fps = (double)m_uiNbPacketReceived / m_StatsTimer.DurationSinceNow();
+    // get stats
+    uint32 uiSent = m_uiNbPacketSent;
+    uint32 uiReceived = m_uiNbPacketReceived;
+    uint32 uiBad = m_uiNbPacketBad;
+    double fps = (double)uiReceived / m_StatsTimer.DurationSinceNow();
     
-    std::cout << "Stream " << (int)m_uiStreamId << " (" << (int)m_uiCodecIn << "->" << (int)m_uiCodecOut << ") : ";
-    std::cout << m_uiNbPacketSent << " / " << m_uiNbPacketReceived << " / " << m_uiNbPacketTimeout;
-    //std::cout << " / " << m_uiNbPacketBad;
-    std::cout << "  ; " << fps << " fps";
+    // resets
+    ResetStats();
     
-    std::cout << std::endl;
-    
-    m_uiNbPacketBad = 0;
+    // displays
+    char sz[256];
+    sprintf(sz, "Stream %d (%d->%d) : %u / %u / %u : %.1f fps",
+            m_uiStreamId, m_uiCodecIn, m_uiCodecOut,
+            uiSent, uiReceived, uiBad, fps);
+    std::cout << sz << std::endl;
 }

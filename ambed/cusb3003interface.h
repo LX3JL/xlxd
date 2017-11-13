@@ -70,6 +70,7 @@ protected:
     bool OpenDevice(void);
     bool ResetDevice(void);
     bool ConfigureDevice(void);
+    int  GetDeviceFifoSize(void) const             { return 2; }
     
     // data
     uint8   m_uiChCodecs[USB3003_NB_CH];

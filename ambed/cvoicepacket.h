@@ -47,7 +47,10 @@ public:
     
     // destructor
     virtual ~CVoicePacket();
-    
+
+    // identity
+    bool IsVoice(void) const         { return true; }
+
     // get
     uint8 *GetVoice(void)            { return m_uiVoice; }
     int   GetVoiceSize(void) const   { return m_iSize; }

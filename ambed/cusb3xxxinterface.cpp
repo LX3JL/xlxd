@@ -39,12 +39,12 @@
 CUsb3xxxInterface::CUsb3xxxInterface(uint32 uiVid, uint32 uiPid, const char *szDeviceName, const char *szDeviceSerial)
 {
     m_FtdiHandle = NULL;
-    m_iDeviceFifoLevel = 0;
-    m_iActiveQueue = QUEUE_CHANNEL;
     m_uiVid = uiVid;
     m_uiPid = uiPid;
     ::strcpy(m_szDeviceName, szDeviceName);
     ::strcpy(m_szDeviceSerial, szDeviceSerial);
+    m_iSpeechFifolLevel = 0;
+    m_iChannelFifolLevel = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +52,19 @@ CUsb3xxxInterface::CUsb3xxxInterface(uint32 uiVid, uint32 uiPid, const char *szD
 
 CUsb3xxxInterface::~CUsb3xxxInterface()
 {
+    // delete m_SpeechQueues
+    for ( int i = 0; i < m_SpeechQueues.size(); i++ )
+    {
+        delete m_SpeechQueues[i];
+    }
+    m_SpeechQueues.clear();
+    
+    // delete m_ChannelQueues
+    for ( int i = 0; i < m_ChannelQueues.size(); i++ )
+    {
+        delete m_ChannelQueues[i];
+    }
+    m_ChannelQueues.clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -82,6 +95,13 @@ bool CUsb3xxxInterface::Init(void)
     }
     std::cout << std::endl;
   
+    // create our queues
+    for ( int i = 0; i < GetNbChannels(); i++ )
+    {
+        m_SpeechQueues.push_back(new CPacketQueue);
+        m_ChannelQueues.push_back(new CPacketQueue);
+    }
+    
     // base class
     if ( ok )
     {
@@ -118,11 +138,10 @@ void CUsb3xxxInterface::Task(void)
     {
         if ( IsValidSpeechPacket(Buffer, &iCh, &VoicePacket) )
         {
-#ifdef DEBUG_DUMPFILE
-            g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "->Sp" << iCh << std::endl; std::cout.flush();
-#endif
-            // update fifo status
-            m_iDeviceFifoLevel = MAX(m_iDeviceFifoLevel-1, 0);
+            // update fifo level
+            // as we get a speech packet, it means that the device
+            // channel fifo input decreased by 1
+            m_iChannelFifolLevel = MAX(0, m_iChannelFifolLevel-1);
             
             // push back to relevant channel voice queue
             // our incoming channel packet has now been through the decoder
@@ -140,13 +159,14 @@ void CUsb3xxxInterface::Task(void)
         }
         else if ( IsValidChannelPacket(Buffer, &iCh, &AmbePacket) )
         {
-#ifdef DEBUG_DUMPFILE
-            g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "->Ch" << iCh << std::endl; std::cout.flush();
-#endif
-            // update fifo status
-            m_iDeviceFifoLevel = MAX(m_iDeviceFifoLevel-1, 0);
-            
+            // update fifo level
+            // as we get a channel packet, it means that the device
+            // speech fifo input decreased by 1
+            m_iSpeechFifolLevel = MAX(0, m_iSpeechFifolLevel-1);
+
             // push back to relevant channel outcoming queue
+            // we are done with this packet transcoding
+            // it's final step
             Channel = GetChannelWithChannelOut(iCh);
             if ( Channel != NULL )
             {
@@ -178,9 +198,12 @@ void CUsb3xxxInterface::Task(void)
                     // get packet
                     CVoicePacket *Packet = (CVoicePacket *)Queue->front();
                     Queue->pop();
+                    // this is second step of transcoding
+                    // we just received from hardware a decoded speech packet
                     // post it to relevant channel encoder
-                    Packet->SetChannel(Channel->GetChannelOut());
-                    m_SpeechQueue.push(Packet);
+                    int i = Channel->GetChannelOut();
+                    Packet->SetChannel(i);
+                    m_SpeechQueues[i]->push(Packet);
                     // done
                     done = false;
                 }
@@ -196,9 +219,12 @@ void CUsb3xxxInterface::Task(void)
                     // get packet
                     CAmbePacket *Packet = (CAmbePacket *)Queue->front();
                     Queue->pop();
+                    // this is first step of transcoding
+                    // a fresh new packet to be transcoded is showing up
                     // post it to relevant channel decoder
-                    Packet->SetChannel(Channel->GetChannelIn());
-                    m_ChannelQueue.push(Packet);
+                    int i = Channel->GetChannelIn();
+                    Packet->SetChannel(i);
+                    m_ChannelQueues[i]->push(Packet);
                     // done
                     done = false;
                 }
@@ -207,57 +233,94 @@ void CUsb3xxxInterface::Task(void)
         }
     } while (!done);
     
-    // process device incoming queues
+    // process device incoming queues (aka to device)
     // interlace speech and channels packets
-    // and make sure that the fifo is always
-    // fed.
-    unsigned long iQueueLevel = m_SpeechQueue.size() + m_ChannelQueue.size();
-    if ( ((m_iDeviceFifoLevel == 0) && (iQueueLevel >= 2)) || (m_iDeviceFifoLevel == 1) )
+    // and post to final device queue
+    do
     {
-        if ( m_iActiveQueue == QUEUE_CHANNEL )
+        done = true;
+        // loop on all channels
+        for ( int i = 0; i < GetNbChannels(); i++ )
         {
-            // post next channel packet
-            if ( !m_ChannelQueue.empty() )
+            // speech
+            if ( !m_SpeechQueues[i]->empty() )
             {
                 // get packet
-                CAmbePacket *Packet = (CAmbePacket *)m_ChannelQueue.front();
-                m_ChannelQueue.pop();
-                //Post it
-                EncodeChannelPacket(&Buffer, Packet->GetChannel(), Packet);
-                WriteBuffer(Buffer);
-                m_iDeviceFifoLevel++;
-                // and delete it
-#ifdef DEBUG_DUMPFILE
-                g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Ch" << Packet->GetChannel() << "->" << std::endl; std::cout.flush();
-#endif
-                delete Packet;
-           }
-            // and interlace
-            m_iActiveQueue = QUEUE_SPEECH;
-        }
-        else
-        {
-            // post next speech packet
-            if ( !m_SpeechQueue.empty() )
-            {
-                // get packet
-                CVoicePacket *Packet = (CVoicePacket *)m_SpeechQueue.front();
-                m_SpeechQueue.pop();
-                //Post it
-                EncodeSpeechPacket(&Buffer, Packet->GetChannel(), Packet);
-                WriteBuffer(Buffer);
-                m_iDeviceFifoLevel++;
-                // and delete it
-#ifdef DEBUG_DUMPFILE
-                g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Sp" << Packet->GetChannel() << "->" << std::endl; std::cout.flush();
-#endif
-                delete Packet;
+                CPacket *Packet = m_SpeechQueues[i]->front();
+                m_SpeechQueues[i]->pop();
+                // and push to device queue
+                m_DeviceQueue.push(Packet);
+                // next
+                done = false;
             }
-            // and interlace
-            m_iActiveQueue = QUEUE_CHANNEL;
+            // ambe
+            if ( !m_ChannelQueues[i]->empty() )
+            {
+                // get packet
+                CPacket *Packet = m_ChannelQueues[i]->front();
+                m_ChannelQueues[i]->pop();
+                // and push to device queue
+                m_DeviceQueue.push(Packet);
+                // done = false;
+            }
         }
-    }
+        
+    } while (!done);
     
+    // process device queue to feed hardware
+    // make sure that device fifo is fed all the time
+    int fifoSize = GetDeviceFifoSize();
+    do
+    {
+        done = true;
+        // if device fifo level is zero (device idle)
+        // wait that at least 3 packets are in incoming
+        // queue before restarting
+        if ( ((m_iSpeechFifolLevel+m_iChannelFifolLevel) > 0) || (m_DeviceQueue.size() >= (fifoSize+1)) )
+        {
+            // any packet to send ?
+            if ( m_DeviceQueue.size() > 0 )
+            {
+                // yes, get it
+                CPacket *Packet = m_DeviceQueue.front();
+                if ( Packet->IsVoice() && (m_iSpeechFifolLevel < fifoSize) )
+                {
+                    // encode & post
+                    EncodeSpeechPacket(&Buffer, Packet->GetChannel(), (CVoicePacket *)Packet);
+                    WriteBuffer(Buffer);
+                    // remove from queue
+                    m_DeviceQueue.pop();
+                    // and delete it
+                    delete Packet;
+                    // update fifo level
+                    m_iSpeechFifolLevel++;
+                    // next
+                    done = false;
+#ifdef DEBUG_DUMPFILE
+                    g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Sp" << Packet->GetChannel() << "->" << std::endl; std::cout.flush();
+#endif
+                }
+                else if ( Packet->IsAmbe() && (m_iChannelFifolLevel < fifoSize) )
+                {
+                    // encode & post
+                    EncodeChannelPacket(&Buffer, Packet->GetChannel(), (CAmbePacket *)Packet);
+                    WriteBuffer(Buffer);
+                    // remove from queue
+                    m_DeviceQueue.pop();
+                    // and delete it
+                    delete Packet;
+                    // update fifo level
+                    m_iChannelFifolLevel++;
+                    // next
+                    done = false;
+#ifdef DEBUG_DUMPFILE
+                    g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Ch" << Packet->GetChannel() << "->" << std::endl; std::cout.flush();
+#endif
+                }
+
+            }
+        }
+    } while (!done);
     
     // and wait a bit
     CTimePoint::TaskSleepFor(2);

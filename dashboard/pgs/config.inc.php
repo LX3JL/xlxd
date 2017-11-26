@@ -63,4 +63,14 @@ $CallingHome['HashFile']                             = "/tmp/callinghome.php";  
 $CallingHome['OverrideIPAddress']                    = "";                                     // Insert your IP address here. Leave blank for autodetection. No need to enter a fake address.
 $CallingHome['InterlinkFile']                        = "/xlxd/xlxd.interlink";                 // Path to interlink file
 
+
+/*
+  include an extra config file for people who dont like to mess with shipped config.ing.php
+  this makes updating dashboard from git a little bit easier
+*/
+
+if (file_exists("../config.inc.php")) {
+  include ("../config.inc.php");
+}
+
 ?>

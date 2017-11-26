@@ -19,34 +19,46 @@ $Reflector->SetXMLFile($Service['XMLFile']);
 
 $Reflector->LoadXML();
 
+function updateHashFile($HashFile, $newLastSync, $newHash) {
+   // Open the file for writing only, If the file does not exist, it is created.
+   // If it exists, it is neither truncated (as opposed to 'w'), nor the call to this function fails
+   // The file pointer is positioned on the beginning of the file. we'll ftruncate() after writing.
+   $Ressource = @fopen($HashFile, "c");
+
+   if ($Ressource) {
+      // exclusive lock
+      if (flock($Ressource, LOCK_EX)) {
+         @fwrite($Ressource, "<?php\n");
+         @fwrite($Ressource, "\n".'$LastSync = '.$newLastSync.';');
+         @fwrite($Ressource, "\n".'$Hash     = "'.$newHash.'";');
+         @fwrite($Ressource, "\n\n".'?>');
+         // flush
+         @fflush($Ressource);
+         @ftruncate($Ressource, ftell($Ressource));
+         // release lock
+         @flock($Ressource, LOCK_UN);
+      }
+      @fclose($Ressource);
+      @chmod($HashFile, 0777);
+      return true;
+   }
+   return false;
+}
+
 if ($CallingHome['Active']) { 
    
    $CallHomeNow = false;
    if (!file_exists($CallingHome['HashFile'])) {
       $Hash = CreateCode(16);
       $LastSync = 0;
-      $Ressource = @fopen($CallingHome['HashFile'],"w");
-      if ($Ressource) {
-         @fwrite($Ressource, "<?php\n");
-         @fwrite($Ressource, "\n".'$LastSync = 0;');
-         @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
-         @fwrite($Ressource, "\n\n".'?>');
-         @fclose($Ressource);
-         @exec("chmod 777 ".$CallingHome['HashFile']);
+      if (updateHashFile($CallingHome['HashFile'], $LastSync, $Hash)) {
          $CallHomeNow = true;
       }
    }
    else {
       include($CallingHome['HashFile']);
       if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
-         $Ressource = @fopen($CallingHome['HashFile'],"w");
-         if ($Ressource) {
-            @fwrite($Ressource, "<?php\n");
-            @fwrite($Ressource, "\n".'$LastSync = '.time().';');
-            @fwrite($Ressource, "\n".'$Hash     = "'.$Hash.'";');
-            @fwrite($Ressource, "\n\n".'?>');
-            @fclose($Ressource);
-         }
+         updateHashFile($CallingHome['HashFile'], time(), $Hash);
          $CallHomeNow = true;
       }
    }

@@ -67,7 +67,7 @@ for ($i=0;$i<count($Data[0]);$i++) {
 	 }
 }
 
-echo '<table>';
+echo '</table>';
 
 
 
@@ -95,7 +95,7 @@ for ($i=0;$i<count($Data[1]);$i++) {
 	 }
 }
 
-echo '<table>';
+echo '</table>';
 ?>
 </td>
  </tr>

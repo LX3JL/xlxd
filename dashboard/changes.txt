@@ -1,6 +1,16 @@
+xlx db v2.3.8
+
+add support for network traffic statistics via vnstat.
+
+- "config.inc.php"
+- "index.php"
+- "functions.php"
+
+add traffic.php
+
 xlx db v2.3.7
 
-add background button color change on active page.
+add background color change on active page.
 
 - "config.inc.php"
 - "layout.css"

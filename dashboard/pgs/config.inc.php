@@ -15,7 +15,7 @@ $CallingHome = array();
 $PageOptions = array();
 $VNStat      = array();
 
-$PageOptions['ContactEmail']                         = 'your_mail';		// Support E-Mail address
+$PageOptions['ContactEmail']                         = 'your_email';		// Support E-Mail address
 
 $PageOptions['DashboardVersion']                     = '2.3.8';       		// Dashboard Version
 
@@ -67,5 +67,15 @@ $VNStat['Interfaces']                                = array();
 $VNStat['Interfaces'][0]['Name']                     = 'eth0';
 $VNStat['Interfaces'][0]['Address']                  = 'eth0';
 $VNStat['Binary']                                    = '/usr/bin/vnstat';
+
+/* 
+   include an extra config file for people who dont like to mess with shipped config.ing.php 
+   this makes updating dashboard from git a little bit easier 
+*/ 
+  
+ if (file_exists("../config.inc.php")) { 
+   include ("../config.inc.php");
+ } 
+
 
 ?>

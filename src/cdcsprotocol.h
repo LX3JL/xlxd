@@ -37,11 +37,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
+class CDcsStreamCacheItem
+{
+public:
+    CDcsStreamCacheItem()     { m_iSeqCounter = 0; }
+    ~CDcsStreamCacheItem()    {}
+    
+    CDvHeaderPacket m_dvHeader;
+    uint32          m_iSeqCounter;
+};
+
 class CDcsProtocol : public CProtocol
 {
 public:
     // constructor
-    CDcsProtocol();
+    CDcsProtocol() {};
     
     // destructor
     virtual ~CDcsProtocol() {};
@@ -83,8 +93,7 @@ protected:
     CTimePoint          m_LastKeepaliveTime;
     
     // for queue header caches
-    std::array<CDvHeaderPacket, NB_OF_MODULES>  m_DvHeadersCache;
-    std::array<uint32, NB_OF_MODULES>           m_iSeqCounters;
+    std::array<CDcsStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

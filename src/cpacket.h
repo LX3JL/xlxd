@@ -40,7 +40,8 @@ class CPacket
 public:
     // constructor
     CPacket();
-    CPacket(uint16 sid, uint8 pid);
+    CPacket(uint16 sid, uint8 dstarpid);
+    CPacket(uint16 sid, uint8 dmrpid, uint8 dmrsubpid);
     
     // destructor
     virtual ~CPacket() {};
@@ -49,26 +50,33 @@ public:
     virtual CPacket *Duplicate(void) const;
     
     // identity
-    virtual bool IsDvHeader(void) const     { return false; }
-    virtual bool IsDvFrame(void) const      { return false; }
-    virtual bool IsLastPacket(void) const   { return false; }
+    virtual bool IsDvHeader(void) const             { return false; }
+    virtual bool IsDvFrame(void) const              { return false; }
+    virtual bool IsLastPacket(void) const           { return false; }
+    virtual bool HaveTranscodableAmbe(void) const   { return false; }
     
     // get
-    virtual bool IsValid(void) const        { return true; }
-    uint16 GetStreamId(void) const          { return m_uiStreamId; }
-    uint8  GetPacketId(void) const          { return m_uiPacketId; }
-    uint8  GetModuleId(void) const          { return m_uiModuleId; }
-    bool   IsLocalOrigin(void) const        { return (m_uiOriginId == ORIGIN_LOCAL); }
+    virtual bool IsValid(void) const                { return true; }
+    uint16 GetStreamId(void) const                  { return m_uiStreamId; }
+    uint8  GetPacketId(void) const                  { return m_uiDstarPacketId; }
+    uint8  GetDstarPacketId(void) const             { return m_uiDstarPacketId; }
+    uint8  GetDmrPacketId(void) const               { return m_uiDmrPacketId; }
+    uint8  GetDmrPacketSubid(void) const            { return m_uiDmrPacketSubid; }
+    uint8  GetModuleId(void) const                  { return m_uiModuleId; }
+    bool   IsLocalOrigin(void) const                { return (m_uiOriginId == ORIGIN_LOCAL); }
     
     // set
-    void SetModuleId(uint8 uiId)            { m_uiModuleId = uiId; }
-    void SetLocalOrigin(void)               { m_uiOriginId = ORIGIN_LOCAL; }
-    void SetRemotePeerOrigin(void)          { m_uiOriginId = ORIGIN_PEER; }
-
+    void UpdatePids(uint32);
+    void SetModuleId(uint8 uiId)                    { m_uiModuleId = uiId; }
+    void SetLocalOrigin(void)                       { m_uiOriginId = ORIGIN_LOCAL; }
+    void SetRemotePeerOrigin(void)                  { m_uiOriginId = ORIGIN_PEER; }
+    
 protected:
     // data
     uint16  m_uiStreamId;
-    uint8   m_uiPacketId;
+    uint8   m_uiDstarPacketId;
+    uint8   m_uiDmrPacketId;
+    uint8   m_uiDmrPacketSubid;
     uint8   m_uiModuleId;
     uint8   m_uiOriginId;
 };

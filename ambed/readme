@@ -1,0 +1,118 @@
+//
+//  readme
+//  ambed
+//
+//  Created by Jean-Luc Deltombe (LX3JL) on 09/07/2017.
+//  Copyright © 2017 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//
+// ----------------------------------------------------------------------------
+//    This file is part of ambed.
+//
+//    xlxd is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    xlxd is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+// ----------------------------------------------------------------------------
+
+VERSION: 1.3.0
+
+Hardware compatibility.
+======================
+This version of ambed is compatible with:
+- DF2ET's AMBE3003USB opensource device (https://github.com/phl0/AMBE3003USB)
+- LX3JL's USB-3006 opensource device (https://github.com/lx3jl/usb-3006)
+- DVSI's USB-3000 device
+- DVSI's USB-3003 device
+- DVSI's USB-3012 device
+- NWDR's ThumbDV device
+- NWDR's ThumbDV-3 device
+
+Available transcoding channels per device:
+
+device			DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
+-------------------------------------------------------------------------
+3000(pair)		1				1				2
+3003			1				1				2
+3003(pair)		3				3				4
+3003-3000(pair)	2				2				not tested
+3006			3				3				6
+3012			6				6				12
+
+Multiple devices can be used at the same time.
+You need to use 3000 by pairs or paired with a 3003
+Do not to use USB hubs as they have proven making
+system behaviour unreliable.
+
+Instructions:
+=============
+
+1) Installation of FTDI drivers
+
+Download from FTDI web site the latest D2XX driver package (tested on 1.4.6).
+Follow FTDI provided documentation for installation and testing of the drivers.
+
+
+2) installation of g++ compiler
+
+# apt-get install build-essential
+# apt-get install g++-4.7
+
+2) download and compile ambed
+
+# git clone https://github.com/LX3JL/xlxd.git
+# cd xlxd/ambed/
+# make clean
+# make
+# make install
+
+3) configuring ambed startup script
+
+# nano /ambed/run
+
+edit following line to match your IP:
+
+sudo /ambed/ambed 127.0.0.1 &
+
+if ambed is running on same machine than xlxd, use default 127.0.0.1
+otherwise use the machine own IP
+
+
+4) running ambed
+
+note:
+Due to specific FTDI driver implementation, ambed must be running
+with root privilege, and cannot be run as a daemon.
+So ambed will display the information and error messages in the
+terminal it has been started from
+
+plug at least one USB-3xxx USB device
+
+# cd /ambed
+# ./run
+ 
+ 
+during initialisation phase, ambed will scan all USB port to discover
+and configure ans report status of all available USB-3xxx devices
+
+
+5) stoping ambed
+
+find PID of ambed process, using for example ps
+
+# ps ax | grep ambed
+
+and kill the process
+
+# kill xxxx
+
+where xxxx is PID found previously.
+
+

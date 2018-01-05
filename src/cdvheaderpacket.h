@@ -61,7 +61,8 @@ class CDvHeaderPacket : public CPacket
 public:
     // constructor
     CDvHeaderPacket();
-    CDvHeaderPacket(const struct dstar_header *, uint16 = 0, uint8 = 0);
+    CDvHeaderPacket(const struct dstar_header *, uint16, uint8);
+    CDvHeaderPacket(uint32, const CCallsign &, const CCallsign &, const CCallsign &, uint16, uint8, uint8);
     CDvHeaderPacket(const CDvHeaderPacket &);
     
     // destructor

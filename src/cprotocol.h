@@ -33,6 +33,35 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+// DMR defines
+// slot n'
+#define DMR_SLOT1                       1
+#define DMR_SLOT2                       2
+// call type
+#define DMR_GROUP_CALL                  0
+#define DMR_PRIVATE_CALL                1
+// frame type
+#define DMR_FRAMETYPE_VOICE             0
+#define DMR_FRAMETYPE_VOICESYNC         1
+#define DMR_FRAMETYPE_DATA              2
+#define DMR_FRAMETYPE_DATASYNC          3
+// data type
+#define DMR_DT_VOICE_PI_HEADER          0
+#define DMR_DT_VOICE_LC_HEADER          1
+#define DMR_DT_TERMINATOR_WITH_LC       2
+#define DMR_DT_CSBK                     3
+#define DMR_DT_DATA_HEADER              6
+#define DMR_DT_RATE_12_DATA             7
+#define DMR_DT_RATE_34_DATA             8
+#define DMR_DT_IDLE                     9
+#define DMR_DT_RATE_1_DATA              10
+// CRC masks
+#define DMR_VOICE_LC_HEADER_CRC_MASK    0x96
+#define DMR_TERMINATOR_WITH_LC_CRC_MASK 0x99
+#define DMR_PI_HEADER_CRC_MASK          0x69
+#define DMR_DATA_HEADER_CRC_MASK        0xCC
+#define DMR_CSBK_CRC_MASK               0xA5
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -87,6 +116,10 @@ protected:
     bool IsNumber(char) const;
     bool IsLetter(char) const;
     bool IsSpace(char) const;
+    
+    // dmr DstId to Module helper
+    virtual char DmrDstIdToModule(uint32) const;
+    virtual uint32 ModuleToDmrDestId(char) const;
 
 protected:
     // socket
@@ -104,6 +137,9 @@ protected:
     
     // identity
     CCallsign       m_ReflectorCallsign;
+    
+    // debug
+    CTimePoint          m_DebugTimer;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

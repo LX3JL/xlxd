@@ -55,8 +55,8 @@ Please use the stable version listed above, we cannot support others.
 ```
 # git clone https://github.com/LX3JL/xlxd.git
 # cd xlxd/src/
-# make
 # make clean
+# make
 # make install
 ```
 
@@ -68,6 +68,15 @@ Please use the stable version listed above, we cannot support others.
 ###### Adapt the default startup parameters to your needs
 ```
 # pico /etc/init.d/xlxd
+```
+###### Download the dmrid.dat from the XLXAPI server to your xlxd folder
+```
+# wget -O /xlxd/dmrid.dat http://xlxapi.rlx.lu/api/exportdmr.php
+```
+
+###### Check your FTDI driver and install the AMBE service according to the readme in AMBEd
+```
+ 
 ```
 
 ###### Last step is to declare the service for automatic startup and shutdown
@@ -99,13 +108,17 @@ Please use the stable version listed above, we cannot support others.
 # Firewall settings #
 
 XLX Server requires the following ports to be open and forwarded properly for in- and outgoing network traffic:
- - TCP port 80        (http) optional TCP port 443 (https)
- - TCP port 8080      (RepNet)
- - UDP port 10001     (json interface XLX Core)
- - UDP port 10002     (XLX interlink)
- - TCP port 22        (ssh) optional  TCP port 10022
- - UDP port 30001     (DExtra protocol)
- - UPD port 20001     (DPlus protocol)
- - UDP port 30051     (DCS protocol)
+ - TCP port 80            (http) optional TCP port 443 (https)
+ - TCP port 8080          (RepNet) optional
+ - UDP port 10001         (json interface XLX Core)
+ - UDP port 10002         (XLX interlink)
+ - TCP port 22            (ssh) optional  TCP port 10022
+ - UDP port 30001         (DExtra protocol)
+ - UPD port 20001         (DPlus protocol)
+ - UDP port 30051         (DCS protocol)
+ - UDP port 8880          (DMR+ DMO mode)
+ - UDP port 62030         (MMDVM protocol)
+ - UDP port 10100         (AMBE controller port)
+ - UDP port 10101 - 10199 (AMBE transcoding port)
 
 © 2016 Luc Engelmann LX1IQ

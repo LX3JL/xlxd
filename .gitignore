@@ -1,2 +1,4 @@
 *.o
-xlxd
+src/xlxd
+ambed/ambed
+ambedtest/ambedtest

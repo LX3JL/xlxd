@@ -76,7 +76,7 @@ function UpdateHashFile($HashFile, $newLastSync, $newHash) {
 			       @flock($Ressource, LOCK_UN); 
 			    }  
 			    @fclose($Ressource); 
-			    @chmod($HashFile, 0777); 
+			    @chmod($HashFile, 0644); 
 			    return true;  
 			 }
    }
@@ -88,7 +88,7 @@ function UpdateHashFile($HashFile, $newLastSync, $newHash) {
          @fwrite($Ressource, "\n".'$Hash     = "'.$newHash.'";');
          @fwrite($Ressource, "\n\n".'?>');
          @fclose($Ressource);
-         @exec("chmod 777 ".$CallingHome['HashFile']);
+         @chmod($HashFile, 0644);
          $CallHomeNow = true;
       }
 	 }

@@ -48,8 +48,8 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR                   2
-#define VERSION_MINOR                   0
-#define VERSION_REVISION                0
+#define VERSION_MINOR                   2
+#define VERSION_REVISION                1
 
 // global ------------------------------------------------------
 
@@ -127,8 +127,9 @@
 
 // DMRid database -----------------------------------------------
 
-#define DMRIDDB_USE_RLX_SERVER          0
-#define DMRIDDB_PATH                    "/xlxd/dmrid.dat"
+#define DMRIDDB_USE_RLX_SERVER          1                                   // 1 = use http, 0 = use local file
+#define DMRIDDB_PATH                    "/xlxd/dmrid.dat"                   // local file path
+#define DMRIDDB_REFRESH_RATE            180                                 // in minutes
 
 
 // xml & json reporting -----------------------------------------
@@ -180,8 +181,13 @@ extern CReflector  g_Reflector;
 class CGateKeeper;
 extern CGateKeeper g_GateKeeper;
 
-class CDmridDir;
-extern CDmridDir   g_DmridDir;
+#if (DMRIDDB_USE_RLX_SERVER == 1)
+    class CDmridDirHttp;
+    extern CDmridDirHttp   g_DmridDir;
+#else
+    class CDmridDirFile;
+    extern CDmridDirFile   g_DmridDir;
+#endif
 
 class CTranscoder;
 extern CTranscoder g_Transcoder;

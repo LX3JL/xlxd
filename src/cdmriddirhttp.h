@@ -1,8 +1,8 @@
 //
-//  cxlxclient.cpp
+//  cdmriddirhttp.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 28/01/2016.
+//  Created by Jean-Luc Deltombe (LX3JL) on 29/12/2017.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,57 +22,31 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <string.h>
-#include "main.h"
-#include "cxlxclient.h"
+#ifndef cdmriddirhttp_h
+#define cdmriddirhttp_h
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructors
-
-CXlxClient::CXlxClient()
-{
-    m_ProtRev = XLX_PROTOCOL_REVISION_0;
-}
-
-CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
-: CClient(callsign, ip, reflectorModule)
-{
-    m_ProtRev = protRev;
-}
-
-CXlxClient::CXlxClient(const CXlxClient &client)
-: CClient(client)
-{
-    m_ProtRev = client.m_ProtRev;
-}
+#include "cdmriddir.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// identity
 
-int CXlxClient::GetCodec(void) const
+class CDmridDirHttp : public CDmridDir
 {
-    int codec;
+public:
+    // constructor
+    CDmridDirHttp() {}
     
-    switch ( GetProtocolRevision() )
-    {
-        case XLX_PROTOCOL_REVISION_0:
-        case XLX_PROTOCOL_REVISION_1:
-        default:
-            codec = CODEC_AMBEPLUS;
-            break;
-        case XLX_PROTOCOL_REVISION_2:
-            codec = CODEC_NONE;
-            break;
-    }
-    return codec;
-}
+    // destructor
+    ~CDmridDirHttp() {}
+    
+    // refresh
+    bool LoadContent(CBuffer *);
+    bool RefreshContent(const CBuffer &);
+    
+protected:
+    // reload helpers
+    bool NeedReload(void)  { return true; }
+    bool HttpGet(const char *, const char *, int, CBuffer *);
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// status
-
-bool CXlxClient::IsAlive(void) const
-{
-    return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
-}
-
+#endif /* cdmriddirhttp_h */

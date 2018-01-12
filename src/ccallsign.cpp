@@ -25,7 +25,8 @@
 #include "main.h"
 #include <string.h>
 #include <cctype>
-#include "cdmriddir.h"
+#include "cdmriddirfile.h"
+#include "cdmriddirhttp.h"
 #include "ccallsign.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -60,16 +61,24 @@ CCallsign::CCallsign(const char *sz, uint32 dmrid)
         // dmrid ok ?
         if ( m_uiDmrid == 0 )
         {
-            m_uiDmrid = g_DmridDir.FindDmrid(*this);
+			g_DmridDir.Lock();
+			{
+            	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+            }
+            g_DmridDir.Unlock();
         }
     }
     else if ( m_uiDmrid != 0 )
     {
-        const CCallsign *callsign = g_DmridDir.FindCallsign(m_uiDmrid);
-        if ( callsign != NULL )
-        {
-            ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
-        }
+    	g_DmridDir.Lock();
+    	{
+			const CCallsign *callsign = g_DmridDir.FindCallsign(m_uiDmrid);
+			if ( callsign != NULL )
+			{
+				::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+			}
+		}
+		g_DmridDir.Unlock();
     }
 }
 
@@ -151,7 +160,11 @@ void CCallsign::SetCallsign(const char *sz, bool UpdateDmrid)
     // and update dmrid
     if ( UpdateDmrid )
     {
-        m_uiDmrid = g_DmridDir.FindDmrid(*this);
+    	g_DmridDir.Lock();
+    	{
+        	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+        }
+        g_DmridDir.Unlock();
     }
 }
 
@@ -174,7 +187,11 @@ void CCallsign::SetCallsign(const uint8 *buffer, int len, bool UpdateDmrid)
     }
     if ( UpdateDmrid )
     {
-        m_uiDmrid = g_DmridDir.FindDmrid(*this);
+    	g_DmridDir.Lock();
+    	{
+        	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+        }
+        g_DmridDir.Unlock();
     }
 }
 
@@ -183,11 +200,15 @@ void CCallsign::SetDmrid(uint32 dmrid, bool UpdateCallsign)
     m_uiDmrid = dmrid;
     if ( UpdateCallsign )
     {
-        const CCallsign *callsign = g_DmridDir.FindCallsign(dmrid);
-        if ( callsign != NULL )
-        {
-            ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
-        }
+    	g_DmridDir.Lock();
+    	{
+			const CCallsign *callsign = g_DmridDir.FindCallsign(dmrid);
+			if ( callsign != NULL )
+			{
+				::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+			}
+		}
+		g_DmridDir.Unlock();
     }
 }
 

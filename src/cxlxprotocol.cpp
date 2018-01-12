@@ -67,10 +67,10 @@ void CXlxProtocol::Task(void)
     CIp                 Ip;
     CCallsign           Callsign;
     char                Modules[NB_MODULES_MAX+1];
+    CVersion            Version;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frame;
     CDvLastFramePacket  *LastFrame;
-    uint8               Major, Minor, Revision;
     
     // any incoming packet ?
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -106,34 +106,41 @@ void CXlxProtocol::Task(void)
             // handle it
             OnDvLastFramePacketIn(LastFrame, &Ip);
         }
-        else if ( IsValidConnectPacket(Buffer, &Callsign, Modules, &Major, &Minor, &Revision) )
+        else if ( IsValidConnectPacket(Buffer, &Callsign, Modules, &Version) )
         {
-            std::cout << "XLX (" << (int)Major << "." << (int)Minor << "." << (int)Revision
+            std::cout << "XLX ("
+                      << Version.GetMajor() << "." << Version.GetMinor() << "." << Version.GetRevision()
                       << ") connect packet for modules " << Modules
                       << " from " << Callsign <<  " at " << Ip << std::endl;
             
             // callsign authorized?
             if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_XLX, Modules) )
             {
+                // acknowledge connecting request
                 // following is version dependent
-                // for backward compatibility, only send ACK once
-                if ( (Major == 1) && (Minor < 4) )
+                switch ( CXlxPeer::GetProtocolRevision(Version) )
                 {
-                    // already connected ?
-                    CPeers *peers = g_Reflector.GetPeers();
-                    if ( peers->FindPeer(Callsign, Ip, PROTOCOL_XLX) == NULL )
-                    {
+                    case XLX_PROTOCOL_REVISION_0:
+                        {
+                            // already connected ?
+                            CPeers *peers = g_Reflector.GetPeers();
+                            if ( peers->FindPeer(Callsign, Ip, PROTOCOL_XLX) == NULL )
+                            {
+                                // acknowledge the request
+                                EncodeConnectAckPacket(&Buffer, Modules);
+                                m_Socket.Send(Buffer, Ip);
+                            }
+                            g_Reflector.ReleasePeers();
+                            
+                        }
+                        break;
+                    case XLX_PROTOCOL_REVISION_1:
+                    case XLX_PROTOCOL_REVISION_2:
+                    default:
                         // acknowledge the request
                         EncodeConnectAckPacket(&Buffer, Modules);
                         m_Socket.Send(Buffer, Ip);
-                    }
-                    g_Reflector.ReleasePeers();
-                }
-                else
-                {
-                    // acknowledge the request
-                    EncodeConnectAckPacket(&Buffer, Modules);
-                    m_Socket.Send(Buffer, Ip);                    
+                        break;
                 }
             }
             else
@@ -143,7 +150,7 @@ void CXlxProtocol::Task(void)
                 m_Socket.Send(Buffer, Ip);
             }
         }
-        else if ( IsValidAckPacket(Buffer, &Callsign, Modules)  )
+        else if ( IsValidAckPacket(Buffer, &Callsign, Modules, &Version)  )
         {
             std::cout << "XLX ack packet for modules " << Modules << " from " << Callsign << " at " << Ip << std::endl;
             
@@ -156,8 +163,8 @@ void CXlxProtocol::Task(void)
                 {
                     // create the new peer
                     // this also create one client per module
-                    CXlxPeer *peer = new CXlxPeer(Callsign, Ip, Modules);
-                    
+                    CXlxPeer *peer = new CXlxPeer(Callsign, Ip, Modules, Version);
+
                     // append the peer to reflector peer list
                     // this also add all new clients to reflector client list
                     peers->AddPeer(peer);
@@ -253,6 +260,13 @@ void CXlxProtocol::HandleQueue(void)
             CBuffer buffer;
             if ( EncodeDvPacket(*packet, &buffer) )
             {
+                // encode revision dependent version
+                CBuffer bufferLegacy = buffer;
+                if ( packet->IsDvFrame() && (bufferLegacy.size() == 45) )
+                {
+                    bufferLegacy.resize(27);
+                }
+                
                 // and push it to all our clients linked to the module and who are not streaming in
                 CClients *clients = g_Reflector.GetClients();
                 int index = -1;
@@ -263,7 +277,25 @@ void CXlxProtocol::HandleQueue(void)
                     if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
                     {
                         // no, send the packet
-                        m_Socket.Send(buffer, client->GetIp());
+                        // this is protocol revision dependent
+                        switch ( client->GetProtocolRevision() )
+                        {
+                            case XLX_PROTOCOL_REVISION_0:
+                            case XLX_PROTOCOL_REVISION_1:
+                                m_Socket.Send(bufferLegacy, client->GetIp());
+                                break;
+                            case XLX_PROTOCOL_REVISION_2:
+                            default:
+                                if ( g_Transcoder.IsConnected() )
+                                {
+                                    m_Socket.Send(buffer, client->GetIp());
+                                }
+                                else
+                                {
+                                    m_Socket.Send(bufferLegacy, client->GetIp());
+                                }
+                                break;
+                        }
                     }
                 }
                 g_Reflector.ReleaseClients();
@@ -459,7 +491,7 @@ bool CXlxProtocol::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *call
 }
 
 
-bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *modules, uint8 *major, uint8 *minor, uint8 *rev)
+bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsign, char *modules, CVersion *version)
 {
     bool valid = false;
     if ((Buffer.size() == 39) && (Buffer.data()[0] == 'L') && (Buffer.data()[38] == 0))
@@ -467,9 +499,7 @@ bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsi
         callsign->SetCallsign((const uint8 *)&(Buffer.data()[1]), 8);
         ::strcpy(modules, (const char *)&(Buffer.data()[12]));
         valid = callsign->IsValid();
-        *major = Buffer.data()[9];
-        *minor = Buffer.data()[10];
-        *rev = Buffer.data()[11];
+        *version = CVersion(Buffer.data()[9], Buffer.data()[10], Buffer.data()[11]);
         for ( int i = 0; i < ::strlen(modules); i++ )
         {
             valid &= IsLetter(modules[i]);
@@ -489,7 +519,7 @@ bool CXlxProtocol::IsValidDisconnectPacket(const CBuffer &Buffer, CCallsign *cal
     return valid;
 }
 
-bool CXlxProtocol::IsValidAckPacket(const CBuffer &Buffer, CCallsign *callsign, char *modules)
+bool CXlxProtocol::IsValidAckPacket(const CBuffer &Buffer, CCallsign *callsign, char *modules, CVersion *version)
 {
     bool valid = false;
     if ((Buffer.size() == 39) && (Buffer.data()[0] == 'A') && (Buffer.data()[38] == 0))
@@ -497,6 +527,7 @@ bool CXlxProtocol::IsValidAckPacket(const CBuffer &Buffer, CCallsign *callsign, 
         callsign->SetCallsign((const uint8 *)&(Buffer.data()[1]), 8);
         ::strcpy(modules, (const char *)&(Buffer.data()[12]));
         valid = callsign->IsValid();
+        *version = CVersion(Buffer.data()[9], Buffer.data()[10], Buffer.data()[11]);
         for ( int i = 0; i < ::strlen(modules); i++ )
         {
             valid &= IsLetter(modules[i]);
@@ -514,6 +545,74 @@ bool CXlxProtocol::IsValidNackPacket(const CBuffer &Buffer, CCallsign *callsign)
         valid = callsign->IsValid();
     }
     return valid;
+}
+
+CDvFramePacket *CXlxProtocol::IsValidDvFramePacket(const CBuffer &Buffer)
+{
+    CDvFramePacket *dvframe = NULL;
+    
+    // base class first (protocol revision 1 and lower)
+    dvframe = CDextraProtocol::IsValidDvFramePacket(Buffer);
+    
+    // otherwise try protocol revision 2
+    if ( (dvframe == NULL) &&
+         (Buffer.size() == 45) && (Buffer.Compare((uint8 *)"DSVT", 4) == 0) &&
+         (Buffer.data()[4] == 0x20) && (Buffer.data()[8] == 0x20) &&
+         ((Buffer.data()[14] & 0x40) == 0) )
+    {
+        // create packet
+        dvframe = new CDvFramePacket(
+            // sid
+            *((uint16 *)&(Buffer.data()[12])),
+            // dstar
+            Buffer.data()[14], &(Buffer.data()[15]), &(Buffer.data()[24]),
+            // dmr
+            Buffer.data()[27], Buffer.data()[28], &(Buffer.data()[29]), &(Buffer.data()[38]));
+        
+        // check validity of packet
+        if ( !dvframe->IsValid() )
+        {
+            delete dvframe;
+            dvframe = NULL;
+        }
+    }
+    
+    // done
+    return dvframe;
+}
+
+CDvLastFramePacket *CXlxProtocol::IsValidDvLastFramePacket(const CBuffer &Buffer)
+{
+    CDvLastFramePacket *dvframe = NULL;
+    
+    // base class first (protocol revision 1 and lower)
+    dvframe = CDextraProtocol::IsValidDvLastFramePacket(Buffer);
+    
+    // otherwise try protocol revision 2
+    if ( (dvframe == NULL) &&
+         (Buffer.size() == 45) && (Buffer.Compare((uint8 *)"DSVT", 4) == 0) &&
+         (Buffer.data()[4] == 0x20) && (Buffer.data()[8] == 0x20) &&
+         ((Buffer.data()[14] & 0x40) != 0) )
+    {
+        // create packet
+        dvframe = new CDvLastFramePacket(
+                                     // sid
+                                     *((uint16 *)&(Buffer.data()[12])),
+                                     // dstar
+                                     Buffer.data()[14], &(Buffer.data()[15]), &(Buffer.data()[24]),
+                                     // dmr
+                                     Buffer.data()[27], Buffer.data()[28], &(Buffer.data()[29]), &(Buffer.data()[38]));
+        
+        // check validity of packet
+        if ( !dvframe->IsValid() )
+        {
+            delete dvframe;
+            dvframe = NULL;
+        }
+    }
+    
+    // done
+    return dvframe;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -584,3 +683,42 @@ void CXlxProtocol::EncodeConnectNackPacket(CBuffer *Buffer)
     Buffer->Append((uint8)0);
 }
 
+bool CXlxProtocol::EncodeDvFramePacket(const CDvFramePacket &Packet, CBuffer *Buffer) const
+{
+    uint8 tag[] = { 'D','S','V','T',0x20,0x00,0x00,0x00,0x20,0x00,0x01,0x02 };
+    
+    Buffer->Set(tag, sizeof(tag));
+    Buffer->Append(Packet.GetStreamId());
+    Buffer->Append((uint8)(Packet.GetDstarPacketId() % 21));
+    Buffer->Append((uint8 *)Packet.GetAmbe(), AMBE_SIZE);
+    Buffer->Append((uint8 *)Packet.GetDvData(), DVDATA_SIZE);
+    
+    Buffer->Append((uint8)Packet.GetDmrPacketId());
+    Buffer->Append((uint8)Packet.GetDmrPacketSubid());
+    Buffer->Append((uint8 *)Packet.GetAmbePlus(), AMBEPLUS_SIZE);
+    Buffer->Append((uint8 *)Packet.GetDvSync(), DVSYNC_SIZE);
+    
+    return true;
+   
+}
+
+bool CXlxProtocol::EncodeDvLastFramePacket(const CDvLastFramePacket &Packet, CBuffer *Buffer) const
+{
+    uint8 tag[]         = { 'D','S','V','T',0x20,0x00,0x00,0x00,0x20,0x00,0x01,0x02 };
+    uint8 dstarambe[]   = { 0x55,0xC8,0x7A,0x00,0x00,0x00,0x00,0x00,0x00 };
+    uint8 dstardvdata[] = { 0x25,0x1A,0xC6 };
+    
+    Buffer->Set(tag, sizeof(tag));
+    Buffer->Append(Packet.GetStreamId());
+    Buffer->Append((uint8)((Packet.GetPacketId() % 21) | 0x40));
+    Buffer->Append(dstarambe, sizeof(dstarambe));
+    Buffer->Append(dstardvdata, sizeof(dstardvdata));
+    
+    
+    Buffer->Append((uint8)Packet.GetDmrPacketId());
+    Buffer->Append((uint8)Packet.GetDmrPacketSubid());
+    Buffer->Append((uint8 *)Packet.GetAmbePlus(), AMBEPLUS_SIZE);
+    Buffer->Append((uint8 *)Packet.GetDvSync(), DVSYNC_SIZE);
+    
+    return true;
+}

@@ -25,7 +25,7 @@
 #ifndef cxlxprotocol_h
 #define cxlxprotocol_h
 
-
+#include "cversion.h"
 #include "ctimepoint.h"
 #include "cdextraprotocol.h"
 #include "cclients.h"
@@ -65,18 +65,22 @@ protected:
     void OnDvLastFramePacketIn(CDvLastFramePacket *, const CIp * = NULL);
     
     // packet decoding helpers
-    bool                IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
-    bool                IsValidConnectPacket(const CBuffer &, CCallsign *, char *, uint8 *, uint8 *, uint8 *);
-    bool                IsValidDisconnectPacket(const CBuffer &, CCallsign *);
-    bool                IsValidAckPacket(const CBuffer &, CCallsign *, char *);
-    bool                IsValidNackPacket(const CBuffer &, CCallsign *);
+    bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
+    bool IsValidConnectPacket(const CBuffer &, CCallsign *, char *, CVersion *);
+    bool IsValidDisconnectPacket(const CBuffer &, CCallsign *);
+    bool IsValidAckPacket(const CBuffer &, CCallsign *, char *, CVersion *);
+    bool IsValidNackPacket(const CBuffer &, CCallsign *);
+    CDvFramePacket      *IsValidDvFramePacket(const CBuffer &);
+    CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &);
     
     // packet encoding helpers
-    void                EncodeKeepAlivePacket(CBuffer *);
-    void                EncodeConnectPacket(CBuffer *, const char *);
-    void                EncodeDisconnectPacket(CBuffer *);
-    void                EncodeConnectAckPacket(CBuffer *, const char *);
-    void                EncodeConnectNackPacket(CBuffer *);
+    void EncodeKeepAlivePacket(CBuffer *);
+    void EncodeConnectPacket(CBuffer *, const char *);
+    void EncodeDisconnectPacket(CBuffer *);
+    void EncodeConnectAckPacket(CBuffer *, const char *);
+    void EncodeConnectNackPacket(CBuffer *);
+    bool EncodeDvFramePacket(const CDvFramePacket &, CBuffer *) const;
+    bool EncodeDvLastFramePacket(const CDvLastFramePacket &, CBuffer *) const;
     
 protected:
     // time

@@ -37,14 +37,18 @@ CXlxPeer::CXlxPeer()
 {
 }
 
-CXlxPeer::CXlxPeer(const CCallsign &callsign, const CIp &ip, char *modules)
-: CPeer(callsign, ip, modules)
+CXlxPeer::CXlxPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
+: CPeer(callsign, ip, modules, version)
 {
+    // get protocol revision
+    int protrev = GetProtocolRevision(version);
+    //std::cout << "Adding XLX peer with protocol revision " << protrev << std::endl;
+    
     // and construct all xlx clients
     for ( int i = 0; i < ::strlen(modules); i++ )
     {
         // create
-        CXlxClient *client = new CXlxClient(callsign, ip, modules[i]);
+        CXlxClient *client = new CXlxClient(callsign, ip, modules[i], protrev);
         // and append to vector
         m_Clients.push_back(client);
     }
@@ -80,5 +84,23 @@ CXlxPeer::~CXlxPeer()
 bool CXlxPeer::IsAlive(void) const
 {
     return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// revision helper
+
+int CXlxPeer::GetProtocolRevision(const CVersion &version)
+{
+    int protrev = XLX_PROTOCOL_REVISION_0;
+    
+    if ( version.IsEqualOrHigherTo(CVersion(2,2,0)) )
+    {
+        protrev = XLX_PROTOCOL_REVISION_2;
+    }
+    else if ( version.IsEqualOrHigherTo(CVersion(1,4,0)) )
+    {
+        protrev = XLX_PROTOCOL_REVISION_1;
+    }
+    return protrev;
 }
 

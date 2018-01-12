@@ -1,8 +1,8 @@
 //
-//  cxlxclient.cpp
+//  cversion.cpp
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 28/01/2016.
+//  Created by Jean-Luc Deltombe (LX3JL) on 05/01/2018.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,57 +22,66 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <string.h>
 #include "main.h"
-#include "cxlxclient.h"
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructors
-
-CXlxClient::CXlxClient()
-{
-    m_ProtRev = XLX_PROTOCOL_REVISION_0;
-}
-
-CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
-: CClient(callsign, ip, reflectorModule)
-{
-    m_ProtRev = protRev;
-}
-
-CXlxClient::CXlxClient(const CXlxClient &client)
-: CClient(client)
-{
-    m_ProtRev = client.m_ProtRev;
-}
+#include "cversion.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// identity
+// constructor
 
-int CXlxClient::GetCodec(void) const
+CVersion::CVersion()
 {
-    int codec;
-    
-    switch ( GetProtocolRevision() )
+    m_iMajor = 0;
+    m_iMinor = 0;
+    m_iRevision = 0;
+}
+
+CVersion::CVersion(int iMajor, int iMinor, int iRevision)
+{
+    m_iMajor = iMajor;
+    m_iMinor = iMinor;
+    m_iRevision = iRevision;
+}
+
+CVersion::CVersion(const CVersion &Version)
+{
+    m_iMajor = Version.m_iMajor;
+    m_iMinor = Version.m_iMinor;
+    m_iRevision = Version.m_iRevision;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// comparaison
+
+bool CVersion::IsEqualOrHigherTo(const CVersion &version) const
+{
+    if ( m_iMajor > version.m_iMajor )
     {
-        case XLX_PROTOCOL_REVISION_0:
-        case XLX_PROTOCOL_REVISION_1:
-        default:
-            codec = CODEC_AMBEPLUS;
-            break;
-        case XLX_PROTOCOL_REVISION_2:
-            codec = CODEC_NONE;
-            break;
+        return true;
     }
-    return codec;
+    else if ( m_iMajor == version.m_iMajor )
+    {
+        if ( m_iMinor > version.m_iMinor )
+        {
+            return true;
+        }
+        else if ( m_iMinor == version.m_iMinor )
+        {
+            if ( m_iRevision >= version.m_iRevision )
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// status
+// operator
 
-bool CXlxClient::IsAlive(void) const
+bool CVersion::operator ==(const CVersion &Version) const
 {
-    return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
+    return ( (Version.m_iMajor == m_iMajor) &&
+             (Version.m_iMinor == m_iMinor) &&
+             (Version.m_iRevision == m_iRevision )) ;
 }
 

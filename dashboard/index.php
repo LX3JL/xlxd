@@ -12,8 +12,6 @@ if (!class_exists('Station'))    require_once("./pgs/class.station.php");
 if (!class_exists('Peer'))       require_once("./pgs/class.peer.php");
 if (!class_exists('Interlink'))  require_once("./pgs/class.interlink.php");
 
-setlocale(LC_ALL, $VNStat['Locale']);
-
 $Reflector = new xReflector();
 $Reflector->SetFlagFile("./pgs/country.csv");
 $Reflector->SetPIDFile($Service['PIDFile']);

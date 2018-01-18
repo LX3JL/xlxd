@@ -96,6 +96,11 @@ int CXlxPeer::GetProtocolRevision(const CVersion &version)
     if ( version.IsEqualOrHigherTo(CVersion(2,2,0)) )
     {
         protrev = XLX_PROTOCOL_REVISION_2;
+        if (version.GetRevision() > 200)
+        {
+            // Connection is originated by BM
+            protrev = XLX_PROTOCOL_REVISION_2_SE;
+        }
     }
     else if ( version.IsEqualOrHigherTo(CVersion(1,4,0)) )
     {

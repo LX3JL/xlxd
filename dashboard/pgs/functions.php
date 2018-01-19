@@ -60,42 +60,6 @@ function CreateCode ($laenge) {
 	return $out;  
 }
 
-
-function UpdateHashFile($HashFile, $newLastSync, $newHash) { 
-   if (version_compare(phpversion(), "5.6", ">=")) {
-	     $Ressource = @fopen($HashFile, "c"); 
-	     if ($Ressource) { 
-			    if (flock($Ressource, LOCK_EX)) { 
-						 @fwrite($Ressource, "<?php\n"); 
-			       @fwrite($Ressource, "\n".'$LastSync = '.$newLastSync.';'); 
-			       @fwrite($Ressource, "\n".'$Hash     = "'.$newHash.'";'); 
-			       @fwrite($Ressource, "\n\n".'?>'); 
-			  
-			       @fflush($Ressource); 
-			       @ftruncate($Ressource, ftell($Ressource)); 
-			       @flock($Ressource, LOCK_UN); 
-			    }  
-			    @fclose($Ressource); 
-			    @chmod($HashFile, 0777); 
-			    return true;  
-			 }
-   }
-	 else {
-	 	  $Ressource = @fopen($HashFile, "w");
-      if ($Ressource) {
-         @fwrite($Ressource, "<?php\n");
-         @fwrite($Ressource, "\n".'$LastSync = 0;');
-         @fwrite($Ressource, "\n".'$Hash     = "'.$newHash.'";');
-         @fwrite($Ressource, "\n\n".'?>');
-         @fclose($Ressource);
-         @exec("chmod 777 ".$CallingHome['HashFile']);
-         $CallHomeNow = true;
-      }
-	 }
-	
-   return false; 
-} 
-
 function VNStatLocalize($str) {
   global $L;
  	if (isset($L[$str])) {

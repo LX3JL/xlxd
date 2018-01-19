@@ -17,7 +17,7 @@ $VNStat      = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';		// Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.3.8';       		// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.3.9';       		// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;   			// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';			// Page refresh time in miliseconds
@@ -47,7 +47,6 @@ $PageOptions['MetaRevisit']                          = 'After 30 Days';         
 $PageOptions['MetaRobots']                           = 'index,follow';                                               // Meta Tag Values, usefull for Search Engine
 
 $PageOptions['UserPage']['ShowFilter']               = true;                                                         // Show Filter on Users page
-
 $PageOptions['Traffic']['Show']                      = false;                                                        // Enable vnstat traffic statistics
 
 $Service['PIDFile']                                  = '/var/log/xlxd.pid';
@@ -60,6 +59,7 @@ $CallingHome['PushDelay']                            = 600;  	                  
 $CallingHome['Country']                              = "your_country";                         // Country
 $CallingHome['Comment']                              = "your_comment";                         // Comment. Max 100 character
 $CallingHome['HashFile']                             = "/tmp/callinghome.php";                 // Make sure the apache user has read and write permissions in this folder.
+$CallingHome['LastCallHomefile']                     = "/tmp/lastcallhome.php";                // lastcallhome.php can remain in the tmp folder 
 $CallingHome['OverrideIPAddress']                    = "";                                     // Insert your IP address here. Leave blank for autodetection. No need to enter a fake address.
 $CallingHome['InterlinkFile']                        = "/xlxd/xlxd.interlink";                 // Path to interlink file
 
@@ -67,15 +67,5 @@ $VNStat['Interfaces']                                = array();
 $VNStat['Interfaces'][0]['Name']                     = 'eth0';
 $VNStat['Interfaces'][0]['Address']                  = 'eth0';
 $VNStat['Binary']                                    = '/usr/bin/vnstat';
-
-/* 
-   include an extra config file for people who dont like to mess with shipped config.ing.php 
-   this makes updating dashboard from git a little bit easier 
-*/ 
-  
- if (file_exists("../config.inc.php")) { 
-   include ("../config.inc.php");
- } 
-
 
 ?>

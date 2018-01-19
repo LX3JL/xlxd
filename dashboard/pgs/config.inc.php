@@ -19,20 +19,20 @@ $PageOptions['ContactEmail']                         = 'your_email';		// Support
 
 $PageOptions['DashboardVersion']                     = '2.3.9';       		// Dashboard Version
 
-$PageOptions['PageRefreshActive']                    = true;   			// Activate automatic refresh
-$PageOptions['PageRefreshDelay']                     = '10000';			// Page refresh time in miliseconds
+$PageOptions['PageRefreshActive']                    = true;   			    // Activate automatic refresh
+$PageOptions['PageRefreshDelay']                     = '10000';			    // Page refresh time in miliseconds
 
 $PageOptions['RepeatersPage'] = array();
-$PageOptions['RepeatersPage']['LimitTo']             = 99;     			// Number of Repeaters to show
+$PageOptions['RepeatersPage']['LimitTo']             = 99;     			    // Number of Repeaters to show
 $PageOptions['RepeatersPage']['IPModus']             = 'ShowFullIP'; 	 	// See possible options above
-$PageOptions['RepeatersPage']['MasqueradeCharacter'] = '*';    			// Character used for  masquerade
+$PageOptions['RepeatersPage']['MasqueradeCharacter'] = '*';    			    // Character used for  masquerade
 
 $PageOptions['PeerPage'] = array();
-$PageOptions['PeerPage']['LimitTo']                  = 99;     			// Number of peers to show
+$PageOptions['PeerPage']['LimitTo']                  = 99;     			    // Number of peers to show
 $PageOptions['PeerPage']['IPModus']                  = 'ShowFullIP';		// See possible options above
 $PageOptions['PeerPage']['MasqueradeCharacter']      = '*';         		// Character used for  masquerade
 
-$PageOptions['LastHeardPage']['LimitTo']             = 39;                      // Number of stations to show
+$PageOptions['LastHeardPage']['LimitTo']             = 39;                  // Number of stations to show
 
 $PageOptions['ModuleNames'] = array();                              		// Module nomination
 $PageOptions['ModuleNames']['A']                     = 'Int.';
@@ -53,7 +53,7 @@ $Service['PIDFile']                                  = '/var/log/xlxd.pid';
 $Service['XMLFile']                                  = '/var/log/xlxd.xml';
 
 $CallingHome['Active']                               = false;                                  // xlx phone home, true or false
-$CallingHome['MyDashBoardURL']                       = 'http://your_dashboard';		       // dashboard url
+$CallingHome['MyDashBoardURL']                       = 'http://your_dashboard';		           // dashboard url
 $CallingHome['ServerURL']                            = 'http://xlxapi.rlx.lu/api.php';         // database server, do not change !!!!
 $CallingHome['PushDelay']                            = 600;  	                               // push delay in seconds
 $CallingHome['Country']                              = "your_country";                         // Country
@@ -67,5 +67,14 @@ $VNStat['Interfaces']                                = array();
 $VNStat['Interfaces'][0]['Name']                     = 'eth0';
 $VNStat['Interfaces'][0]['Address']                  = 'eth0';
 $VNStat['Binary']                                    = '/usr/bin/vnstat';
+
+/*   
+include an extra config file for people who dont like to mess with shipped config.ing.php   
+this makes updating dashboard from git a little bit easier   
+*/   
+ 
+if (file_exists("../config.inc.php")) {   
+ include ("../config.inc.php");  
+}   
 
 ?>

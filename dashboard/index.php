@@ -2,8 +2,8 @@
 
 session_start();
 
-if (file_exists("./pgs/functions.php"))      { require_once("./pgs/functions.php");   } else { die("functions.php does not exist.");  }
-if (file_exists("./pgs/config.inc.php"))     { require_once("./pgs/config.inc.php");  }	else { die("config.inc.php does not exist."); }
+if (file_exists("./pgs/functions.php"))                                { require_once("./pgs/functions.php");                               } else { die("functions.php does not exist.");  }
+if (file_exists("./pgs/config.inc.php")) 										  { require_once("./pgs/config.inc.php");                              } else { die("config.inc.php does not exist."); }
 
 if (!class_exists('ParseXML'))   require_once("./pgs/class.parsexml.php");
 if (!class_exists('Node'))       require_once("./pgs/class.node.php");
@@ -19,23 +19,49 @@ $Reflector->SetXMLFile($Service['XMLFile']);
 
 $Reflector->LoadXML();
 
-if ($CallingHome['Active']) {
-
+if ($CallingHome['Active']) { 
+   
    $CallHomeNow = false;
+   $LastSync = 0;
+   $Hash = "";
+   
    if (!file_exists($CallingHome['HashFile'])) {
-      $Hash = CreateCode(16);
-      $LastSync = 0;
-      UpdateHashFile($CallingHome['HashFile'], $LastSync, $Hash);
-      $CallHomeNow = true;
+      $Ressource = fopen($CallingHome['HashFile'], "w+"); 
+      if ($Ressource) { 
+         $Hash = CreateCode(16);
+		   @fwrite($Ressource, "<?php\n"); 
+		   @fwrite($Ressource, "\n".'$Hash = "'.$Hash.'";'); 
+		   @fwrite($Ressource, "\n\n".'?>'); 
+		   @fflush($Ressource); 
+		   @fclose($Ressource); 
+		   @chmod($HashFile, 0777); 
+		}
    }
    else {
-      include($CallingHome['HashFile']);
-      if ($LastSync < (time() - $CallingHome['PushDelay'])) {
-         UpdateHashFile($CallingHome['HashFile'], time(), $Hash);
-         $CallHomeNow = true;
+      require_once($CallingHome['HashFile']);
+   }
+   
+   if (@file_exists($CallingHome['LastCallHomefile'])) {
+      if (@is_readable($CallingHome['LastCallHomefile'])) {
+         $tmp      = @file($CallingHome['LastCallHomefile']);
+         if (isset($tmp[0])) {
+            $LastSync = $tmp[0];
+         }
+         unset($tmp);
       }
    }
-
+         
+   if ($LastSync < (time() - $CallingHome['PushDelay'])) { 
+      $CallHomeNow = true;
+      $Ressource = @fopen($CallingHome['LastCallHomefile'], "w+"); 
+	   if ($Ressource) { 
+	      @fwrite($Ressource, time()); 
+		   @fflush($Ressource); 
+		   @fclose($Ressource); 
+		   @chmod($HashFile, 0777); 
+		}
+   }  
+   
    if ($CallHomeNow || isset($_GET['callhome'])) {
       $Reflector->SetCallingHome($CallingHome, $Hash);
       $Reflector->ReadInterlinkFile();
@@ -43,7 +69,7 @@ if ($CallingHome['Active']) {
       $Reflector->PrepareReflectorXML();
       $Reflector->CallHome();
    }
-
+   
 }
 else {
    $Hash = "";
@@ -60,7 +86,7 @@ else {
    <meta name="author"      content="<?php echo $PageOptions['MetaAuthor']; ?>" />
    <meta name="revisit"     content="<?php echo $PageOptions['MetaRevisit']; ?>" />
    <meta name="robots"      content="<?php echo $PageOptions['MetaAuthor']; ?>" />
-
+   
    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
    <title><?php echo $Reflector->GetReflectorName(); ?> Reflector Dashboard</title>
    <link rel="stylesheet" type="text/css" href="./css/layout.css">
@@ -69,8 +95,8 @@ else {
    if ($PageOptions['PageRefreshActive']) {
       echo '
    <script>
-     var PageRefresh;
-
+      var PageRefresh;
+      
       function ReloadPage() {
          document.location.href = "./index.php';
      if (isset($_GET['show'])) {
@@ -90,7 +116,7 @@ else {
       }
    </script>';
    }
-
+   
    if (!isset($_GET['show'])) $_GET['show'] = "";
 ?>
 </head>
@@ -106,14 +132,14 @@ else {
                <td><a href="./index.php?show=repeaters" class="menulink<?php if ($_GET['show'] == 'repeaters') { echo 'active'; } ?>">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td>
                <td><a href="./index.php?show=peers" class="menulink<?php if ($_GET['show'] == 'peers') { echo 'active'; } ?>">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td>
                <td><a href="./index.php?show=reflectors" class="menulink<?php if ($_GET['show'] == 'reflectors') { echo 'active'; } ?>">Reflectorlist</a></td>
-               <td><a href="./index.php?show=liveircddb" class="menulink<?php if ($_GET['show'] == 'liveircddb') { echo 'active'; } ?>">ircDDB live</a></td>
+               <td><a href="./index.php?show=liveircddb" class="menulink<?php if ($_GET['show'] == 'liveircddb') { echo 'active'; } ?>">D-Star live</a></td>
                <?php
                
                if ($PageOptions['Traffic']['Show']) {
                    echo '
                <td><a href="./index.php?show=traffic" class="menulink';
                    if ($_GET['show'] == 'traffic') { echo 'active'; }
-                   echo '">Traffic</a></td>';
+                   echo '">Traffic statistics</a></td>';
                }
                
                ?>

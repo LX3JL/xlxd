@@ -25,6 +25,7 @@
 #include "main.h"
 #include <string.h>
 #include "cxlxpeer.h"
+#include "cbmpeer.h"
 #include "cxlxprotocol.h"
 #include "creflector.h"
 #include "cgatekeeper.h"
@@ -118,7 +119,7 @@ void CXlxProtocol::Task(void)
             {
                 // acknowledge connecting request
                 // following is version dependent
-                switch ( CXlxPeer::GetProtocolRevision(Version) )
+                switch ( GetConnectingPeerProtocolRevision(Callsign, Version) )
                 {
                     case XLX_PROTOCOL_REVISION_0:
                         {
@@ -163,7 +164,7 @@ void CXlxProtocol::Task(void)
                 {
                     // create the new peer
                     // this also create one client per module
-                    CXlxPeer *peer = new CXlxPeer(Callsign, Ip, Modules, Version);
+                    CPeer *peer = CreateNewPeer(Callsign, Ip, Modules, Version);
 
                     // append the peer to reflector peer list
                     // this also add all new clients to reflector client list
@@ -722,3 +723,44 @@ bool CXlxProtocol::EncodeDvLastFramePacket(const CDvLastFramePacket &Packet, CBu
     
     return true;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// protocol revision helper
+
+int CXlxProtocol::GetConnectingPeerProtocolRevision(const CCallsign &Callsign, const CVersion &Version)
+{
+    int protrev;
+    
+    // BM ?
+    if ( Callsign.HasSameCallsignWithWildcard(CCallsign("BM*")) )
+    {
+        protrev = CBmPeer::GetProtocolRevision(Version);
+    }
+    // otherwise, assume native xlx
+    else
+    {
+        protrev = CXlxPeer::GetProtocolRevision(Version);
+    }
+    
+    // done
+    return protrev;
+}
+
+CPeer *CXlxProtocol::CreateNewPeer(const CCallsign &Callsign, const CIp &Ip, char *Modules, const CVersion &Version)
+{
+    CPeer *peer = NULL;
+    
+    // BM ?
+    if ( Callsign.HasSameCallsignWithWildcard(CCallsign("BM*")) )
+    {
+        peer = new CBmPeer(Callsign, Ip, Modules, Version);
+    }
+    else
+    {
+        peer = new CXlxPeer(Callsign, Ip, Modules, Version);
+    }
+   
+    // done
+    return peer;
+}
+

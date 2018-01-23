@@ -32,6 +32,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+class CPeer;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -81,6 +82,10 @@ protected:
     void EncodeConnectNackPacket(CBuffer *);
     bool EncodeDvFramePacket(const CDvFramePacket &, CBuffer *) const;
     bool EncodeDvLastFramePacket(const CDvLastFramePacket &, CBuffer *) const;
+    
+    // protocol revision helper
+    int GetConnectingPeerProtocolRevision(const CCallsign &, const CVersion &);
+    CPeer *CreateNewPeer(const CCallsign &, const CIp &, char *, const CVersion &);
     
 protected:
     // time

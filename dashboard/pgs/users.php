@@ -36,6 +36,12 @@ if (isset($_POST['do'])) {
          
       }
    }
+   
+   //after process post request, redirect to avoid browser asking to resend data on page reload
+   $protocol = ( (!empty($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] !== 'off')) 
+     || ($_SERVER['SERVER_PORT'] == 443) ) ? 'https://' : 'http://';
+   header('Location: ' . $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']);
+   exit;
 }
 
 if (isset($_GET['do'])) {

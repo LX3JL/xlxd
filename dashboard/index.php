@@ -98,12 +98,8 @@ else {
       var PageRefresh;
       
       function ReloadPage() {
-         document.location.href = "./index.php';
-     if (isset($_GET['show'])) {
-        echo '?show='.$_GET['show'];
-     }
-     echo '";
-      }';
+         document.location.reload();
+      }
 
      if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
          echo '

@@ -107,6 +107,7 @@ if ($CallingHome['Active']) {
     if ($PageOptions['PageRefreshActive']) {
         echo '
    <script>
+      var PageRefresh;
 
       function ReloadPage() {';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -125,10 +126,13 @@ if ($CallingHome['Active']) {
 
         if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
             echo '
-      setTimeout(ReloadPage, ' . $PageOptions['PageRefreshDelay'] . ');';
+      PageRefresh = setTimeout(ReloadPage, ' . $PageOptions['PageRefreshDelay'] . ');';
         }
         echo '
 
+      function SuspendPageRefresh() {
+        clearTimeout(PageRefresh);
+      }
    </script>';
     }
     if (!isset($_GET['show'])) $_GET['show'] = "";

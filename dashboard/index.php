@@ -97,12 +97,19 @@ else {
    <script>
       var PageRefresh;
       
-      function ReloadPage() {
+      function ReloadPage() {';
+     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+       echo '
          document.location.href = "./index.php';
-     if (isset($_GET['show'])) {
-        echo '?show='.$_GET['show'];
+       if (isset($_GET['show'])) {
+         echo '?show='.$_GET['show'];
+       }
+       echo '";';
+     } else {
+       echo '
+         document.location.reload();';
      }
-     echo '";
+     echo '
       }';
 
      if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {

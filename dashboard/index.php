@@ -98,7 +98,7 @@ else {
       var PageRefresh;
       
       function ReloadPage() {';
-     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+     if (($_SERVER['REQUEST_METHOD'] === 'POST') || isset($_GET['do'])) {
        echo '
          document.location.href = "./index.php';
        if (isset($_GET['show'])) {

@@ -384,6 +384,8 @@ void CXlxProtocol::HandlePeerLinks(void)
     for ( int i = 0; i < list->size(); i++ )
     {
         CCallsignListItem *item = &((list->data())[i]);
+        if ( item->GetCallsign().HasSameCallsignWithWildcard(CCallsign("XRF*")) )
+            continue;
         if ( peers->FindPeer(item->GetCallsign(), PROTOCOL_XLX) == NULL )
         {
             // resolve again peer's IP in case it's a dynamic IP

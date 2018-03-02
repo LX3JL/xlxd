@@ -34,7 +34,7 @@ CBmPeer::CBmPeer()
 {
 }
 
-CBmPeer::CBmPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
+CBmPeer::CBmPeer(const CCallsign &callsign, const CIp &ip, const char *modules, const CVersion &version)
 : CPeer(callsign, ip, modules, version)
 {
     std::cout << "Adding BM peer" << std::endl;

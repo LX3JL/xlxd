@@ -1,8 +1,8 @@
 //
-//  cxlxpeer.h
+//  cdextrapeer.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 10/12/2016.
+//  Created by Antony Chazapis (SV9OAN) on 25/2/2018.
 //  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,11 +22,11 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cxlxpeer_h
-#define cxlxpeer_h
+#ifndef cdextrapeer_h
+#define cdextrapeer_h
 
 #include "cpeer.h"
-#include "cxlxclient.h"
+#include "cdextraclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
@@ -35,27 +35,27 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CXlxPeer : public CPeer
+class CDextraPeer : public CPeer
 {
 public:
     // constructors
-    CXlxPeer();
-    CXlxPeer(const CCallsign &, const CIp &, const char *, const CVersion &);
-    CXlxPeer(const CXlxPeer &);
+    CDextraPeer();
+    CDextraPeer(const CCallsign &, const CIp &, const char *, const CVersion &);
+    CDextraPeer(const CDextraPeer &);
     
     // destructor
-    ~CXlxPeer();
+    ~CDextraPeer();
     
     // status
     bool IsAlive(void) const;
     
     // identity
-    int GetProtocol(void) const                 { return PROTOCOL_XLX; }
-    const char *GetProtocolName(void) const     { return "XLX"; }
+    int GetProtocol(void) const                 { return PROTOCOL_DEXTRA; }
+    const char *GetProtocolName(void) const     { return "DExtra"; }
     
     // revision helper
     static int GetProtocolRevision(const CVersion &);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cxlxpeer_h */
+#endif /* cdextrapeer_h */

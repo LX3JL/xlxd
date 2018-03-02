@@ -40,7 +40,7 @@ CPeer::CPeer()
     m_LastHeardTime = std::time(NULL);
 }
 
-CPeer::CPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
+CPeer::CPeer(const CCallsign &callsign, const CIp &ip, const char *modules, const CVersion &version)
 {
     m_Callsign = callsign;
     m_Ip = ip;

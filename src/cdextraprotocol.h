@@ -75,6 +75,7 @@ protected:
     void HandleQueue(void);
 
     // keepalive helpers
+    void HandlePeerLinks(void);
     void HandleKeepalives(void);
 
     // stream helpers
@@ -90,9 +91,10 @@ protected:
     
     // packet encoding helpers
     void                EncodeKeepAlivePacket(CBuffer *);
+    void                EncodeConnectPacket(CBuffer *, const char *);
     void                EncodeConnectAckPacket(CBuffer *, int);
     void                EncodeConnectNackPacket(CBuffer *);
-    void                EncodeDisconnectPacket(CBuffer *);
+    void                EncodeDisconnectPacket(CBuffer *, char);
     void                EncodeDisconnectedPacket(CBuffer *);
     bool                EncodeDvHeaderPacket(const CDvHeaderPacket &, CBuffer *) const;
     bool                EncodeDvFramePacket(const CDvFramePacket &, CBuffer *) const;
@@ -101,6 +103,7 @@ protected:
 protected:
     // time
     CTimePoint          m_LastKeepaliveTime;
+    CTimePoint          m_LastPeersLinkTime;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

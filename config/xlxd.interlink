@@ -2,13 +2,15 @@
 #  XLXD interlink file
 #
 #  one line per entry
-#  each entry specify a remote XLX to peer with
+#  each entry specifies a remote XLX or XRF to peer with
 #  format:
-#    <callsign> <ip> <list of module shared>
+#    <XLX callsign> <ip> <list of modules shared>
+#    <XRF callsign> <ip> <local module><remote module>
 #  example:
 #    XLX270 158.64.26.132 ACD
+#    XRF270 158.64.26.132 BB
 #
-#  note: the remote XLX must list this XLX in it's interlink file
+#  note: the remote XLX must list this XLX in its interlink file
 #        for the link to be established
 #
 #############################################################################

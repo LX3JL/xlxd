@@ -42,7 +42,7 @@ class CPeer
 public:
     // constructors
     CPeer();
-    CPeer(const CCallsign &, const CIp &, char *, const CVersion &);
+    CPeer(const CCallsign &, const CIp &, const char *, const CVersion &);
     CPeer(const CPeer &);
     
     // destructor
@@ -54,7 +54,7 @@ public:
     // get
     const CCallsign &GetCallsign(void) const            { return m_Callsign; }
     const CIp &GetIp(void) const                        { return m_Ip; }
-    char *GetModulesModules(void)                       { return m_ReflectorModules; }
+    char *GetReflectorModules(void)                     { return m_ReflectorModules; }
     
     // set
     

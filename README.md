@@ -95,11 +95,6 @@ Please use the stable version listed above, we cannot support others.
 # cp -r ~/xlxd/dashboard /var/www/db
 ```
 
-###### Give the dashboard read access to the server log file 
-```
-# chmod +r /var/log/messages 
-```
-
 ###### Reboot server to see if the auto-start is working
 ```
 # reboot

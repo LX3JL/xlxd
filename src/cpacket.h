@@ -42,6 +42,7 @@ public:
     CPacket();
     CPacket(uint16 sid, uint8 dstarpid);
     CPacket(uint16 sid, uint8 dmrpid, uint8 dmrsubpid);
+    CPacket(uint16 sid, uint8 dstarpid, uint8 dmrpid, uint8 dmrsubpid);
     
     // destructor
     virtual ~CPacket() {};

@@ -32,7 +32,6 @@
 #include "cbuffer.h"
 #include "ccallsign.h"
 
-
 // compare function for std::map::find
 
 struct CallsignCompare
@@ -48,31 +47,49 @@ class CDmridDir
 {
 public:
     // constructor
-    CDmridDir() {}
+    CDmridDir();
     
     // destructor
-    ~CDmridDir() {}
+    ~CDmridDir();
+    
+    // init & close
+    virtual bool Init(void);
+    virtual void Close(void);
+    
+    // locks
+    void Lock(void)                                 { m_Mutex.lock(); }
+    void Unlock(void)                               { m_Mutex.unlock(); }
     
     // refresh
-    bool RefreshContent(void);
+    virtual bool LoadContent(CBuffer *)             { return false; }
+    virtual bool RefreshContent(const CBuffer &)    { return false; }
     
     // find
     const CCallsign *FindCallsign(uint32);
     uint32 FindDmrid(const CCallsign &);
     
 protected:
-    // httpd helpers
-    bool HttpGet(const char *, const char *, int, CBuffer *);
-    
-    // syntax helpers
+    // thread
+    static void Thread(CDmridDir *);
+
+    // reload helpers
+    bool Reload(void);
+    virtual bool NeedReload(void)                    { return false; }
     bool IsValidDmrid(const char *);
     
 protected:
-    // directory
+	// data
     std::map <uint32, CCallsign> m_CallsignMap;
     std::map <CCallsign, uint32, CallsignCompare> m_DmridMap;
+    
+    // Lock()
+    std::mutex          m_Mutex;
+           
+    // thread
+    bool                m_bStopThread;
+    std::thread         *m_pThread;
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-
 #endif /* cdmriddir_h */

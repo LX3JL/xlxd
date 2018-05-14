@@ -26,9 +26,95 @@
 #include "main.h"
 #include "creflector.h"
 #include "cdmriddir.h"
+#include "cdmriddirfile.h"
+#include "cdmriddirhttp.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+// constructor & destructor
+
+CDmridDir::CDmridDir()
+{
+    m_bStopThread = false;
+    m_pThread = NULL;
+}
+
+CDmridDir::~CDmridDir()
+{
+    // kill threads
+    m_bStopThread = true;
+    if ( m_pThread != NULL )
+    {
+        m_pThread->join();
+        delete m_pThread;
+    }
+}
 
 
-CDmridDir g_DmridDir;
+////////////////////////////////////////////////////////////////////////////////////////
+// init & close
+
+bool CDmridDir::Init(void)
+{
+	// load content
+	Reload();
+	
+    // reset stop flag
+    m_bStopThread = false;
+    
+    // start  thread;
+    m_pThread = new std::thread(CDmridDir::Thread, this);
+
+    return true;
+}
+
+void CDmridDir::Close(void)
+{
+    m_bStopThread = true;
+    if ( m_pThread != NULL )
+    {
+        m_pThread->join();
+        delete m_pThread;
+        m_pThread = NULL;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// thread
+
+void CDmridDir::Thread(CDmridDir *This)
+{
+    while ( !This->m_bStopThread )
+    {
+        // Wait 30 seconds
+        CTimePoint::TaskSleepFor(DMRIDDB_REFRESH_RATE * 60000);
+
+        // have lists files changed ?
+        if ( This->NeedReload() )
+        {
+           	This->Reload();
+        }
+     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Reload
+
+bool CDmridDir::Reload(void)
+{
+    CBuffer buffer;
+    bool ok = false;
+    
+    if ( LoadContent(&buffer) )
+    {
+        Lock();
+        {
+            ok = RefreshContent(buffer);
+        }
+        Unlock();
+    }
+    return ok;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // find
@@ -53,218 +139,6 @@ uint32 CDmridDir::FindDmrid(const CCallsign &callsign)
     return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-// refresh
-
-#if (DMRIDDB_USE_RLX_SERVER == 1)
-bool CDmridDir::RefreshContent(void)
-{
-    bool ok = true;
-    CBuffer buffer;
-    
-    // get file from xlxapi server
-    if ( (ok = HttpGet("xlxapi.rlx.lu", "api/exportdmr.php", 80, &buffer)) )
-    {
-        // clear directory
-        m_CallsignMap.clear();
-        m_DmridMap.clear();
-
-        // scan file
-        if ( buffer.size() > 0 )
-        {
-            char *ptr1 = (char *)buffer.data();
-            char *ptr2;
-            // get next line
-            while ( (ptr2 = ::strchr(ptr1, '\n')) != NULL )
-            {
-                *ptr2 = 0;
-                // get items
-                char *dmrid;
-                char *callsign;
-                if ( ((dmrid = ::strtok(ptr1, ";")) != NULL) && IsValidDmrid(dmrid) )
-                {
-                    if ( ((callsign = ::strtok(NULL, ";")) != NULL) )
-                    {
-                        // new entry
-                        uint32 ui = atoi(dmrid);
-                        CCallsign cs(callsign, ui);
-                        if ( cs.IsValid() )
-                        {
-                            m_CallsignMap.insert(std::pair<uint32,CCallsign>(ui, cs));
-                            m_DmridMap.insert(std::pair<CCallsign,uint32>(cs,ui));
-                        }
-                    }
-                }
-                // next line
-                ptr1 = ptr2+1;
-            }
-            // done
-            ok = true;
-        }
-    }
-    
-    // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR id from online database " << std::endl;
-    
-    // done
-    return ok;
-}
-#else
-bool CDmridDir::RefreshContent(void)
-{
-    bool ok = true;
-    CBuffer buffer;
-    std::ifstream file;
-    std::streampos size;
-    
-    // open file
-    file.open(DMRIDDB_PATH, std::ios::in | std::ios::binary | std::ios::ate);
-    if ( file.is_open() )
-    {
-        // clear directory
-        m_CallsignMap.clear();
-        m_DmridMap.clear();
-        
-        // scan file
-        size = file.tellg();
-        if ( size > 0 )
-        {
-            // read file into buffer
-            buffer.resize((int)size+1);
-            file.seekg (0, std::ios::beg);
-            file.read((char *)buffer.data(), (int)size);
-            
-            // close file
-            file.close();
-            
-            // crack it
-            char *ptr1 = (char *)buffer.data();
-            char *ptr2;
-            // get next line
-            while ( (ptr2 = ::strchr(ptr1, '\n')) != NULL )
-            {
-                *ptr2 = 0;
-                // get items
-                char *dmrid;
-                char *callsign;
-                if ( ((dmrid = ::strtok(ptr1, ";")) != NULL) && IsValidDmrid(dmrid) )
-                {
-                    if ( ((callsign = ::strtok(NULL, ";")) != NULL) )
-                    {
-                        // new entry
-                        uint32 ui = atoi(dmrid);
-                        CCallsign cs(callsign, ui);
-                        if ( cs.IsValid() )
-                        {
-                            m_CallsignMap.insert(std::pair<uint32,CCallsign>(ui, cs));
-                            m_DmridMap.insert(std::pair<CCallsign,uint32>(cs,ui));
-                        }
-                    }
-                }
-                // next line
-                ptr1 = ptr2+1;
-            }
-            // done
-            ok = true;
-        }
-    }
-    
-    // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR id from online database " << std::endl;
-    
-    // done
-    return ok;
-}
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////////
-// httpd helpers
-
-#define DMRID_HTTPGET_SIZEMAX       (256)
-#define DMRID_TEXTFILE_SIZEMAX      (10*1024*1024)
-
-bool CDmridDir::HttpGet(const char *hostname, const char *filename, int port, CBuffer *buffer)
-{
-    bool ok = false;
-    int sock_id;
-    
-    // open socket
-    if ( (sock_id = ::socket(AF_INET, SOCK_STREAM, 0)) >= 0 )
-    {
-        // get hostname address
-        struct sockaddr_in servaddr;
-        struct hostent *hp;
-        ::memset(&servaddr,0,sizeof(servaddr));
-        if( (hp = gethostbyname(hostname)) != NULL )
-        {
-            // dns resolved
-            ::memcpy((char *)&servaddr.sin_addr.s_addr, (char *)hp->h_addr, hp->h_length);
-            servaddr.sin_port = htons(port);
-            servaddr.sin_family = AF_INET;
-            
-            // connect
-            if ( ::connect(sock_id, (struct sockaddr *)&servaddr, sizeof(servaddr)) == 0)
-            {
-                // send the GET request
-                char request[DMRID_HTTPGET_SIZEMAX];
-                ::sprintf(request, "GET /%s HTTP/1.0\r\nFrom: %s\r\nUser-Agent: xlxd\r\n\r\n",
-                          filename, (const char *)g_Reflector.GetCallsign());
-                ::write(sock_id, request, strlen(request));
-
-                // config receive timeouts
-                fd_set read_set;
-                struct timeval timeout;
-                timeout.tv_sec = 5;
-                timeout.tv_usec = 0;
-                FD_ZERO(&read_set);
-                FD_SET(sock_id, &read_set);
-                
-                // get the reply back
-                buffer->clear();
-                bool done = false;
-                do
-                {
-                    char buf[1440];
-                    ssize_t len = 0;
-                    select(sock_id+1, &read_set, NULL, NULL, &timeout);
-                    //if ( (ret > 0) || ((ret < 0) && (errno == EINPROGRESS)) )
-                    //if ( ret >= 0 )
-                    //{
-                        usleep(5000);
-                        len = read(sock_id, buf, 1440);
-                        if ( len > 0 )
-                        {
-                            buffer->Append((uint8 *)buf, (int)len);
-                            ok = true;
-                        }
-                    //}
-                    done = (len <= 0);
-
-                } while (!done);
-                buffer->Append((uint8)0);
-                                
-                // and disconnect
-                close(sock_id);
-            }
-            else
-            {
-                std::cout << "Cannot establish connection with host " << hostname << std::endl;
-            }
-        }
-        else
-        {
-            std::cout << "Host " << hostname << " not found" << std::endl;
-        }
-        
-    }
-    else
-    {
-        std::cout << "Failed to open wget socket" << std::endl;
-    }
-    
-    // done
-    return ok;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // syntax helpers

@@ -188,12 +188,6 @@ void CTranscoder::Task(void)
         
     }
     
-    // handle end of streaming timeout
-    //CheckStreamsTimeout();
-    
-    // handle queue from reflector
-    //HandleQueue();
-    
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > TRANSCODER_KEEPALIVE_PERIOD )
     {

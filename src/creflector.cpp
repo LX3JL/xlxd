@@ -26,7 +26,8 @@
 #include <string.h>
 #include "creflector.h"
 #include "cgatekeeper.h"
-#include "cdmriddir.h"
+#include "cdmriddirfile.h"
+#include "cdmriddirhttp.h"
 #include "ctranscoder.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +103,7 @@ bool CReflector::Start(void)
     ok &= g_GateKeeper.Init();
     
     // init dmrid directory
-    g_DmridDir.RefreshContent();
+    g_DmridDir.Init();
     
     // init the transcoder
     g_Transcoder.Init();

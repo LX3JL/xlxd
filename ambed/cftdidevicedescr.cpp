@@ -72,6 +72,7 @@ int CFtdiDeviceDescr::CreateInterface(CFtdiDeviceDescr *descr, std::vector<CVoco
     // three channels devices
     if ( (::strcmp(descr->GetDescription(), "USB-3003")    == 0) ||     // DVSI's  USB-3003
          (::strcmp(descr->GetDescription(), "DF2ET-3003")  == 0) ||     // DF2ET's USB-3003 opensource device
+         (::strcmp(descr->GetDescription(), "DVstick-33")  == 0) ||     // DVMEGA USB-3003 device  
          (::strcmp(descr->GetDescription(), "ThumbDV-3")   == 0) )      // ThumbDV-3
     {
         iNbChs = CreateUsb3003(descr, channels);
@@ -136,14 +137,16 @@ int CFtdiDeviceDescr::GetNbChannels(void) const
     int iNbChs = 0;
     
     // single channel devices
-    if ( (::strcmp(m_szDescription, "USB-3000")  == 0) ||           // DVSI's USB-3000
-         (::strcmp(m_szDescription, "ThumbDV")   == 0) )            // ThumbDV
+    if ( (::strcmp(m_szDescription, "USB-3000")   == 0) ||           // DVSI's USB-3000
+         (::strcmp(m_szDescription, "DVstick-30") == 0) ||           // DVMEGA AMBE3000 device
+         (::strcmp(m_szDescription, "ThumbDV")    == 0) )            // ThumbDV
     {
         iNbChs = 1;
     }
     // three channels devices
     else if ( (::strcmp(m_szDescription, "USB-3003")    == 0) ||     // DVSI's  USB-3003
               (::strcmp(m_szDescription, "DF2ET-3003")  == 0) ||     // DF2ET's USB-3003 opensource device
+              (::strcmp(m_szDescription, "DVstick-33")  == 0) ||     // DVMEGA AMBE 3003 device
               (::strcmp(m_szDescription, "ThumbDV-3")   == 0) )      // ThumbDV-3
     {
         iNbChs = 3;
@@ -330,6 +333,7 @@ int CFtdiDeviceDescr::CreateUsb3006(CFtdiDeviceDescr *descr, std::vector<CVocode
 //   DVSI
 //   DF2ET
 //   ThumbDV
+//   DVMEGA
 //
 //      These devices uses a AMBE3003 connected on a single FTDI
 //      USB to serial interface. The reset mechanism is based
@@ -537,6 +541,13 @@ CUsb3003Interface *CFtdiDeviceDescr::InstantiateUsb3003(CFtdiDeviceDescr *descr)
         Usb3003 = new CUsb3003Interface
             (descr->GetVid(), descr->GetPid(), descr->GetDescription(), descr->GetSerialNumber());
     }
+    else if ( (::strcmp(descr->GetDescription(), "DVstick-33")  == 0) )      // DVMEGA AMBE3003 device
+    {
+        // specific fardware reset, 921600 bps
+        Usb3003 = new CUsb3003DF2ETInterface
+            (descr->GetVid(), descr->GetPid(), descr->GetDescription(), descr->GetSerialNumber());
+    }
+
     // done
     return Usb3003;
 }
@@ -547,6 +558,7 @@ CUsb3000Interface *CFtdiDeviceDescr::InstantiateUsb3000(CFtdiDeviceDescr *descr)
     
     // intstantiate the proper version of USB-3000
     if ( (::strcmp(descr->GetDescription(), "USB-3000")  == 0) ||           // DVSI's USB-3000
+         (::strcmp(descr->GetDescription(), "DVstick-30")== 0) ||           // DVMEGA AMBE3000 device
          (::strcmp(descr->GetDescription(), "ThumbDV")   == 0) )            // ThumbDV
    {
         Usb3000 = new CUsb3000Interface

@@ -1,8 +1,8 @@
 //
-//  cxlxclient.cpp
+//  cbmclient.cpp
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 28/01/2016.
+//  Created by Jean-Luc Deltombe (LX3JL) on 20/01/2017.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -24,54 +24,30 @@
 
 #include <string.h>
 #include "main.h"
-#include "cxlxclient.h"
+#include "cbmclient.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructors
 
-CXlxClient::CXlxClient()
+CBmClient::CBmClient()
 {
-    m_ProtRev = XLX_PROTOCOL_REVISION_0;
 }
 
-CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
-: CClient(callsign, ip, reflectorModule)
+CBmClient::CBmClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
+    : CClient(callsign, ip, reflectorModule)
 {
-    m_ProtRev = protRev;
 }
 
-CXlxClient::CXlxClient(const CXlxClient &client)
-: CClient(client)
+CBmClient::CBmClient(const CBmClient &client)
+    : CClient(client)
 {
-    m_ProtRev = client.m_ProtRev;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// identity
-
-int CXlxClient::GetCodec(void) const
-{
-    int codec;
-    
-    switch ( GetProtocolRevision() )
-    {
-        case XLX_PROTOCOL_REVISION_0:
-        case XLX_PROTOCOL_REVISION_1:
-        default:
-            codec = CODEC_AMBEPLUS;
-            break;
-        case XLX_PROTOCOL_REVISION_2:
-            codec = CODEC_NONE;
-            break;
-    }
-    return codec;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // status
 
-bool CXlxClient::IsAlive(void) const
+bool CBmClient::IsAlive(void) const
 {
     return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
 }

@@ -61,6 +61,20 @@ CDvFramePacket::CDvFramePacket(const uint8 *ambe, const uint8 *sync, uint16 sid,
     ::memset(m_uiDvData, 0, sizeof(m_uiDvData));
 }
 
+// dstar + dmr constructor
+
+CDvFramePacket::CDvFramePacket
+    (uint16 sid,
+     uint8 dstarpid, const uint8 *dstarambe, const uint8 *dstardvdata,
+     uint8 dmrpid, uint8 dprspid, const uint8 *dmrambe, const uint8 *dmrsync)
+: CPacket(sid, dstarpid, dmrpid, dprspid)
+{
+    ::memcpy(m_uiAmbe, dstarambe, sizeof(m_uiAmbe));
+    ::memcpy(m_uiDvData, dstardvdata, sizeof(m_uiDvData));
+    ::memcpy(m_uiAmbePlus, dmrambe, sizeof(m_uiAmbePlus));
+    ::memcpy(m_uiDvSync, dmrsync, sizeof(m_uiDvSync));
+}
+
 // copy constructor
 
 CDvFramePacket::CDvFramePacket(const CDvFramePacket &DvFrame)

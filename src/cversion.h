@@ -1,9 +1,9 @@
 //
-//  cxlxpeer.h
+//  cversion.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 10/12/2016.
-//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 05/01/2018.
+//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,40 +22,43 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cxlxpeer_h
-#define cxlxpeer_h
 
-#include "cpeer.h"
-#include "cxlxclient.h"
-
-////////////////////////////////////////////////////////////////////////////////////////
-// define
+#ifndef cversion_h
+#define cversion_h
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CXlxPeer : public CPeer
+class CVersion
 {
 public:
-    // constructors
-    CXlxPeer();
-    CXlxPeer(const CCallsign &, const CIp &, char *, const CVersion &);
-    CXlxPeer(const CXlxPeer &);
+    // constructor
+    CVersion();
+    CVersion(int, int, int);
+    CVersion(const CVersion &);
     
     // destructor
-    ~CXlxPeer();
+    virtual ~CVersion() {}
     
-    // status
-    bool IsAlive(void) const;
+    // get
+    int GetMajor(void) const        { return m_iMajor; }
+    int GetMinor(void) const        { return m_iMinor; }
+    int GetRevision(void) const     { return m_iRevision; }
+
+    // comparaison
+    bool IsEqualOrHigherTo(const CVersion &) const;
     
-    // identity
-    int GetProtocol(void) const                 { return PROTOCOL_XLX; }
-    const char *GetProtocolName(void) const     { return "XLX"; }
-    
-    // revision helper
-    static int GetProtocolRevision(const CVersion &);
+    // operator
+    bool operator ==(const CVersion &) const;
+
+protected:
+    // data
+    int     m_iMajor;
+    int     m_iMinor;
+    int     m_iRevision;
 };
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cxlxpeer_h */
+#endif /* cversion_h */

@@ -25,6 +25,7 @@
 #ifndef cpeer_h
 #define cpeer_h
 
+#include "cversion.h"
 #include "ctimepoint.h"
 #include "cip.h"
 #include "ccallsign.h"
@@ -41,7 +42,7 @@ class CPeer
 public:
     // constructors
     CPeer();
-    CPeer(const CCallsign &, const CIp &, char *);
+    CPeer(const CCallsign &, const CIp &, char *, const CVersion &);
     CPeer(const CPeer &);
     
     // destructor
@@ -82,6 +83,7 @@ protected:
     CCallsign               m_Callsign;
     CIp                     m_Ip;
     char                    m_ReflectorModules[NB_MODULES_MAX+1];
+    CVersion                m_Version;
     std::vector<CClient *>  m_Clients;
     
     // status

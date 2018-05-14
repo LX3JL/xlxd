@@ -40,12 +40,13 @@ CPeer::CPeer()
     m_LastHeardTime = std::time(NULL);
 }
 
-CPeer::CPeer(const CCallsign &callsign, const CIp &ip, char *modules)
+CPeer::CPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
 {
     m_Callsign = callsign;
     m_Ip = ip;
     ::memset(m_ReflectorModules, 0, sizeof(m_ReflectorModules));
     ::strncpy(m_ReflectorModules, modules, sizeof(m_ReflectorModules)-1);
+    m_Version = version;
     m_LastKeepaliveTime.Now();
     m_ConnectTime = std::time(NULL);
     m_LastHeardTime = std::time(NULL);
@@ -56,6 +57,7 @@ CPeer::CPeer(const CPeer &peer)
     m_Callsign = peer.m_Callsign;
     m_Ip = peer.m_Ip;
     ::memcpy(m_ReflectorModules, peer.m_ReflectorModules, sizeof(m_ReflectorModules));
+    m_Version = peer.m_Version;
     m_LastKeepaliveTime = peer.m_LastKeepaliveTime;
     m_ConnectTime = peer.m_ConnectTime;
     m_LastHeardTime = peer.m_LastHeardTime;
@@ -82,6 +84,7 @@ bool CPeer::operator ==(const CPeer &peer) const
     
     same &= (peer.m_Callsign == m_Callsign);
     same &= (peer.m_Ip == m_Ip);
+    same &= (peer.m_Version == m_Version);
     for ( int i = 0; (i < m_Clients.size()) && same ; i++ )
     {
         same &= (peer.m_Clients[i] == m_Clients[i]);

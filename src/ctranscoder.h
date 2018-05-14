@@ -55,6 +55,9 @@ public:
     void Lock(void)                     { m_Mutex.lock(); }
     void Unlock(void)                   { m_Mutex.unlock(); }
     
+    // status
+    bool IsConnected(void) const        { return m_bConnected; }
+    
     // manage streams
     CCodecStream *GetStream(CPacketStream *, uint8);
     void ReleaseStream(CCodecStream *);

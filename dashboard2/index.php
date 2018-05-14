@@ -107,21 +107,32 @@ if ($CallingHome['Active']) {
     if ($PageOptions['PageRefreshActive']) {
         echo '
    <script>
+      var PageRefresh;
 
-      function ReloadPage() {
+      function ReloadPage() {';
+        if (($_SERVER['REQUEST_METHOD'] === 'POST') || isset($_GET['do'])) {
+          echo '
          document.location.href = "./index.php';
-        if (isset($_GET['show'])) {
+          if (isset($_GET['show'])) {
             echo '?show=' . $_GET['show'];
+          }
+          echo '";';
+        } else {
+          echo '
+         document.location.reload();';
         }
-        echo '";
+        echo '
       }';
 
         if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
             echo '
-      setTimeout(ReloadPage, ' . $PageOptions['PageRefreshDelay'] . ');';
+      PageRefresh = setTimeout(ReloadPage, ' . $PageOptions['PageRefreshDelay'] . ');';
         }
         echo '
 
+      function SuspendPageRefresh() {
+        clearTimeout(PageRefresh);
+      }
    </script>';
     }
     if (!isset($_GET['show'])) $_GET['show'] = "";

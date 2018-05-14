@@ -22,7 +22,7 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-VERSION: 1.3.0
+VERSION: 1.3.1
 
 Hardware compatibility.
 ======================
@@ -34,6 +34,8 @@ This version of ambed is compatible with:
 - DVSI's USB-3012 device
 - NWDR's ThumbDV device
 - NWDR's ThumbDV-3 device
+- DVMEGA AMBE3000 device
+- DVMEGA AMBE3003 device
 
 Available transcoding channels per device:
 

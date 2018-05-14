@@ -1,9 +1,9 @@
 //
-//  cxlxclient.cpp
+//  cbmpeer.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 28/01/2016.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 20/01/2017.
+//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,57 +22,41 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <string.h>
-#include "main.h"
-#include "cxlxclient.h"
+#ifndef cbmpeer_h
+#define cbmpeer_h
+
+
+#include "cpeer.h"
+#include "cbmclient.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+// define
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// constructors
+// class
 
-CXlxClient::CXlxClient()
+class CBmPeer : public CPeer
 {
-    m_ProtRev = XLX_PROTOCOL_REVISION_0;
-}
-
-CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
-: CClient(callsign, ip, reflectorModule)
-{
-    m_ProtRev = protRev;
-}
-
-CXlxClient::CXlxClient(const CXlxClient &client)
-: CClient(client)
-{
-    m_ProtRev = client.m_ProtRev;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// identity
-
-int CXlxClient::GetCodec(void) const
-{
-    int codec;
+public:
+    // constructors
+    CBmPeer();
+    CBmPeer(const CCallsign &, const CIp &, char *, const CVersion &);
+    CBmPeer(const CBmPeer &);
     
-    switch ( GetProtocolRevision() )
-    {
-        case XLX_PROTOCOL_REVISION_0:
-        case XLX_PROTOCOL_REVISION_1:
-        default:
-            codec = CODEC_AMBEPLUS;
-            break;
-        case XLX_PROTOCOL_REVISION_2:
-            codec = CODEC_NONE;
-            break;
-    }
-    return codec;
-}
+    // destructor
+    ~CBmPeer();
+    
+    // status
+    bool IsAlive(void) const;
+    
+    // identity
+    int GetProtocol(void) const                 { return PROTOCOL_XLX; }
+    const char *GetProtocolName(void) const     { return "XLX"; }
+    
+    // revision helper
+    static int GetProtocolRevision(const CVersion &);
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// status
-
-bool CXlxClient::IsAlive(void) const
-{
-    return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
-}
-
+#endif /* cbmpeer_h */

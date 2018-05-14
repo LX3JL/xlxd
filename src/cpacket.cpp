@@ -59,6 +59,16 @@ CPacket::CPacket(uint16 sid, uint8 dmrpid, uint8 dmrspid)
     m_uiOriginId = ORIGIN_LOCAL;
 };
 
+CPacket::CPacket(uint16 sid, uint8 dstarpid, uint8 dmrpid, uint8 dmrsubpid)
+{
+    m_uiStreamId = sid;
+    m_uiDstarPacketId = dstarpid;
+    m_uiDmrPacketId = dmrpid;
+    m_uiDmrPacketSubid  = dmrsubpid;
+    m_uiModuleId = ' ';
+    m_uiOriginId = ORIGIN_LOCAL;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // virtual duplication
 

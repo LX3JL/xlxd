@@ -1,9 +1,6 @@
 //
-//  cxlxpeer.cpp
+//  cbmpeer.cpp
 //  xlxd
-//
-//  Created by Jean-Luc Deltombe (LX3JL) on 10/12/2016.
-//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -25,41 +22,39 @@
 #include "main.h"
 #include <string.h>
 #include "creflector.h"
-#include "cxlxpeer.h"
-#include "cxlxclient.h"
+#include "cbmpeer.h"
+#include "cbmclient.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
 
-CXlxPeer::CXlxPeer()
+CBmPeer::CBmPeer()
 {
 }
 
-CXlxPeer::CXlxPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
+CBmPeer::CBmPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
 : CPeer(callsign, ip, modules, version)
 {
-    // get protocol revision
-    int protrev = GetProtocolRevision(version);
-    //std::cout << "Adding XLX peer with protocol revision " << protrev << std::endl;
+    std::cout << "Adding BM peer" << std::endl;
     
     // and construct all xlx clients
     for ( int i = 0; i < ::strlen(modules); i++ )
     {
         // create
-        CXlxClient *client = new CXlxClient(callsign, ip, modules[i], protrev);
+        CBmClient *client = new CBmClient(callsign, ip, modules[i]);
         // and append to vector
         m_Clients.push_back(client);
     }
 }
 
-CXlxPeer::CXlxPeer(const CXlxPeer &peer)
+CBmPeer::CBmPeer(const CBmPeer &peer)
 : CPeer(peer)
 {
     for ( int i = 0; i < peer.m_Clients.size(); i++ )
     {
-        CXlxClient *client = new CXlxClient((const CXlxClient &)*(peer.m_Clients[i]));
+        CBmClient *client = new CBmClient((const CBmClient &)*(peer.m_Clients[i]));
         // grow vector capacity if needed
         if ( m_Clients.capacity() == m_Clients.size() )
         {
@@ -74,14 +69,14 @@ CXlxPeer::CXlxPeer(const CXlxPeer &peer)
 ////////////////////////////////////////////////////////////////////////////////////////
 // destructors
 
-CXlxPeer::~CXlxPeer()
+CBmPeer::~CBmPeer()
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // status
 
-bool CXlxPeer::IsAlive(void) const
+bool CBmPeer::IsAlive(void) const
 {
     return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
 }
@@ -89,18 +84,8 @@ bool CXlxPeer::IsAlive(void) const
 ////////////////////////////////////////////////////////////////////////////////////////
 // revision helper
 
-int CXlxPeer::GetProtocolRevision(const CVersion &version)
+int CBmPeer::GetProtocolRevision(const CVersion &version)
 {
-    int protrev = XLX_PROTOCOL_REVISION_0;
-    
-    if ( version.IsEqualOrHigherTo(CVersion(2,2,0)) )
-    {
-        protrev = XLX_PROTOCOL_REVISION_2;
-    }
-    else if ( version.IsEqualOrHigherTo(CVersion(1,4,0)) )
-    {
-        protrev = XLX_PROTOCOL_REVISION_1;
-    }
-    return protrev;
+    return XLX_PROTOCOL_REVISION_2;
 }
 

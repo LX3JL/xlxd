@@ -1,3 +1,11 @@
+xlx db v2.3.9
+
+redesign for the callinghome.php
+
+- "config.inc.php"
+- "index.php"
+- "functions.php"
+
 xlx db v2.3.8
 
 add support for network traffic statistics via vnstat.

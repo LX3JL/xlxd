@@ -34,7 +34,7 @@
 CCallsignList::CCallsignList()
 {
     m_Filename = NULL;
-    ::memset(&m_LastModTime, 0, sizeof(CCallsignList));
+    ::memset(&m_LastModTime, 0, sizeof(time_t));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

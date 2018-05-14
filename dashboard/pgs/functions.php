@@ -60,7 +60,6 @@ function CreateCode ($laenge) {
 	return $out;  
 }
 
-
 function UpdateHashFile($HashFile, $newLastSync, $newHash) { 
    if (version_compare(phpversion(), "5.6", ">=")) {
 	     $Ressource = @fopen($HashFile, "c"); 

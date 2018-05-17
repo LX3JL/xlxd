@@ -44,7 +44,7 @@ if ($CallingHome['Active']) {
             @fwrite($Ressource, "\n" . '$Hash     = "' . $Hash . '";');
             @fwrite($Ressource, "\n\n" . '?>');
             @fclose($Ressource);
-            @exec("chmod 777 " . $CallingHome['HashFile']);
+            @chmod($CallingHome['HashFile'], 0644);
             $CallHomeNow = true;
         }
     } else {

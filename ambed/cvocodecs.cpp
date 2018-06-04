@@ -165,7 +165,7 @@ bool CVocodecs::Init(void)
     
     if ( ok )
     {
-        std::cout << "Codec interfaces initialized successfully : " << iNbCh << " channels availables" << std::endl;
+        std::cout << "Codec interfaces initialized successfully : " << iNbCh << " channels available" << std::endl;
     }
     else
     {

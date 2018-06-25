@@ -132,6 +132,33 @@ int CFtdiDeviceDescr::CreateInterfacePair(CFtdiDeviceDescr *descr1, CFtdiDeviceD
 ////////////////////////////////////////////////////////////////////////////////////////
 // get
 
+const char * CFtdiDeviceDescr::GetChannelDescription(int ch) const
+{
+    static char descr[FTDI_MAX_STRINGLENGTH];
+    char tag[3] = "_X";
+    
+    ::strcpy(descr, GetDescription());
+    if ( ::strlen(descr) >= 2 )
+    {
+        descr[::strlen(descr)-2] = 0x00;
+        tag[1] = (char)ch + 'A';
+        ::strcat(descr, tag);
+    }
+    return descr;
+}
+
+const char * CFtdiDeviceDescr::GetChannelSerialNumber(int ch) const
+{
+    static char serial[FTDI_MAX_STRINGLENGTH];
+    
+    ::strcpy(serial, GetSerialNumber());
+    if ( ::strlen(serial) >= 1 )
+    {
+        serial[::strlen(serial)-1] = (char)ch + 'A';
+    }
+    return serial;
+}
+
 int CFtdiDeviceDescr::GetNbChannels(void) const
 {
     int iNbChs = 0;
@@ -180,13 +207,13 @@ int CFtdiDeviceDescr::CreateUsb3012(CFtdiDeviceDescr *descr, std::vector<CVocode
     
     // create the interfaces for the four 3003 chips
     CUsb3003HRInterface *Usb3003A =
-        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), "USB-3012_A", descr->GetSerialNumber());
+        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(0), descr->GetChannelSerialNumber(0));
     CUsb3003HRInterface *Usb3003B =
-        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), "USB-3012_B", descr->GetSerialNumber());
+        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(1), descr->GetChannelSerialNumber(1));
     CUsb3003HRInterface *Usb3003C =
-        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), "USB-3012_C", descr->GetSerialNumber());
+        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(2), descr->GetChannelSerialNumber(2));
     CUsb3003HRInterface *Usb3003D =
-        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), "USB-3012_D", descr->GetSerialNumber());
+        new CUsb3003HRInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(3), descr->GetChannelSerialNumber(3));
     
     // init the interfaces
     if ( Usb3003A->Init(CODEC_AMBEPLUS) && Usb3003B->Init(CODEC_AMBE2PLUS) &&
@@ -212,31 +239,31 @@ int CFtdiDeviceDescr::CreateUsb3012(CFtdiDeviceDescr *descr, std::vector<CVocode
             channels->push_back(Channel);
             Usb3003B->AddChannel(Channel);
             // ch5
-            Channel = new CVocodecChannel(Usb3003C, 0, Usb3003C, 1, CODECGAIN_AMBEPLUS);
-            channels->push_back(Channel);
-            Usb3003C->AddChannel(Channel);
-            // ch6
-            Channel = new CVocodecChannel(Usb3003C, 1, Usb3003C, 0, CODECGAIN_AMBE2PLUS);
-            channels->push_back(Channel);
-            Usb3003C->AddChannel(Channel);
-            // ch7
-            Channel = new CVocodecChannel(Usb3003D, 0, Usb3003D, 1, CODECGAIN_AMBEPLUS);
-            channels->push_back(Channel);
-            Usb3003D->AddChannel(Channel);
-            // ch8
-            Channel = new CVocodecChannel(Usb3003D, 1, Usb3003D, 0, CODECGAIN_AMBE2PLUS);
-            channels->push_back(Channel);
-            Usb3003D->AddChannel(Channel);
-            // ch9
             Channel = new CVocodecChannel(Usb3003A, 2, Usb3003B, 2, CODECGAIN_AMBEPLUS);
             channels->push_back(Channel);
             Usb3003A->AddChannel(Channel);
             Usb3003B->AddChannel(Channel);
-            // ch10
+            // ch6
             Channel = new CVocodecChannel(Usb3003B, 2, Usb3003A, 2, CODECGAIN_AMBE2PLUS);
             channels->push_back(Channel);
             Usb3003A->AddChannel(Channel);
             Usb3003B->AddChannel(Channel);
+            // ch7
+            Channel = new CVocodecChannel(Usb3003C, 0, Usb3003C, 1, CODECGAIN_AMBEPLUS);
+            channels->push_back(Channel);
+            Usb3003C->AddChannel(Channel);
+            // ch8
+            Channel = new CVocodecChannel(Usb3003C, 1, Usb3003C, 0, CODECGAIN_AMBE2PLUS);
+            channels->push_back(Channel);
+            Usb3003C->AddChannel(Channel);
+            // ch9
+            Channel = new CVocodecChannel(Usb3003D, 0, Usb3003D, 1, CODECGAIN_AMBEPLUS);
+            channels->push_back(Channel);
+            Usb3003D->AddChannel(Channel);
+            // ch10
+            Channel = new CVocodecChannel(Usb3003D, 1, Usb3003D, 0, CODECGAIN_AMBE2PLUS);
+            channels->push_back(Channel);
+            Usb3003D->AddChannel(Channel);
             // ch11
             Channel = new CVocodecChannel(Usb3003C, 2, Usb3003D, 2, CODECGAIN_AMBEPLUS);
             channels->push_back(Channel);
@@ -273,13 +300,13 @@ int CFtdiDeviceDescr::CreateUsb3012(CFtdiDeviceDescr *descr, std::vector<CVocode
 //
 int CFtdiDeviceDescr::CreateUsb3006(CFtdiDeviceDescr *descr, std::vector<CVocodecChannel *>*channels)
 {
-    int nStreams = 0;
+    int  nStreams = 0;
     
-    // create the interfaces for the four 3003 chips
+    // create the interfaces for the two 3003 chips
     CUsb3003Interface *Usb3003A =
-        new CUsb3003Interface(descr->GetVid(), descr->GetPid(), "USB-3006_A", descr->GetSerialNumber());
+        new CUsb3003Interface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(0), descr->GetChannelSerialNumber(0));
     CUsb3003Interface *Usb3003B =
-        new CUsb3003Interface(descr->GetVid(), descr->GetPid(), "USB-3006_B", descr->GetSerialNumber());
+        new CUsb3003Interface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(1), descr->GetChannelSerialNumber(1));
     
     // init the interfaces
     if ( Usb3003A->Init(CODEC_AMBEPLUS) && Usb3003B->Init(CODEC_AMBE2PLUS) )

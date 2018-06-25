@@ -58,12 +58,15 @@ public:
     static int CreateInterfacePair(CFtdiDeviceDescr *, CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
 
     // get
-    bool IsUsed(void) const                 { return m_bUsed; }
+    bool IsUsed(void) const                         { return m_bUsed; }
     int  GetNbChannels(void) const;
-    uint32 GetVid(void) const               { return m_uiVid; }
-    uint32 GetPid(void) const               { return m_uiPid; }
-    const char *GetDescription(void) const  { return m_szDescription; }
-    const char *GetSerialNumber(void) const { return m_szSerial; }
+    uint32 GetVid(void) const                       { return m_uiVid; }
+    uint32 GetPid(void) const                       { return m_uiPid; }
+    const char *GetDescription(void) const          { return m_szDescription; }
+    const char *GetSerialNumber(void) const         { return m_szSerial; }
+    const char * GetChannelDescription(int) const;
+    const char * GetChannelSerialNumber(int) const;
+
     
     // set
     void SetUsed(bool used)                 { m_bUsed = used; }

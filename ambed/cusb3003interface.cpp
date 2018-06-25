@@ -209,9 +209,9 @@ bool CUsb3003Interface::OpenDevice(void)
     ftStatus = FT_SetVIDPID(m_uiVid, m_uiPid);
     if (ftStatus != FT_OK) {FTDI_Error((char *)"FT_SetVIDPID", ftStatus ); return false; }
     
-    ftStatus = FT_OpenEx((PVOID)m_szDeviceName, FT_OPEN_BY_DESCRIPTION, &m_FtdiHandle);
+    ftStatus = FT_OpenEx((PVOID)m_szDeviceSerial, FT_OPEN_BY_SERIAL_NUMBER, &m_FtdiHandle);
     if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_OpenEx", ftStatus ); return false; }
-    
+
     CTimePoint::TaskSleepFor(50);
     FT_Purge(m_FtdiHandle, FT_PURGE_RX | FT_PURGE_TX );
     CTimePoint::TaskSleepFor(50);

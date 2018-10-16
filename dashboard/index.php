@@ -94,32 +94,32 @@ else {
 
    if ($PageOptions['PageRefreshActive']) {
       echo '
+   <script src="./js/jquery-1.12.4.min.js"></script>
    <script>
       var PageRefresh;
       
-      function ReloadPage() {';
-     if (($_SERVER['REQUEST_METHOD'] === 'POST') || isset($_GET['do'])) {
-       echo '
-         document.location.href = "./index.php';
-       if (isset($_GET['show'])) {
-         echo '?show='.$_GET['show'];
-       }
-       echo '";';
-     } else {
-       echo '
-         document.location.reload();';
-     }
-     echo '
+      function ReloadPage() {
+         $.get("./index.php'.(isset($_GET['show'])?'?show='.$_GET['show']:'').'", function(data) {
+            var BodyStart = data.indexOf("<bo"+"dy");
+            var BodyEnd = data.indexOf("</bo"+"dy>");
+            if ((BodyStart >= 0) && (BodyEnd > BodyStart)) {
+               BodyStart = data.indexOf(">", BodyStart)+1;
+               $("body").html(data.substring(BodyStart, BodyEnd));
+            }
+         })
+            .always(function() {
+               PageRefresh = setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');
+            });
       }';
 
      if (!isset($_GET['show']) || (($_GET['show'] != 'liveircddb') && ($_GET['show'] != 'reflectors') && ($_GET['show'] != 'interlinks'))) {
          echo '
-     PageRefresh = setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
+      PageRefresh = setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');';
      }
      echo '
 
       function SuspendPageRefresh() {
-        clearTimeout(PageRefresh);
+         clearTimeout(PageRefresh);
       }
    </script>';
    }

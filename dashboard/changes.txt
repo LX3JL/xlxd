@@ -1,3 +1,10 @@
+xlx db v2.4.0
+
+- "config.inc.php"
+- "index.php"
+- "js"
+- "layout.css"
+
 xlx db v2.3.9
 
 redesign for the callinghome.php

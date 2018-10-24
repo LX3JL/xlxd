@@ -10,6 +10,10 @@ h1 {
    font-size            : 25pt;
 }
 
+a img {
+   border: 0;
+}
+
 a.tip {
    text-decoration      : none;
 }
@@ -117,18 +121,19 @@ a.tip:hover span {
 .listingtable th {
    height               : 35px;
    text-align           : center;
-   background-image: -webkit-gradient(
-	linear,
-	left top,
-	left bottom,
-	color-stop(0, rgb(201, 231, 233)),
-	color-stop(0.8, rgb(220, 237, 244))
-);
-background-image: -o-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
-background-image: -moz-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
-background-image: -webkit-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
-background-image: -ms-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
-background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-color     : #D5EBF0;
+   background-image     : -webkit-gradient(
+      linear,
+      left top,
+      left bottom,
+      color-stop(0, rgb(201, 231, 233)),
+      color-stop(0.8, rgb(220, 237, 244))
+   );
+   background-image: -o-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: -moz-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: -webkit-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: -ms-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
 }
 
 .listingtable td {
@@ -136,7 +141,7 @@ background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237
 }      
 
 .listinglink {
-   font-size             : 12pt;
+   font-size            : 12pt;
    text-decoration      : underline;
    color                : #60A1DE;
 }

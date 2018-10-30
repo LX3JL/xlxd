@@ -180,6 +180,13 @@ if ($CallingHome['Active']) {
                             href="./index.php?show=reflectors">Reflectorlist</a></li>
                 <li<?php echo ($_GET['show'] == "liveircddb") ? ' class="active"' : ''; ?>><a
                             href="./index.php?show=liveircddb">D-Star live</a></li>
+                <?php
+                if ($PageOptions['Traffic']['Show']) {
+	            echo '<li';
+		    echo ($_GET['show'] == "traffic") ? ' class="active"' : '';
+		    echo '>';
+		    echo  '<a href="./index.php?show=traffic">Traffic Statistics</a></li>';
+		}?>
             </ul>
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
@@ -209,6 +216,9 @@ if ($CallingHome['Active']) {
                     break;
                 case 'reflectors' :
                     require_once("./pgs/reflectors.php");
+                    break;
+                case 'traffic' :
+                    require_once("./pgs/traffic.php");
                     break;
                 default           :
                     require_once("./pgs/users.php");

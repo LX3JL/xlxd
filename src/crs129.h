@@ -22,9 +22,9 @@
 class CRS129
 {
 public:
-    static bool check(const unsigned char* in);
-    
-    static void encode(const unsigned char* msg, unsigned int nbytes, unsigned char* parity);
+	static bool check(const unsigned char* in);
+	
+	static void encode(const unsigned char* msg, unsigned int nbytes, unsigned char* parity);
 };
 
 #endif

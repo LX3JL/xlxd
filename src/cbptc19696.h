@@ -22,26 +22,26 @@
 class CBPTC19696
 {
 public:
-    CBPTC19696();
-    ~CBPTC19696();
-    
-    void decode(const unsigned char* in, unsigned char* out);
-    
-    void encode(const unsigned char* in, unsigned char* out);
-    
+	CBPTC19696();
+	~CBPTC19696();
+	
+	void decode(const unsigned char* in, unsigned char* out);
+	
+	void encode(const unsigned char* in, unsigned char* out);
+	
 private:
-    bool m_rawData[196];
-    bool m_deInterData[196];
-    
-    void decodeExtractBinary(const unsigned char* in);
-    void decodeErrorCheck();
-    void decodeDeInterleave();
-    void decodeExtractData(unsigned char* data) const;
-    
-    void encodeExtractData(const unsigned char* in);
-    void encodeInterleave();
-    void encodeErrorCheck();
-    void encodeExtractBinary(unsigned char* data);
+	bool* m_rawData;
+	bool* m_deInterData;
+	
+	void decodeExtractBinary(const unsigned char* in);
+	void decodeErrorCheck();
+	void decodeDeInterleave();
+	void decodeExtractData(unsigned char* data) const;
+	
+	void encodeExtractData(const unsigned char* in) const;
+	void encodeInterleave();
+	void encodeErrorCheck();
+	void encodeExtractBinary(unsigned char* data);
 };
 
 #endif

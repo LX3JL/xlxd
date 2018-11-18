@@ -381,7 +381,7 @@ void CXlxProtocol::HandlePeerLinks(void)
     
     // check if all ours peers listed by gatekeeper are connected
     // if not, connect or reconnect
-    for ( int i = 0; i < list->size(); i++ )
+    for ( size_t i = 0; i < list->size(); i++ )
     {
         CCallsignListItem *item = &((list->data())[i]);
         if ( peers->FindPeer(item->GetCallsign(), PROTOCOL_XLX) == NULL )
@@ -501,7 +501,7 @@ bool CXlxProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *callsi
         ::strcpy(modules, (const char *)&(Buffer.data()[12]));
         valid = callsign->IsValid();
         *version = CVersion(Buffer.data()[9], Buffer.data()[10], Buffer.data()[11]);
-        for ( int i = 0; i < ::strlen(modules); i++ )
+        for ( size_t i = 0; i < ::strlen(modules); i++ )
         {
             valid &= IsLetter(modules[i]);
         }
@@ -529,7 +529,7 @@ bool CXlxProtocol::IsValidAckPacket(const CBuffer &Buffer, CCallsign *callsign, 
         ::strcpy(modules, (const char *)&(Buffer.data()[12]));
         valid = callsign->IsValid();
         *version = CVersion(Buffer.data()[9], Buffer.data()[10], Buffer.data()[11]);
-        for ( int i = 0; i < ::strlen(modules); i++ )
+        for ( size_t i = 0; i < ::strlen(modules); i++ )
         {
             valid &= IsLetter(modules[i]);
         }

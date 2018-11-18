@@ -37,7 +37,7 @@
 
 CProtocols::CProtocols()
 {
-    for ( int i = 0; i < m_Protocols.size(); i++ )
+    for ( size_t i = 0; i < m_Protocols.size(); i++ )
     {
         m_Protocols[i] = NULL;
     }
@@ -50,7 +50,7 @@ CProtocols::~CProtocols()
 {
     m_Mutex.lock();
     {
-        for ( int i = 0; i < m_Protocols.size(); i++ )
+        for ( size_t i = 0; i < m_Protocols.size(); i++ )
         {
            delete m_Protocols[i];
         }
@@ -107,7 +107,7 @@ void CProtocols::Close(void)
 {
     m_Mutex.lock();
     {
-        for ( int i = 0; i < m_Protocols.size(); i++ )
+        for ( size_t i = 0; i < m_Protocols.size(); i++ )
         {
             m_Protocols[i]->Close();
         }

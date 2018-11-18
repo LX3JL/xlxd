@@ -21,12 +21,12 @@
 
 class CQR1676 {
 public:
-    static void encode(unsigned char* data);
-    
-    static unsigned char decode(const unsigned char* data);
-    
+	static void encode(unsigned char* data);
+	
+	static unsigned char decode(const unsigned char* data);
+	
 private:
-    static unsigned int getSyndrome1576(unsigned int pattern);
+	static unsigned int getSyndrome1576(unsigned int pattern);
 };
 
 #endif

@@ -131,7 +131,7 @@ bool CCallsignList::IsCallsignListedWithWildcard(const CCallsign &callsign) cons
 {
     bool listed = false;
 
-    for ( int i =  0; (i < size()) && !listed; i++ )
+    for ( size_t i =  0; (i < size()) && !listed; i++ )
     {
         listed = (data()[i]).HasSameCallsignWithWildcard(callsign);
     }
@@ -143,7 +143,7 @@ bool CCallsignList::IsCallsignListedWithWildcard(const CCallsign &callsign, char
 {
     bool listed = false;
     
-    for ( int i =  0; (i < size()) && !listed; i++ )
+    for ( size_t i = 0; (i < size()) && !listed; i++ )
     {
         const CCallsignListItem *item = &(data()[i]);
         listed = (item->HasSameCallsignWithWildcard(callsign) &&
@@ -158,7 +158,7 @@ bool CCallsignList::IsCallsignListed(const CCallsign &callsign, char module) con
 {
     bool listed = false;
     
-    for ( int i =  0; (i < size()) && !listed; i++ )
+    for ( size_t i = 0; (i < size()) && !listed; i++ )
     {
         const CCallsignListItem *item = &(data()[i]);
         listed = (item->HasSameCallsign(callsign) && item->HasModuleListed(module));
@@ -172,7 +172,7 @@ bool CCallsignList::IsCallsignListed(const CCallsign &callsign, char *modules) c
 {
     bool listed = false;
     
-    for ( int i =  0; (i < size()) && !listed; i++ )
+    for ( size_t i = 0; (i < size()) && !listed; i++ )
     {
         const CCallsignListItem *item = &(data()[i]);
         listed = (item->HasSameCallsign(callsign) && item->CheckListedModules(modules));
@@ -190,7 +190,7 @@ CCallsignListItem *CCallsignList::FindListItem(const CCallsign &Callsign)
     CCallsignListItem *item = NULL;
     
     // find client
-    for ( int i = 0; (i < size()) && (item == NULL); i++ )
+    for ( size_t i = 0; (i < size()) && (item == NULL); i++ )
     {
         if ( (data()[i]).GetCallsign().HasSameCallsign(Callsign) )
         {

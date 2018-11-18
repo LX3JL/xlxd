@@ -21,23 +21,23 @@
 
 class CHamming {
 public:
-    static void encode15113_1(bool* d);
-    static bool decode15113_1(bool* d);
-    
-    static void encode15113_2(bool* d);
-    static bool decode15113_2(bool* d);
-    
-    static void encode1393(bool* d);
-    static bool decode1393(bool* d);
-    
-    static void encode1063(bool* d);
-    static bool decode1063(bool* d);
-    
-    static void encode16114(bool* d);
-    static bool decode16114(bool* d);
-    
-    static void encode17123(bool* d);
-    static bool decode17123(bool* d);
+	static void encode15113_1(bool* d);
+	static bool decode15113_1(bool* d);
+	
+	static void encode15113_2(bool* d);
+	static bool decode15113_2(bool* d);
+	
+	static void encode1393(bool* d);
+	static bool decode1393(bool* d);
+	
+	static void encode1063(bool* d);
+	static bool decode1063(bool* d);
+	
+	static void encode16114(bool* d);
+	static bool decode16114(bool* d);
+		
+	static void encode17123(bool* d);
+	static bool decode17123(bool* d);
 };
 
 #endif

@@ -28,6 +28,8 @@
 #include "cusb3003interface.h"
 #include "cusb3003hrinterface.h"
 #include "cusb3003df2etinterface.h"
+#include "cusb3000baointerface.h"
+#include "cusb3000baofarminterface.h"
 #include "cftdidevicedescr.h"
 
 
@@ -76,6 +78,11 @@ int CFtdiDeviceDescr::CreateInterface(CFtdiDeviceDescr *descr, std::vector<CVoco
          (::strcmp(descr->GetDescription(), "ThumbDV-3")   == 0) )      // ThumbDV-3
     {
         iNbChs = CreateUsb3003(descr, channels);
+    }
+    // four channels devices
+    else if ( (::strcmp(descr->GetDescription(), "BAOFARM1 A") == 0) )  // Team6160 AMBE3000 x4
+    {
+        iNbChs = CreateBaoFarm(descr, channels);
     }
     // six channels devices
     else if ( (::strcmp(descr->GetDescription(), "USB-3006 A") == 0) )  // LX3JL's USB-3006 opensource device
@@ -166,7 +173,8 @@ int CFtdiDeviceDescr::GetNbChannels(void) const
     // single channel devices
     if ( (::strcmp(m_szDescription, "USB-3000")   == 0) ||           // DVSI's USB-3000
          (::strcmp(m_szDescription, "DVstick-30") == 0) ||           // DVMEGA AMBE3000 device
-         (::strcmp(m_szDescription, "ThumbDV")    == 0) )            // ThumbDV
+         (::strcmp(m_szDescription, "ThumbDV")    == 0) ||           // ThumbDV
+         (::strcmp(m_szDescription, "BAO3000")    == 0) )            // Team6160 AMBE3000
     {
         iNbChs = 1;
     }
@@ -177,6 +185,11 @@ int CFtdiDeviceDescr::GetNbChannels(void) const
               (::strcmp(m_szDescription, "ThumbDV-3")   == 0) )      // ThumbDV-3
     {
         iNbChs = 3;
+    }
+    // four channels devices
+    else if ( (::strcmp(m_szDescription, "BAOFARM1 A") == 0) )       // Team6160 AMBE3000 x4
+    {
+        iNbChs = 4;
     }
     // six channels devices
     else if ( (::strcmp(m_szDescription, "USB-3006 A") == 0) )       // LX3JL's USB-3006 opensource device
@@ -285,6 +298,69 @@ int CFtdiDeviceDescr::CreateUsb3012(CFtdiDeviceDescr *descr, std::vector<CVocode
         delete Usb3003B;
         delete Usb3003C;
         delete Usb3003D;
+    }
+    
+    // done
+    return nStreams;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Bao Farm1 AMBE3000 x4 factory helper
+//
+//      This device uses 4 AMBE3000 connected on a single FTDI 4 channels
+//      USB to serial interface. Baudrate is 460800
+//
+int CFtdiDeviceDescr::CreateBaoFarm(CFtdiDeviceDescr *descr, std::vector<CVocodecChannel *>*channels)
+{
+    int nStreams = 0;
+    
+    // create the interfaces for the four 3000 chips
+    CUsb3000BaoFarmInterface *UsbBaoFarmA =
+        new CUsb3000BaoFarmInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(0), descr->GetChannelSerialNumber(0));
+    CUsb3000BaoFarmInterface *UsbBaoFarmB =
+        new CUsb3000BaoFarmInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(1), descr->GetChannelSerialNumber(1));
+    CUsb3000BaoFarmInterface *UsbBaoFarmC =
+        new CUsb3000BaoFarmInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(2), descr->GetChannelSerialNumber(2));
+    CUsb3000BaoFarmInterface *UsbBaoFarmD =
+        new CUsb3000BaoFarmInterface(descr->GetVid(), descr->GetPid(), descr->GetChannelDescription(3), descr->GetChannelSerialNumber(3));
+
+    // init the interfaces
+    if ( UsbBaoFarmA->Init(CODEC_AMBEPLUS) && UsbBaoFarmB->Init(CODEC_AMBE2PLUS) && UsbBaoFarmC->Init(CODEC_AMBEPLUS) && UsbBaoFarmD->Init(CODEC_AMBE2PLUS))
+    {
+        CVocodecChannel *Channel;
+        // create all channels
+        {
+            // ch1
+            Channel = new CVocodecChannel(UsbBaoFarmA, 0, UsbBaoFarmB, 0, CODECGAIN_AMBEPLUS);
+            channels->push_back(Channel);
+            UsbBaoFarmA->AddChannel(Channel);
+            UsbBaoFarmB->AddChannel(Channel);
+            // ch2
+            Channel = new CVocodecChannel(UsbBaoFarmB, 0, UsbBaoFarmA, 0, CODECGAIN_AMBE2PLUS);
+            channels->push_back(Channel);
+            UsbBaoFarmA->AddChannel(Channel);
+            UsbBaoFarmB->AddChannel(Channel);
+            // ch3
+            Channel = new CVocodecChannel(UsbBaoFarmC, 0, UsbBaoFarmD, 0, CODECGAIN_AMBEPLUS);
+            channels->push_back(Channel);
+            UsbBaoFarmC->AddChannel(Channel);
+            UsbBaoFarmD->AddChannel(Channel);
+            // ch4
+            Channel = new CVocodecChannel(UsbBaoFarmD, 0, UsbBaoFarmC, 0, CODECGAIN_AMBE2PLUS);
+            channels->push_back(Channel);
+            UsbBaoFarmC->AddChannel(Channel);
+            UsbBaoFarmD->AddChannel(Channel);
+            //done
+            nStreams = 4;
+        }
+    }
+    else
+    {
+        // cleanup
+        delete UsbBaoFarmA;
+        delete UsbBaoFarmB;
+        delete UsbBaoFarmC;
+        delete UsbBaoFarmD;
     }
     
     // done
@@ -583,14 +659,19 @@ CUsb3000Interface *CFtdiDeviceDescr::InstantiateUsb3000(CFtdiDeviceDescr *descr)
 {
     CUsb3000Interface *Usb3000 = NULL;
     
-    // intstantiate the proper version of USB-3000
+    // instantiate the proper version of USB-3000
     if ( (::strcmp(descr->GetDescription(), "USB-3000")  == 0) ||           // DVSI's USB-3000
          (::strcmp(descr->GetDescription(), "DVstick-30")== 0) ||           // DVMEGA AMBE3000 device
          (::strcmp(descr->GetDescription(), "ThumbDV")   == 0) )            // ThumbDV
-   {
+    {
         Usb3000 = new CUsb3000Interface
             (descr->GetVid(), descr->GetPid(), descr->GetDescription(), descr->GetSerialNumber());
     }
+    else if ( (::strcmp(descr->GetDescription(), "BAO3000") == 0) )         // Team6160 AMBE3000
+    {
+        Usb3000 = new CUsb3000BaoInterface
+            (descr->GetVid(), descr->GetPid(), descr->GetDescription(), descr->GetSerialNumber());
+    } 
     // done
     return Usb3000;
 }

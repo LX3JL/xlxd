@@ -7,18 +7,14 @@ EXECUTABLE=xlxd
 
 all: $(SOURCES) $(EXECUTABLE)
 
-
 $(EXECUTABLE): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
-
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-
 clean:
 	$(RM) xlxd *.o *.d *.bak
-
 
 install:
 	mkdir -p /xlxd

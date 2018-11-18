@@ -8,21 +8,21 @@ EXECUTABLE=xlxd
 all: $(SOURCES) $(EXECUTABLE)
 
 
-$(EXECUTABLE):	$(OBJECTS)
-	 $(CXX) $(LDFLAGS) $(OBJECTS) -o $@
+$(EXECUTABLE): $(OBJECTS)
+	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
 
 
 .cpp.o:
-	 $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 
 clean:
-	 $(RM) xlxd *.o *.d *.bak
+	$(RM) xlxd *.o *.d *.bak
 
 
 install:
 	mkdir -p /xlxd
-    cp -f $(EXECUTABLE) /xlxd/
+	cp -f $(EXECUTABLE) /xlxd/
 	[ -f /xlxd/xlxd.blacklist ] && \
 		cp ../config/xlxd.blacklist /xlxd/xlxd.blacklist.sample || \
 		cp ../config/xlxd.blacklist /xlxd/xlxd.blacklist

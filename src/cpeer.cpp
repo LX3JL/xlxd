@@ -68,7 +68,7 @@ CPeer::CPeer(const CPeer &peer)
 
 CPeer::~CPeer()
 {
-    for ( int i = 0; i < m_Clients.size(); i++ )
+    for ( size_t i = 0; i < m_Clients.size(); i++ )
     {
         delete m_Clients[i];
     }
@@ -85,7 +85,7 @@ bool CPeer::operator ==(const CPeer &peer) const
     same &= (peer.m_Callsign == m_Callsign);
     same &= (peer.m_Ip == m_Ip);
     same &= (peer.m_Version == m_Version);
-    for ( int i = 0; (i < m_Clients.size()) && same ; i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && same ; i++ )
     {
         same &= (peer.m_Clients[i] == m_Clients[i]);
     }
@@ -99,7 +99,7 @@ bool CPeer::operator ==(const CPeer &peer) const
 bool CPeer::IsAMaster(void) const
 {
     bool master = false;
-    for ( int i = 0; (i < m_Clients.size()) && !master ; i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && !master ; i++ )
     {
         master |= m_Clients[i]->IsAMaster();
     }
@@ -109,7 +109,7 @@ bool CPeer::IsAMaster(void) const
 void CPeer::Alive(void)
 {
     m_LastKeepaliveTime.Now();;
-    for ( int i = 0; i < m_Clients.size(); i++ )
+    for ( size_t i = 0; i < m_Clients.size(); i++ )
     {
         m_Clients[i]->Alive();
     }
@@ -120,7 +120,7 @@ void CPeer::Alive(void)
 
 CClient *CPeer::GetClient(int i)
 {
-    if ( (i >= 0) && (i < m_Clients.size()) )
+    if ( (i >= 0) && ((size_t)i < m_Clients.size()) )
     {
         return m_Clients[i];
     }

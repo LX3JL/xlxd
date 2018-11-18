@@ -1,24 +1,28 @@
-CC=g++
-CFLAGS=-c -std=c++11 -pthread
-LDFLAGS=-std=c++11 -pthread
+CXX=g++
+CXXFLAGS=-Os -Wall -std=c++11 -pthread
+LDFLAGS=-Os -Wall -std=c++11 -pthread
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=xlxd
 
 all: $(SOURCES) $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+
+$(EXECUTABLE):	$(OBJECTS)
+	 $(CXX) $(LDFLAGS) $(OBJECTS) -o $@
+
 
 .cpp.o:
-	$(CC) $(CFLAGS) $< -o $@
+	 $(CXX) $(CXXFLAGS) -c -o $@ $<
+
 
 clean:
-	$(RM) $(EXECUTABLE) *.o
+	 $(RM) xlxd *.o *.d *.bak
+
 
 install:
 	mkdir -p /xlxd
-	cp -f $(EXECUTABLE) /xlxd/
+    cp -f $(EXECUTABLE) /xlxd/
 	[ -f /xlxd/xlxd.blacklist ] && \
 		cp ../config/xlxd.blacklist /xlxd/xlxd.blacklist.sample || \
 		cp ../config/xlxd.blacklist /xlxd/xlxd.blacklist

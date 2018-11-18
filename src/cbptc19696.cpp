@@ -26,12 +26,18 @@
 #include <cassert>
 #include <cstring>
 
-CBPTC19696::CBPTC19696()
+CBPTC19696::CBPTC19696():
+m_rawData(NULL),
+m_deInterData(NULL)
 {
+	m_rawData     = new bool[196];
+	m_deInterData = new bool[196];
 }
 
 CBPTC19696::~CBPTC19696()
 {
+	delete[] m_rawData;
+	delete[] m_deInterData;
 }
 
 // The main decode function
@@ -211,7 +217,7 @@ void CBPTC19696::decodeExtractData(unsigned char* data) const
 }
 
 // Extract the 96 bits of payload
-void CBPTC19696::encodeExtractData(const unsigned char* in)
+void CBPTC19696::encodeExtractData(const unsigned char* in) const
 {
     bool bData[96U];
     CUtils::byteToBitsBE(in[0U],  bData + 0U);

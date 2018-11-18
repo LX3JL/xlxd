@@ -40,7 +40,7 @@ CBmPeer::CBmPeer(const CCallsign &callsign, const CIp &ip, char *modules, const 
     std::cout << "Adding BM peer" << std::endl;
     
     // and construct all xlx clients
-    for ( int i = 0; i < ::strlen(modules); i++ )
+    for ( size_t i = 0; i < ::strlen(modules); i++ )
     {
         // create
         CBmClient *client = new CBmClient(callsign, ip, modules[i]);
@@ -52,7 +52,7 @@ CBmPeer::CBmPeer(const CCallsign &callsign, const CIp &ip, char *modules, const 
 CBmPeer::CBmPeer(const CBmPeer &peer)
 : CPeer(peer)
 {
-    for ( int i = 0; i < peer.m_Clients.size(); i++ )
+    for ( size_t i = 0; i < peer.m_Clients.size(); i++ )
     {
         CBmClient *client = new CBmClient((const CBmClient &)*(peer.m_Clients[i]));
         // grow vector capacity if needed

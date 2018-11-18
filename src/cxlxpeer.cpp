@@ -45,7 +45,7 @@ CXlxPeer::CXlxPeer(const CCallsign &callsign, const CIp &ip, char *modules, cons
     //std::cout << "Adding XLX peer with protocol revision " << protrev << std::endl;
     
     // and construct all xlx clients
-    for ( int i = 0; i < ::strlen(modules); i++ )
+    for ( size_t i = 0; i < ::strlen(modules); i++ )
     {
         // create
         CXlxClient *client = new CXlxClient(callsign, ip, modules[i], protrev);
@@ -57,7 +57,7 @@ CXlxPeer::CXlxPeer(const CCallsign &callsign, const CIp &ip, char *modules, cons
 CXlxPeer::CXlxPeer(const CXlxPeer &peer)
 : CPeer(peer)
 {
-    for ( int i = 0; i < peer.m_Clients.size(); i++ )
+    for ( size_t i = 0; i < peer.m_Clients.size(); i++ )
     {
         CXlxClient *client = new CXlxClient((const CXlxClient &)*(peer.m_Clients[i]));
         // grow vector capacity if needed

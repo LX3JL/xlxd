@@ -1,0 +1,19 @@
+[Unit]
+Description=Ambed Service
+Requires=network.target
+After=systemd-user-session.service network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+StandardOutput=null
+WorkingDirectory=/ambed
+ExecStartPre=-/sbin/rmmod ftdi_sio
+ExecStartPre=-/sbin/rmmod usbserial
+ExecStart=/ambed/ambed 127.0.0.1
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

@@ -88,7 +88,7 @@ CVocodecChannel *CUsb3003Interface::GetChannelWithChannelIn(int iCh)
 {
     CVocodecChannel *Channel = NULL;
     bool done = false;
-    for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
+    for ( size_t i = 0; (i < m_Channels.size()) && !done; i++ )
     {
         if ( iCh == 2 )
         {
@@ -114,7 +114,7 @@ CVocodecChannel *CUsb3003Interface::GetChannelWithChannelOut(int iCh)
 {
     CVocodecChannel *Channel = NULL;
     bool done = false;
-    for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
+    for ( size_t i = 0; (i < m_Channels.size()) && !done; i++ )
     {
         if ( (m_Channels[i]->GetChannelOut() == iCh) && (m_Channels[i]->IsInterfaceOut(this)) )
         {

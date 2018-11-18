@@ -30,8 +30,8 @@ public:
     void encode(const unsigned char* in, unsigned char* out);
     
 private:
-    bool m_rawData[196];
-    bool m_deInterData[196];
+    bool* m_rawData;
+    bool* m_deInterData;
     
     void decodeExtractBinary(const unsigned char* in);
     void decodeErrorCheck();

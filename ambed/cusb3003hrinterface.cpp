@@ -42,15 +42,15 @@ CUsb3003HRInterface::CUsb3003HRInterface(uint32 uiVid, uint32 uiPid, const char 
 bool CUsb3003HRInterface::ResetDevice(void)
 {
     bool ok = false;
-    FT_STATUS ftStatus;
+    //FT_STATUS ftStatus; //*** variable ‘ftStatus’ set but not used ***
     int len;
     char rxpacket[100];
     
     //if the device is a USB-3003, it supports reset via UART break signal
     //printf("reset via uart break...\n");
-    ftStatus = FT_SetBreakOn( m_FtdiHandle );
+    //ftStatus = FT_SetBreakOn( m_FtdiHandle );
     CTimePoint::TaskSleepFor(10);
-    ftStatus = FT_SetBreakOff( m_FtdiHandle );
+    //ftStatus = FT_SetBreakOff( m_FtdiHandle );
     //CTimePoint::TaskSleepFor(10);
     
     len = FTDI_read_packet( m_FtdiHandle, rxpacket, sizeof(rxpacket) );

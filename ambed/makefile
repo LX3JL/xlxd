@@ -8,14 +8,14 @@ EXECUTABLE=ambed
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	 $(CXX) $(LDFLAGS) $(OBJECTS) -lftd2xx -Wl,-rpath,/usr/local/lib -o $@
+     $(CXX) $(LDFLAGS) $(OBJECTS) -lftd2xx -Wl,-rpath,/usr/local/lib -o $@
 
 .cpp.o:
-	 $(CXX) $(CFLAGS) -c -o $@ $<
+     $(CXX) $(CFLAGS) -c -o $@ $<
 
 clean:
-	 $(RM) xlxd *.o *.d *.bak
+     $(RM) xlxd *.o *.d *.bak
 
 install:
-	 mkdir -p /ambed
-	 cp $(EXECUTABLE) /ambed/
+     mkdir -p /ambed
+     cp $(EXECUTABLE) /ambed/

@@ -45,7 +45,7 @@ CCallsignListItem::CCallsignListItem(const CCallsign &callsign, const CIp &ip, c
         ::memset(m_Modules, 0, sizeof(m_Modules));
         if ( modules[0] == '*' )
         {
-            for ( char i = 0; i < NB_OF_MODULES; i++ )
+            for ( size_t i = 0; i < NB_OF_MODULES; i++ )
             {
                 m_Modules[i] = 'A' + i;
             }
@@ -75,7 +75,7 @@ CCallsignListItem::CCallsignListItem(const CCallsign &callsign, const char *url,
         ::memset(m_Modules, 0, sizeof(m_Modules));
         if ( modules[0] == '*' )
         {
-            for ( char i = 0; i < NB_OF_MODULES; i++ )
+            for ( size_t i = 0; i < NB_OF_MODULES; i++ )
             {
                 m_Modules[i] = 'A' + i;
             }
@@ -132,7 +132,7 @@ bool CCallsignListItem::CheckListedModules(char *Modules) const
         char list[NB_MODULES_MAX+1];
         list[0] = 0;
         //
-        for ( int i = 0; i < ::strlen(Modules); i++ )
+        for ( size_t i = 0; i < ::strlen(Modules); i++ )
         {
             if ( HasModuleListed(Modules[i]) )
             {

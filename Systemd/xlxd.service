@@ -1,0 +1,15 @@
+[Unit]
+Description=XLXD Server
+Requires=network.target
+After=systemd-user-session.service network.target
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/xlxd start
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+# Alias=xlxd.service

@@ -43,7 +43,7 @@ CClients::~CClients()
 {
     m_Mutex.lock();
     {
-        for ( int i = 0; i < m_Clients.size(); i++ )
+        for ( size_t i = 0; i < m_Clients.size(); i++ )
         {
             delete m_Clients[i];
         }
@@ -60,7 +60,7 @@ void CClients::AddClient(CClient *client)
 {
     // first check if client already exists
     bool found = false;
-    for ( int i = 0; (i < m_Clients.size()) && !found; i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && !found; i++ )
     {
         found = (*client == *m_Clients[i]);
         // if found, just do nothing
@@ -100,7 +100,7 @@ void CClients::RemoveClient(CClient *client)
 {    
     // look for the client
     bool found = false;
-    for ( int i = 0; (i < m_Clients.size()) && !found; i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && !found; i++ )
     {
         // compare objetc pointers
         if ( (m_Clients[i]) ==  client )
@@ -128,7 +128,7 @@ void CClients::RemoveClient(CClient *client)
 
 CClient *CClients::GetClient(int i)
 {
-    if ( (i >= 0) && (i < m_Clients.size()) )
+    if ( (i >= 0) && ((size_t)i < m_Clients.size()) )
     {
         return m_Clients[i];
     }
@@ -141,7 +141,7 @@ CClient *CClients::GetClient(int i)
 bool CClients::IsClient(CClient *client) const
 {
     bool found = false;
-    for ( int i = 0; (i < m_Clients.size()) && !found; i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && !found; i++ )
     {
         found = (m_Clients[i] == client);
     }
@@ -156,7 +156,7 @@ CClient *CClients::FindClient(const CIp &Ip)
     CClient *client = NULL;
     
     // find client
-    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
     {
         if ( m_Clients[i]->GetIp() == Ip )
         {
@@ -173,7 +173,7 @@ CClient *CClients::FindClient(const CIp &Ip, int Protocol)
     CClient *client = NULL;
     
     // find client
-    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
     {
         if ( (m_Clients[i]->GetIp() == Ip)  && (m_Clients[i]->GetProtocol() == Protocol))
         {
@@ -190,7 +190,7 @@ CClient *CClients::FindClient(const CIp &Ip, int Protocol, char ReflectorModule)
     CClient *client = NULL;
     
     // find client
-    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
     {
         if ( (m_Clients[i]->GetIp() == Ip)  &&
              (m_Clients[i]->GetReflectorModule() == ReflectorModule) &&
@@ -209,7 +209,7 @@ CClient *CClients::FindClient(const CCallsign &Callsign, const CIp &Ip, int Prot
     CClient *client = NULL;
     
     // find client
-    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
     {
         if ( m_Clients[i]->GetCallsign().HasSameCallsign(Callsign) &&
              (m_Clients[i]->GetIp() == Ip)  &&
@@ -228,7 +228,7 @@ CClient *CClients::FindClient(const CCallsign &Callsign, char module, const CIp 
     CClient *client = NULL;
     
     // find client
-    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
     {
         if ( m_Clients[i]->GetCallsign().HasSameCallsign(Callsign) &&
              (m_Clients[i]->GetModule() == module) &&
@@ -248,7 +248,7 @@ CClient *CClients::FindClient(const CCallsign &Callsign, int Protocol)
     CClient *client = NULL;
     
     // find client
-    for ( int i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
+    for ( size_t i = 0; (i < m_Clients.size()) && (client == NULL); i++ )
     {
         if ( (m_Clients[i]->GetProtocol() == Protocol) &&
              m_Clients[i]->GetCallsign().HasSameCallsign(Callsign) )
@@ -270,7 +270,7 @@ CClient *CClients::FindNextClient(int Protocol, int *index)
     
     // find next client
     bool found = false;
-    for ( int i = *index+1; (i < m_Clients.size()) && !found; i++ )
+    for ( size_t i = *index+1; (i < m_Clients.size()) && !found; i++ )
     {
         if ( m_Clients[i]->GetProtocol() == Protocol )
         {
@@ -288,7 +288,7 @@ CClient *CClients::FindNextClient(const CIp &Ip, int Protocol, int *index)
     
     // find next client
     bool found = false;
-    for ( int i = *index+1; (i < m_Clients.size()) && !found; i++ )
+    for ( size_t i = *index+1; (i < m_Clients.size()) && !found; i++ )
     {
         if ( (m_Clients[i]->GetProtocol() == Protocol) &&
              (m_Clients[i]->GetIp() == Ip) )
@@ -307,7 +307,7 @@ CClient *CClients::FindNextClient(const CCallsign &Callsign, const CIp &Ip, int 
     
     // find next client
     bool found = false;
-    for ( int i = *index+1; (i < m_Clients.size()) && !found; i++ )
+    for ( size_t i = *index+1; (i < m_Clients.size()) && !found; i++ )
     {
         if ( (m_Clients[i]->GetProtocol() == Protocol) &&
             (m_Clients[i]->GetIp() == Ip) &&

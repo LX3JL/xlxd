@@ -69,7 +69,7 @@ void CUsers::Hearing(const CCallsign &my, const CCallsign &rpt1, const CCallsign
     
     // first check if we have this user listed yet
     bool found = false;
-    for ( int i = 0; (i < m_Users.size()) && !found; i++ )
+    for ( size_t i = 0; (i < m_Users.size()) && !found; i++ )
     {
         found = (m_Users[i] == heard);
         if ( found )

@@ -49,7 +49,7 @@ CVocodecs::~CVocodecs()
     // delete channels
     m_MutexChannels.lock();
     {
-        for ( int i = 0; i < m_Channels.size(); i++ )
+        for ( size_t i = 0; i < m_Channels.size(); i++ )
         {
             delete m_Channels[i];
         }
@@ -60,7 +60,7 @@ CVocodecs::~CVocodecs()
     // delete interfaces
     m_MutexInterfaces.lock();
     {
-        for ( int i = 0; i < m_Interfaces.size(); i++ )
+        for ( size_t i = 0; i < m_Interfaces.size(); i++ )
         {
             delete m_Interfaces[i];
         }
@@ -69,7 +69,7 @@ CVocodecs::~CVocodecs()
     m_MutexInterfaces.unlock();
     
     // delete ftdi device descriptors
-    for ( int i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
+    for ( size_t i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
     {
         delete m_FtdiDeviceDescrs[i];
     }
@@ -89,7 +89,7 @@ bool CVocodecs::Init(void)
     // and create interfaces for the discovered devices
     // first handle all even number of channels devices
     std::vector<CVocodecChannel *>  Multi3003DevicesChs;
-    for ( int i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
+    for ( size_t i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
     {
         CFtdiDeviceDescr *descr = m_FtdiDeviceDescrs[i];
         if ( !descr->IsUsed() && IsEven(descr->GetNbChannels()) )
@@ -104,7 +104,7 @@ bool CVocodecs::Init(void)
     // they must be handeled in pair, or in pair with another
     // even number of channels device.
     std::vector<CVocodecChannel *>  PairsOf3000DevicesChs;
-    for ( int i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
+    for ( size_t i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
     {
         CFtdiDeviceDescr *descr1 = m_FtdiDeviceDescrs[i];
         CFtdiDeviceDescr *descr2 = NULL;
@@ -112,7 +112,7 @@ bool CVocodecs::Init(void)
         {
             // any other single channel device to pair with ?
             bool found = false;
-            int j = i+1;
+            size_t j = i+1;
             while ( !found && (j < m_FtdiDeviceDescrs.size()) )
             {
                 descr2 = m_FtdiDeviceDescrs[j];
@@ -132,7 +132,7 @@ bool CVocodecs::Init(void)
     // now we should have only remaining the 3 channels device(s)
     // and possibly an unique single channel device
     std::vector<CVocodecChannel *>  Single3003DeviceChannels;
-    for ( int i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
+    for ( size_t i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
     {
         CFtdiDeviceDescr *descr1 = m_FtdiDeviceDescrs[i];
         CFtdiDeviceDescr *descr2 = NULL;
@@ -141,7 +141,7 @@ bool CVocodecs::Init(void)
             // any other odd channel device to pair with ?
             // any other single channel device to pair with ?
             bool found = false;
-            int j = i+1;
+            size_t j = i+1;
             while ( !found && (j < m_FtdiDeviceDescrs.size()) )
             {
                 descr2 = m_FtdiDeviceDescrs[j];
@@ -170,7 +170,7 @@ bool CVocodecs::Init(void)
     // for proper load sharing
     // pairs of 300 devices first
     {
-        for ( int i = 0;  i < PairsOf3000DevicesChs.size(); i++ )
+        for ( size_t i = 0;  i < PairsOf3000DevicesChs.size(); i++ )
         {
             m_Channels.push_back(PairsOf3000DevicesChs.at(i));
         }
@@ -178,7 +178,7 @@ bool CVocodecs::Init(void)
     }
     // next the left-over single 3003 device
     {
-        for ( int i = 0;  i < Single3003DeviceChannels.size(); i++ )
+        for ( size_t i = 0;  i < Single3003DeviceChannels.size(); i++ )
         {
             m_Channels.push_back(Single3003DeviceChannels.at(i));
         }
@@ -222,7 +222,7 @@ bool CVocodecs::DiscoverFtdiDevices(void)
     FT_DEVICE_LIST_INFO_NODE *list;
     
     // clear vector
-    for ( int i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
+    for ( size_t i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
     {
         delete m_FtdiDeviceDescrs[i];
     }
@@ -274,7 +274,7 @@ CVocodecChannel *CVocodecs::OpenChannel(uint8 uiCodecIn, uint8 uiCodecOut)
     
     // loop on all interface until suitable & available channel found
     m_MutexChannels.lock();
-    for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
+    for ( size_t i = 0; (i < m_Channels.size()) && !done; i++ )
     {
         if ( !m_Channels[i]->IsOpen() &&
              (m_Channels[i]->GetCodecIn() == uiCodecIn) &&

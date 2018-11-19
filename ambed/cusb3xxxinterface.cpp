@@ -53,14 +53,14 @@ CUsb3xxxInterface::CUsb3xxxInterface(uint32 uiVid, uint32 uiPid, const char *szD
 CUsb3xxxInterface::~CUsb3xxxInterface()
 {
     // delete m_SpeechQueues
-    for ( int i = 0; i < m_SpeechQueues.size(); i++ )
+    for ( size_t i = 0; i < m_SpeechQueues.size(); i++ )
     {
         delete m_SpeechQueues[i];
     }
     m_SpeechQueues.clear();
     
     // delete m_ChannelQueues
-    for ( int i = 0; i < m_ChannelQueues.size(); i++ )
+    for ( size_t i = 0; i < m_ChannelQueues.size(); i++ )
     {
         delete m_ChannelQueues[i];
     }
@@ -184,7 +184,7 @@ void CUsb3xxxInterface::Task(void)
     do
     {
         done = true;
-        for ( int i = 0; i < m_Channels.size(); i++)
+        for ( size_t i = 0; i < m_Channels.size(); i++)
         {
             // get channel
             Channel = m_Channels[i];
@@ -276,7 +276,7 @@ void CUsb3xxxInterface::Task(void)
         // if device fifo level is zero (device idle)
         // wait that at least 3 packets are in incoming
         // queue before restarting
-        if ( ((m_iSpeechFifolLevel+m_iChannelFifolLevel) > 0) || (m_DeviceQueue.size() >= (fifoSize+1)) )
+        if (((m_iSpeechFifolLevel+m_iChannelFifolLevel) > 0) || (m_DeviceQueue.size() >= (size_t)(fifoSize+1)))
         {
             // any packet to send ?
             if ( m_DeviceQueue.size() > 0 )

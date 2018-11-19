@@ -171,7 +171,7 @@ void CBPTC19696::decodeErrorCheck()
 }
 
 // Extract the 96 bits of payload
-void CBPTC19696::decodeExtractData(unsigned char* data)
+void CBPTC19696::decodeExtractData(unsigned char* data) const
 {
     bool bData[96U];
     unsigned int pos = 0U;

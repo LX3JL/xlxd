@@ -36,7 +36,7 @@ private:
     void decodeExtractBinary(const unsigned char* in);
     void decodeErrorCheck();
     void decodeDeInterleave();
-    void decodeExtractData(unsigned char* data);
+    void decodeExtractData(unsigned char* data) const;
     
     void encodeExtractData(const unsigned char* in);
     void encodeInterleave();

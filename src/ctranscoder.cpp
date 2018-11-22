@@ -34,7 +34,7 @@
 #define STATUS_LOGGED               1
 
 // timeout
-#define AMBED_OPENSTREAM_TIMEOUT    200     // in ms
+#define AMBED_OPENSTREAM_TIMEOUT    400     // in ms
 
 ////////////////////////////////////////////////////////////////////////////////////////
 

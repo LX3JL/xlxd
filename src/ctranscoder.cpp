@@ -65,7 +65,7 @@ CTranscoder::~CTranscoder()
     // close all streams
     m_Mutex.lock();
     {
-        for ( size_t i = 0; i < m_Streams.size(); i++ )
+        for ( unsigned int i = 0; i < m_Streams.size(); i++ )
         {
             delete m_Streams[i];
         }
@@ -120,7 +120,7 @@ void CTranscoder::Close(void)
     // close all streams
     m_Mutex.lock();
     {
-        for ( size_t i = 0; i < m_Streams.size(); i++ )
+        for ( unsigned int i = 0; i < m_Streams.size(); i++ )
         {
             delete m_Streams[i];
         }
@@ -271,7 +271,7 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
         bool found = false;
         Lock();
         {
-            for ( size_t i = 0; (i < m_Streams.size()) && !found; i++ )
+            for ( unsigned int i = 0; (i < m_Streams.size()) && !found; i++ )
             {
                 // compare object pointers
                 if ( (m_Streams[i]) ==  stream )

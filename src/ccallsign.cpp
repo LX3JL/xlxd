@@ -137,7 +137,7 @@ bool CCallsign::IsValid(void) const
 bool CCallsign::HasSuffix(void) const
 {
     bool has = false;
-    for ( size_t i = 0; i < CALLSUFFIX_LEN; i++ )
+    for ( unsigned int i = 0; i < CALLSUFFIX_LEN; i++ )
     {
         has |= (m_Suffix[i] != ' ');
     }
@@ -174,14 +174,14 @@ void CCallsign::SetCallsign(const uint8 *buffer, int len, bool UpdateDmrid)
     ::memset(m_Callsign, ' ', sizeof(m_Callsign));
     m_Module = ' ';
     ::memcpy(m_Callsign, buffer, MIN(len, sizeof(m_Callsign)-1));
-    for ( size_t i = 0; i < sizeof(m_Callsign); i++ )
+    for ( unsigned int i = 0; i < sizeof(m_Callsign); i++ )
     {
         if ( m_Callsign[i] == 0 )
         {
             m_Callsign[i] = ' ';
         }
     }
-    if ( ((size_t)len >= sizeof(m_Callsign)) && ((char)buffer[sizeof(m_Callsign)-1] != 0) )
+    if ( ((unsigned int)len >= sizeof(m_Callsign)) && ((char)buffer[sizeof(m_Callsign)-1] != 0) )
     {
         m_Module = (char)buffer[sizeof(m_Callsign)-1];
     }
@@ -244,7 +244,7 @@ void CCallsign::SetSuffix(const uint8 *buffer, int len)
 
 void CCallsign::PatchCallsign(int off, const uint8 *patch, int len)
 {
-    if ( (size_t)off < sizeof(m_Callsign) )
+    if ( (unsigned int)off < sizeof(m_Callsign) )
     {
         ::memcpy(m_Callsign, patch, MIN(len, sizeof(m_Callsign) - off));
     }
@@ -266,7 +266,7 @@ void CCallsign::GetCallsign(uint8 *buffer) const
 void CCallsign::GetCallsignString(char *sz) const
 {
     int i;
-    for ( i = 0; ((size_t)i < sizeof(m_Callsign)) && (m_Callsign[i] != ' '); i++ )
+    for ( i = 0; ((unsigned int)i < sizeof(m_Callsign)) && (m_Callsign[i] != ' '); i++ )
     {
         sz[i] = m_Callsign[i];
     }
@@ -291,7 +291,7 @@ bool CCallsign::HasSameCallsignWithWildcard(const CCallsign &callsign) const
     bool same = true;
     bool done = false;
     
-    for ( size_t i = 0; (i < sizeof(m_Callsign)) && same && !done; i++ )
+    for ( unsigned int i = 0; (i < sizeof(m_Callsign)) && same && !done; i++ )
     {
         if ( !(done = ((m_Callsign[i] == '*') || (callsign[i] == '*'))) )
         {

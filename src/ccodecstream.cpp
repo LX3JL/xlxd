@@ -159,7 +159,7 @@ void CCodecStream::Task(void)
     uint8   DStarSync[] = { 0x55,0x2D,0x16 };
     
     // any packet from transcoder
-    if ( m_Socket.Receive(&Buffer, &Ip, 5) != -1 )
+    if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
         // crack
         if ( IsValidAmbePacket(Buffer, Ambe) )

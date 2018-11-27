@@ -146,11 +146,11 @@ uint32 CDmridDir::FindDmrid(const CCallsign &callsign)
 bool CDmridDir::IsValidDmrid(const char *sz)
 {
     bool ok = false;
-    size_t n = ::strlen(sz);
+    unsigned int n = ::strlen(sz);
     if ( (n > 0) && (n <= 8) )
     {
         ok = true;
-        for ( size_t i = 0; (i < n) && ok; i++ )
+        for ( unsigned int i = 0; (i < n) && ok; i++ )
         {
             ok &= ::isdigit(sz[i]);
         }

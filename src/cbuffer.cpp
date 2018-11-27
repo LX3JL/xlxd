@@ -120,7 +120,7 @@ void CBuffer::ReplaceAt(int i, uint32 ui)
 
 void CBuffer::ReplaceAt(int i, const uint8 *ptr, int len)
 {
-    if ( size() < (size_t)(i+len) )
+    if ( size() < (unsigned int)(i+len) )
     {
         resize(i+len);
     }
@@ -133,7 +133,7 @@ void CBuffer::ReplaceAt(int i, const uint8 *ptr, int len)
 int CBuffer::Compare(uint8 *buffer, int len) const
 {
     int result = -1;
-    if ( size() >= (size_t)len )
+    if ( size() >= (unsigned int)len )
     {
         result = ::memcmp(data(), buffer, len);
     }
@@ -143,7 +143,7 @@ int CBuffer::Compare(uint8 *buffer, int len) const
 int CBuffer::Compare(uint8 *buffer, int off, int len) const
 {
     int result = -1;
-    if ( size() >= (size_t)(off+len) )
+    if ( size() >= (unsigned int)(off+len) )
     {
         result = ::memcmp(&(data()[off]), buffer, len);
     }
@@ -182,7 +182,7 @@ CBuffer::operator const char *() const
 
 void CBuffer::DebugDump(std::ofstream &debugout) const
 {
-    for ( size_t i = 0; i < size(); i++ )
+    for ( unsigned int i = 0; i < size(); i++ )
     {
         char sz[16];
         //sprintf(sz, "%02X", data()[i]);

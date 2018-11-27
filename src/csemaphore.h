@@ -48,7 +48,7 @@ protected:
     // data
     std::mutex              m_Mutex;
     std::condition_variable m_Condition;
-    size_t                  m_Count;
+    int                     m_Count;
 
 };
 

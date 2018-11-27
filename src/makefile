@@ -14,7 +14,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 clean:
-	$(RM) xlxd *.o *.d *.bak
+	$(RM) $(EXECUTABLE) *.o *.d *.bak
 
 install:
 	mkdir -p /xlxd

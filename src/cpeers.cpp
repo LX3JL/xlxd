@@ -43,7 +43,7 @@ CPeers::~CPeers()
 {
     m_Mutex.lock();
     {
-        for ( size_t i = 0; i < m_Peers.size(); i++ )
+        for ( unsigned int i = 0; i < m_Peers.size(); i++ )
         {
             delete m_Peers[i];
         }
@@ -60,7 +60,7 @@ void CPeers::AddPeer(CPeer *peer)
 {
     // first check if peer already exists
     bool found = false;
-    for ( size_t i = 0; (i < m_Peers.size()) && !found; i++ )
+    for ( unsigned int i = 0; (i < m_Peers.size()) && !found; i++ )
     {
         found = (*peer == *m_Peers[i]);
         // if found, just do nothing
@@ -104,7 +104,7 @@ void CPeers::RemovePeer(CPeer *peer)
 {
     // look for the client
     bool found = false;
-    for ( size_t i = 0; (i < m_Peers.size()) && !found; i++ )
+    for ( unsigned int i = 0; (i < m_Peers.size()) && !found; i++ )
     {
         // compare objetc pointers
         if ( (m_Peers[i]) ==  peer )
@@ -139,7 +139,7 @@ void CPeers::RemovePeer(CPeer *peer)
 
 CPeer *CPeers::GetPeer(int i)
 {
-    if ( (i >= 0) && ((size_t)i < m_Peers.size()) )
+    if ( (i >= 0) && ((unsigned int)i < m_Peers.size()) )
     {
         return m_Peers[i];
     }
@@ -157,7 +157,7 @@ CPeer *CPeers::FindPeer(const CIp &Ip, int Protocol)
     CPeer *peer = NULL;
     
     // find peer
-    for ( size_t i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
+    for ( unsigned int i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
     {
         if ( (m_Peers[i]->GetIp() == Ip)  && (m_Peers[i]->GetProtocol() == Protocol))
         {
@@ -174,7 +174,7 @@ CPeer *CPeers::FindPeer(const CCallsign &Callsign, const CIp &Ip, int Protocol)
     CPeer *peer = NULL;
     
     // find peer
-    for ( size_t i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
+    for ( unsigned int i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
     {
         if ( m_Peers[i]->GetCallsign().HasSameCallsign(Callsign) &&
             (m_Peers[i]->GetIp() == Ip)  &&
@@ -193,7 +193,7 @@ CPeer *CPeers::FindPeer(const CCallsign &Callsign, int Protocol)
     CPeer *peer = NULL;
     
     // find peer
-    for ( size_t i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
+    for ( unsigned int i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
     {
         if ( (m_Peers[i]->GetProtocol() == Protocol) &&
             m_Peers[i]->GetCallsign().HasSameCallsign(Callsign) )
@@ -216,7 +216,7 @@ CPeer *CPeers::FindNextPeer(int Protocol, int *index)
     
     // find next peer
     bool found = false;
-    for ( size_t i = *index+1; (i < m_Peers.size()) && !found; i++ )
+    for ( unsigned int i = *index+1; (i < m_Peers.size()) && !found; i++ )
     {
         if ( m_Peers[i]->GetProtocol() == Protocol )
         {

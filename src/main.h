@@ -49,7 +49,7 @@
 
 #define VERSION_MAJOR                   2
 #define VERSION_MINOR                   2
-#define VERSION_REVISION                2
+#define VERSION_REVISION                3
 
 // global ------------------------------------------------------
 
@@ -115,7 +115,7 @@
 
 #define TRANSCODER_PORT                 10100                               // UDP port
 #define TRANSCODER_KEEPALIVE_PERIOD     5                                   // in seconds
-#define TRANSCODER_KEEPALIVE_TIMEOUT    30                                  // in seconds
+#define TRANSCODER_KEEPALIVE_TIMEOUT    15                                  // in seconds
 #define TRANSCODER_AMBEPACKET_TIMEOUT   600                                 // in ms
 
 // codec --------------------------------------------------------
@@ -127,7 +127,7 @@
 
 // DMRid database -----------------------------------------------
 
-#define DMRIDDB_USE_RLX_SERVER          1                                   // 1 = use http, 0 = use local file
+#define DMRIDDB_USE_RLX_SERVER          0                                   // 1 = use http, 0 = use local file
 #define DMRIDDB_PATH                    "/xlxd/dmrid.dat"                   // local file path
 #define DMRIDDB_REFRESH_RATE            180                                 // in minutes
 
@@ -163,8 +163,8 @@ typedef unsigned int            uint;
 ////////////////////////////////////////////////////////////////////////////////////////
 // macros
 
-#define MIN(a,b) 				((float)(a) < (float)(b))?(a):(b)
-#define MAX(a,b) 				((a) > (b))?(a):(b)
+#define MIN(a, b) 				((float)(a) < (float)(b))?(a):(b)
+#define MAX(a, b) 				((a) > (b))?(a):(b)
 #define MAKEWORD(low, high)		((uint16)(((uint8)(low)) | (((uint16)((uint8)(high))) << 8)))
 #define MAKEDWORD(low, high)	((uint32)(((uint16)(low)) | (((uint32)((uint16)(high))) << 16)))
 #define LOBYTE(w)				((uint8)(uint16)(w & 0x00FF))

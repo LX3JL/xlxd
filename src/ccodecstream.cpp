@@ -36,14 +36,14 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CCodecStream::CCodecStream(CPacketStream *PacketStream, uint16 uiId, uint8 uiCodecIn, uint8 uiCodecOut)
+CCodecStream::CCodecStream(CPacketStream *PacketStream, uint16 uiId, uint8 uiCodecIn, uint8 uiCodecsOut)
 {
     m_bStopThread = false;
     m_pThread = NULL;
     m_uiStreamId = uiId;
     m_uiPid = 0;
     m_uiCodecIn = uiCodecIn;
-    m_uiCodecOut = uiCodecOut;
+    m_uiCodecsOut = uiCodecsOut;
     m_bConnected = false;
     m_fPingMin = -1;
     m_fPingMax = -1;
@@ -155,14 +155,17 @@ void CCodecStream::Task(void)
 {
     CBuffer Buffer;
     CIp     Ip;
-    uint8   Ambe[AMBE_SIZE];
+    uint8   Codec1;
+    uint8   Codec2;
+    uint8   Ambe1[AMBE_SIZE];
+    uint8   Ambe2[AMBE_SIZE];
     uint8   DStarSync[] = { 0x55,0x2D,0x16 };
     
     // any packet from transcoder
     if ( m_Socket.Receive(&Buffer, &Ip, 5) != -1 )
     {
         // crack
-        if ( IsValidAmbePacket(Buffer, Ambe) )
+        if ( IsValidAmbePacket(Buffer, &Codec1, Ambe1, &Codec2, Ambe2) )
         {
             // tickle
             m_TimeoutTimer.Now();
@@ -191,9 +194,10 @@ void CCodecStream::Task(void)
                 m_LocalQueue.pop();
                 // todo: check the PID
                 // update content with transcoded ambe
-                Packet->SetAmbe(m_uiCodecOut, Ambe);
+                Packet->SetAmbe(Codec1, Ambe1);
+                Packet->SetAmbe(Codec2, Ambe2);
                 // tag syncs in DvData
-                if ( (m_uiCodecOut == CODEC_AMBEPLUS) && (Packet->GetPacketId() % 21) == 0 )
+                if ( ((Codec1 == CODEC_AMBEPLUS) || (Codec2 == CODEC_AMBEPLUS)) && (Packet->GetPacketId() % 21) == 0 )
                 {
                     Packet->SetDvData(DStarSync);
                 }
@@ -240,13 +244,16 @@ void CCodecStream::Task(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 /// packet decoding helpers
 
-bool CCodecStream::IsValidAmbePacket(const CBuffer &Buffer, uint8 *Ambe)
+bool CCodecStream::IsValidAmbePacket(const CBuffer &Buffer, uint8 *Codec1, uint8 *Ambe1, uint8 *Codec2, uint8 *Ambe2)
 {
     bool valid = false;
     
-    if ( (Buffer.size() == 11) && (Buffer.data()[0] == m_uiCodecOut) )
+    if ( (Buffer.size() == 21) && ((Buffer.data()[0] | Buffer.data()[1]) == m_uiCodecsOut) )
     {
-        ::memcpy(Ambe, &(Buffer.data()[2]), 9);
+        *Codec1 = Buffer.data()[0];
+        ::memcpy(Ambe1, &(Buffer.data()[3]), 9);
+        *Codec2 = Buffer.data()[1];
+        ::memcpy(Ambe2, &(Buffer.data()[12]), 9);
         valid = true;
     }
     return valid;

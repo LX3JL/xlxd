@@ -140,6 +140,13 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream != NULL )
     {
+        // place the voice data in the appropriate place
+        if ( stream->GetCodec() == CODEC_CODEC2 )
+        {
+            Frame->SetAmbe(CODEC_CODEC2, (uint8 *)Frame->GetAmbe());
+            Frame->ClearAmbe(CODEC_AMBEPLUS);
+        }
+
         //std::cout << "DV frame" << "from "  << *Ip << std::endl;
         // and push
         stream->Lock();
@@ -154,6 +161,13 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream != NULL )
     {
+        // place the voice data in the appropriate place
+        if ( stream->GetCodec() == CODEC_CODEC2 )
+        {
+            Frame->SetAmbe(CODEC_CODEC2, (uint8 *)Frame->GetAmbe());
+            Frame->ClearAmbe(CODEC_AMBEPLUS);
+        }
+
         // push
         stream->Lock();
         stream->Push(Frame);

@@ -97,6 +97,7 @@ bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol
     {
         // repeaters
         case PROTOCOL_DEXTRA:
+        case PROTOCOL_DEXTRA_OPEN:
         case PROTOCOL_DPLUS:
         case PROTOCOL_DCS:
         case PROTOCOL_DMRPLUS:
@@ -137,6 +138,7 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
         // repeaters, protocol specific
         case PROTOCOL_ANY:
         case PROTOCOL_DEXTRA:
+        case PROTOCOL_DEXTRA_OPEN:
         case PROTOCOL_DPLUS:
         case PROTOCOL_DCS:
         case PROTOCOL_DMRPLUS:

@@ -76,7 +76,7 @@ protected:
 
     // codec helpers
     bool IsValidCodecIn(uint8);
-    bool IsValidCodecOut(uint8);
+    bool IsValidCodecsOut(uint8);
     
 protected:
     // control socket

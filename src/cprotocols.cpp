@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include "cdextraprotocol.h"
+#include "cdextraopenprotocol.h"
 #include "cdplusprotocol.h"
 #include "cdcsprotocol.h"
 #include "cxlxprotocol.h"
@@ -67,35 +68,40 @@ bool CProtocols::Init(void)
     
     m_Mutex.lock();
     {
-        // create and initialize DEXTRA
+        // create and initialize DEXTRA (AMBE output)
         delete m_Protocols[0];
         m_Protocols[0] = new CDextraProtocol;
         ok &= m_Protocols[0]->Init();
         
-        // create and initialize DPLUS
+        // create and initialize DEXTRA (Codec 2 output)
         delete m_Protocols[1];
-        m_Protocols[1] = new CDplusProtocol;
+        m_Protocols[1] = new CDextraOpenProtocol;
         ok &= m_Protocols[1]->Init();
         
-        // create and initialize DCS
+        // create and initialize DPLUS
         delete m_Protocols[2];
-        m_Protocols[2] = new CDcsProtocol;
+        m_Protocols[2] = new CDplusProtocol;
         ok &= m_Protocols[2]->Init();
         
-        // create and initialize XLX - interlink
+        // create and initialize DCS
         delete m_Protocols[3];
-        m_Protocols[3] = new CXlxProtocol;
+        m_Protocols[3] = new CDcsProtocol;
         ok &= m_Protocols[3]->Init();
         
-        // create and initialize DMRPLUS
+        // create and initialize XLX - interlink
         delete m_Protocols[4];
-        m_Protocols[4] = new CDmrplusProtocol;
+        m_Protocols[4] = new CXlxProtocol;
         ok &= m_Protocols[4]->Init();
         
-        // create and initialize DMRMMDVM
+        // create and initialize DMRPLUS
         delete m_Protocols[5];
-        m_Protocols[5] = new CDmrmmdvmProtocol;
+        m_Protocols[5] = new CDmrplusProtocol;
         ok &= m_Protocols[5]->Init();
+        
+        // create and initialize DMRMMDVM
+        delete m_Protocols[6];
+        m_Protocols[6] = new CDmrmmdvmProtocol;
+        ok &= m_Protocols[6]->Init();
     }
     m_Mutex.unlock();
    

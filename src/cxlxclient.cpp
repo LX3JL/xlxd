@@ -62,6 +62,9 @@ int CXlxClient::GetCodec(void) const
             codec = CODEC_AMBEPLUS;
             break;
         case XLX_PROTOCOL_REVISION_2:
+            codec = CODEC_AMBEPLUS; // transcode again anyway
+            break;
+        case XLX_PROTOCOL_REVISION_3:
             codec = CODEC_NONE;
             break;
     }

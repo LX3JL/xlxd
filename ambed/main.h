@@ -47,9 +47,9 @@
 
 // version -----------------------------------------------------
 
-#define VERSION_MAJOR                   1
-#define VERSION_MINOR                   3
-#define VERSION_REVISION                2
+#define VERSION_MAJOR                   2
+#define VERSION_MINOR                   0
+#define VERSION_REVISION                0
 
 // global ------------------------------------------------------
 
@@ -66,10 +66,13 @@
 #define CODEC_NONE                      0
 #define CODEC_AMBEPLUS                  1
 #define CODEC_AMBE2PLUS                 2
+#define CODEC_CODEC2                    4
+#define CODEC_ALL                       7                                   // all available bits set
 
 // Transcoding speech gains
-#define CODECGAIN_AMBEPLUS              -10                                  // in dB
+#define CODECGAIN_AMBEPLUS              -10                                 // in dB
 #define CODECGAIN_AMBE2PLUS             +10                                 // in dB
+#define CODECGAIN_CODEC2                0                                   // in dB
 
 // Timeouts -----------------------------------------------------
 #define STREAM_ACTIVITY_TIMEOUT         3                                   // in seconds

@@ -220,7 +220,7 @@ bool CDcsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
             // get client callsign
             via = client->GetCallsign();
             // and try to open the stream
-            if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
+            if ( (stream = g_Reflector.OpenStream(Header, client, Header->GetCodec())) != NULL )
             {
                 // keep the handle
                 m_Streams.push_back(stream);
@@ -537,7 +537,7 @@ void CDcsProtocol::EncodeDvPacket(const CDvHeaderPacket &Header, const CDvFrameP
     uint8 tag[] = { '0','0','0','1' };
     struct dstar_header DstarHeader;
 
-    Header.ConvertToDstarStruct(&DstarHeader);
+    Header.ConvertToDstarStruct(&DstarHeader, CODEC_AMBEPLUS);
 
     Buffer->Set(tag, sizeof(tag));
     Buffer->Append((uint8 *)&DstarHeader, sizeof(struct dstar_header) - sizeof(uint16));

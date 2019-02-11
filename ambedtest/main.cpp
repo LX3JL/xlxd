@@ -32,10 +32,10 @@ int main(int argc, const char * argv[])
     std::vector<CCodecStream *> Streams;
     
     // check args
-    if ( argc != 5 )
+    if ( argc != 6 )
     {
-        std::cout << "Usage: ambedtest myip ambedip nbdmrstreams nbdstarstreams" << std::endl;
-        std::cout << "example: ambed 192.168.178.212 127.0.0.1 2 2" << std::endl;
+        std::cout << "Usage: ambedtest myip ambedip nbdmrstreams nbdstarstreams nbcodec2streams" << std::endl;
+        std::cout << "example: ambed 192.168.178.212 127.0.0.1 2 2 2" << std::endl;
         return 1;
     }
     
@@ -49,6 +49,7 @@ int main(int argc, const char * argv[])
     // create streams
     int nDmr = atoi(argv[3]);
     int nDstar = atoi(argv[4]);
+    int nCodec2 = atoi(argv[5]);
     
     for ( int i = 0; i < nDmr; i++ )
     {
@@ -60,6 +61,12 @@ int main(int argc, const char * argv[])
     {
         CTimePoint::TaskSleepFor(300);
         Streams.push_back(g_Transcoder.GetStream(CODEC_AMBEPLUS));
+    }
+
+    for ( int i = 0; i < nCodec2; i++ )
+    {
+        CTimePoint::TaskSleepFor(300);
+        Streams.push_back(g_Transcoder.GetStream(CODEC_CODEC2));
     }
     
     // and loop wait

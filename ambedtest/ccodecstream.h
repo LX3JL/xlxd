@@ -66,7 +66,7 @@ public:
 
 protected:
     // packet decoding helpers
-    bool IsValidAmbePacket(const CBuffer &, uint8 *);
+    bool IsValidAmbePacket(const CBuffer &, uint8 *, uint8 *, uint8 *, uint8 *);
     
     // packet encoding helpers
     void EncodeAmbePacket(CBuffer *, const uint8 *);
@@ -87,7 +87,7 @@ protected:
     uint16          m_uiPort;
     uint8           m_uiPid;
     uint8           m_uiCodecIn;
-    uint8           m_uiCodecOut;
+    uint8           m_uiCodecsOut;
 
     // socket
     CIp             m_Ip;

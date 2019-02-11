@@ -33,7 +33,6 @@
 
 CVocodecInterface::CVocodecInterface()
 {
-    m_Channels.reserve(5);
     m_bStopThread = false;
     m_pThread = NULL;
 }
@@ -43,10 +42,6 @@ CVocodecInterface::CVocodecInterface()
 
 CVocodecInterface::~CVocodecInterface()
 {
-    // empty channel array
-    // chennels are deleted by their owner (CVocodecs)
-    m_Channels.clear();
-    
     // stop thread
     m_bStopThread = true;
     if ( m_pThread != NULL )
@@ -61,6 +56,13 @@ CVocodecInterface::~CVocodecInterface()
 
 bool CVocodecInterface::Init(void)
 {
+    // no open channel state
+    for ( int i = 0; i < GetNbChannels(); i++ )
+    {
+        m_ChannelIn.push_back(NULL);
+        m_ChannelOut.push_back(NULL);
+    }
+
     // reset stop flag
     m_bStopThread = false;
     
@@ -85,11 +87,39 @@ void CVocodecInterface::Thread(CVocodecInterface *This)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// manage Channels
+// manage open Channel state
 
-void CVocodecInterface::AddChannel(CVocodecChannel *Channel)
+void CVocodecInterface::SetChannelWithChannelIn(CVocodecChannel *Channel, int iCh)
 {
-    m_Channels.push_back(Channel);
+    m_MutexChannels.lock();
+    m_ChannelIn[iCh] = Channel;
+    m_ChannelOut[iCh] = NULL;
+    m_MutexChannels.unlock();
 }
 
+void CVocodecInterface::SetChannelWithChannelOut(CVocodecChannel *Channel, int iCh)
+{
+    m_MutexChannels.lock();
+    m_ChannelIn[iCh] = NULL;
+    m_ChannelOut[iCh] = Channel;
+    m_MutexChannels.unlock();
+}
+
+CVocodecChannel *CVocodecInterface::GetChannelWithChannelIn(int iCh)
+{
+    CVocodecChannel *Channel;
+    m_MutexChannels.lock();
+    Channel = m_ChannelIn[iCh];
+    m_MutexChannels.unlock();
+    return Channel;
+}
+
+CVocodecChannel *CVocodecInterface::GetChannelWithChannelOut(int iCh)
+{
+    CVocodecChannel *Channel;
+    m_MutexChannels.lock();
+    Channel = m_ChannelOut[iCh];
+    m_MutexChannels.unlock();
+    return Channel;
+}
 

@@ -219,7 +219,7 @@ bool CDmrplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip
         if ( client != NULL )
         {
             // and try to open the stream
-            if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
+            if ( (stream = g_Reflector.OpenStream(Header, client, CODEC_AMBE2PLUS)) != NULL )
             {
                 // keep the handle
                 m_Streams.push_back(stream);

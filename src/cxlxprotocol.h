@@ -52,6 +52,9 @@ public:
     // task
     void Task(void);
     
+    // identity
+    int GetProtocol(void) const { return PROTOCOL_XLX; }
+
 protected:
     // queue helper
     void HandleQueue(void);

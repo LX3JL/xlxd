@@ -183,7 +183,7 @@ bool CReflector::IsStreaming(char module)
     return false;
 }
 
-CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client)
+CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client, uint8 CodecIn)
 {
     CPacketStream *retStream = NULL;
     
@@ -208,7 +208,7 @@ CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client
                     // lock it
                     stream->Lock();
                     // is it available ?
-                    if ( stream->Open(*DvHeader, client) )
+                    if ( stream->Open(*DvHeader, client, CodecIn) )
                     {
                         // stream open, mark client as master
                         // so that it can't be deleted

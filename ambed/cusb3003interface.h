@@ -53,10 +53,6 @@ public:
     int GetNbChannels(void) const       { return USB3003_NB_CH; }
     uint8 GetChannelCodec(int) const;
     
-    // manage vocodec channels
-    CVocodecChannel *GetChannelWithChannelIn(int);
-    CVocodecChannel *GetChannelWithChannelOut(int);
-
 protected:
     // decoder helper
     bool IsValidChannelPacket(const CBuffer &, int *, CAmbePacket *);

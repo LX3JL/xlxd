@@ -1,8 +1,8 @@
 //
-//  cdcsclient.h
+//  cdextraopenclient.cpp
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 07/11/2015.
+//  Created by Antony Chazapis (SV9OAN) on 19/12/2018.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,38 +22,21 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
 // ----------------------------------------------------------------------------
 
-#ifndef cdcsclient_h
-#define cdcsclient_h
-
-#include "cclient.h"
-
-////////////////////////////////////////////////////////////////////////////////////////
-// define
+#include "main.h"
+#include "cdextraopenclient.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// class
+// constructors
 
-class CDcsClient : public CClient
-{
-public:
-    // constructors
-    CDcsClient();
-    CDcsClient(const CCallsign &, const CIp &, char = ' ');
-    CDcsClient(const CDcsClient &);
-    
-    // destructor
-    virtual ~CDcsClient() {};
-    
-    // identity
-    int GetProtocol(void) const                 { return PROTOCOL_DCS; }
-    const char *GetProtocolName(void) const     { return "DCS"; }
-    bool IsNode(void) const                     { return true; }
-    
-    // status
-    bool IsAlive(void) const;
-};
+CDextraOpenClient::CDextraOpenClient()
+    : CDextraClient()
+{}
 
-////////////////////////////////////////////////////////////////////////////////////////
+CDextraOpenClient::CDextraOpenClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
+    : CDextraClient(callsign, ip, reflectorModule, protRev)
+{}
 
-#endif /* cdcsclient_h */
+CDextraOpenClient::CDextraOpenClient(const CDextraClient &client)
+    : CDextraClient(client)
+{}

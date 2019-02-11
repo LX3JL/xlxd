@@ -93,7 +93,11 @@ int CXlxPeer::GetProtocolRevision(const CVersion &version)
 {
     int protrev = XLX_PROTOCOL_REVISION_0;
     
-    if ( version.IsEqualOrHigherTo(CVersion(2,2,0)) )
+    if ( version.IsEqualOrHigherTo(CVersion(3,0,0)) )
+    {
+        protrev = XLX_PROTOCOL_REVISION_3;
+    }
+    else if ( version.IsEqualOrHigherTo(CVersion(2,2,0)) )
     {
         protrev = XLX_PROTOCOL_REVISION_2;
     }

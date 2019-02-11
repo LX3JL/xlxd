@@ -1,12 +1,12 @@
 //
-//  cdextraclient.h
-//  xlxd
+//  ccodec2interface.h
+//  ambed
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
+//  Created by Antony Chazapis (SV9OAN) on 26/12/2018.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
-//    This file is part of xlxd.
+//    This file is part of ambed.
 //
 //    xlxd is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -19,45 +19,50 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cdextraclient_h
-#define cdextraclient_h
+#ifndef ccodec2interface_h
+#define ccodec2interface_h
 
-#include "cclient.h"
-
-////////////////////////////////////////////////////////////////////////////////////////
-// define
-
+#include "cvocodecinterface.h"
+#include <codec2/codec2.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CDextraClient : public CClient
+class CCodec2Interface : public CVocodecInterface
 {
 public:
     // constructors
-    CDextraClient();
-    CDextraClient(const CCallsign &, const CIp &, char = ' ', int = 0);
-    CDextraClient(const CDextraClient &);
+    CCodec2Interface();
     
     // destructor
-    virtual ~CDextraClient() {};
+    virtual ~CCodec2Interface();
     
-    // identity
-    int GetProtocol(void) const                 { return PROTOCOL_DEXTRA; }
-    int GetProtocolRevision(void) const         { return m_ProtRev; }
-    const char *GetProtocolName(void) const     { return "DExtra"; }
-    bool IsNode(void) const                     { return true; }
+    // initialization
+    bool Init(void);
+
+    // get
+    const char *GetName(void) const     { return "Codec 2"; }
     
-    // status
-    bool IsAlive(void) const;
+    // manage channels
+    int   GetNbChannels(void) const     { return 1; }
+    uint8 GetChannelCodec(int) const    { return CODEC_CODEC2; }
+
+    // task
+    void Task(void);
 
 protected:
+    // decoder helper
+    void DecodeAmbePacket(CAmbePacket *, CVoicePacket *);
+    
+    // encoder helpers
+    void EncodeVoicePacket(CVoicePacket *, CAmbePacket *);
+
     // data
-    int     m_ProtRev;
+    struct CODEC2 *codec2_state;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdextraclient_h */
+#endif /* ccodec2interface_h */

@@ -37,34 +37,45 @@ class CVocodecChannel
 {
 public:
     // constructors
-    CVocodecChannel(CVocodecInterface *, int, CVocodecInterface *, int, int);
+    CVocodecChannel(CVocodecInterface *, int, CVocodecInterface *, int, CVocodecInterface *, int, int);
     
     // destructor
     virtual ~CVocodecChannel();
     
+    // manage group
+    void AddGroupChannel(CVocodecChannel *);
+    bool IsAvailable(void) const;
+
     // open & close
     bool Open(void);
-    bool IsOpen(void) const                 { return m_bOpen; }
     void Close(void);
     
     // get
     uint8 GetCodecIn(void) const;
-    uint8 GetCodecOut(void) const;
+    uint8 GetCodecOut1(void) const;
+    uint8 GetCodecOut2(void) const;
+    uint8 GetCodecsOut(void) const;
     int   GetChannelIn(void) const          { return m_iChannelIn; }
-    int   GetChannelOut(void) const         { return m_iChannelOut; }
+    int   GetChannelOut1(void) const        { return m_iChannelOut1; }
+    int   GetChannelOut2(void) const        { return m_iChannelOut2; }
     int   GetSpeechGain(void) const         { return m_iSpeechGain; }
     
     // interfaces
     bool IsInterfaceIn(const CVocodecInterface *interface)      { return (interface == m_InterfaceIn); }
-    bool IsInterfaceOut(const CVocodecInterface *interface)     { return (interface == m_InterfaceOut); }
-    
+    bool IsInterfaceOut1(const CVocodecInterface *interface)    { return (interface == m_InterfaceOut1); }
+    bool IsInterfaceOut2(const CVocodecInterface *interface)    { return (interface == m_InterfaceOut2); }
+
     // queues
     CPacketQueue *GetPacketQueueIn(void)    { m_QueuePacketIn.Lock(); return &m_QueuePacketIn; }
     void ReleasePacketQueueIn(void)         { m_QueuePacketIn.Unlock(); }
-    CPacketQueue *GetPacketQueueOut(void)   { m_QueuePacketOut.Lock(); return &m_QueuePacketOut; }
-    void ReleasePacketQueueOut(void)        { m_QueuePacketOut.Unlock(); }
-    CPacketQueue *GetVoiceQueue(void)       { m_QueueVoice.Lock(); return &m_QueueVoice; }
-    void ReleaseVoiceQueue(void)            { m_QueueVoice.Unlock(); }
+    CPacketQueue *GetPacketQueueOut1(void)  { m_QueuePacketOut1.Lock(); return &m_QueuePacketOut1; }
+    void ReleasePacketQueueOut1(void)       { m_QueuePacketOut1.Unlock(); }
+    CPacketQueue *GetPacketQueueOut2(void)  { m_QueuePacketOut2.Lock(); return &m_QueuePacketOut2; }
+    void ReleasePacketQueueOut2(void)       { m_QueuePacketOut2.Unlock(); }
+    CPacketQueue *GetVoiceQueue1(void)      { m_QueueVoice1.Lock(); return &m_QueueVoice1; }
+    void ReleaseVoiceQueue1(void)           { m_QueueVoice1.Unlock(); }
+    CPacketQueue *GetVoiceQueue2(void)      { m_QueueVoice2.Lock(); return &m_QueueVoice2; }
+    void ReleaseVoiceQueue2(void)           { m_QueueVoice2.Unlock(); }
 
     // operators
     //virtual bool operator ==(const CVocodecChannel &) const   { return false; }
@@ -75,22 +86,29 @@ protected:
     
 protected:
     // status
-    bool                m_bOpen;
+    bool                            m_bOpen;
+
+    // array of grouped channels
+    std::vector<CVocodecChannel *>  m_GroupChannels;
 
     // connected interfaces
-    CVocodecInterface   *m_InterfaceIn;
-    int                 m_iChannelIn;
-    CVocodecInterface   *m_InterfaceOut;
-    int                 m_iChannelOut;
+    CVocodecInterface               *m_InterfaceIn;
+    int                             m_iChannelIn;
+    CVocodecInterface               *m_InterfaceOut1;
+    int                             m_iChannelOut1;
+    CVocodecInterface               *m_InterfaceOut2;
+    int                             m_iChannelOut2;
     
     // ambe queues
-    CPacketQueue        m_QueuePacketIn;
-    CPacketQueue        m_QueuePacketOut;
-    // voice queue
-    CPacketQueue        m_QueueVoice;
+    CPacketQueue                    m_QueuePacketIn;
+    CPacketQueue                    m_QueuePacketOut1;
+    CPacketQueue                    m_QueuePacketOut2;
+    // voice queues
+    CPacketQueue                    m_QueueVoice1;
+    CPacketQueue                    m_QueueVoice2;
     
     // settings
-    int                 m_iSpeechGain;
+    int                             m_iSpeechGain;
     
 };
 

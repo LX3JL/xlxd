@@ -221,7 +221,7 @@ CCodecStream *CTranscoder::GetStream(uint8 uiCodecIn)
         if ( m_bConnected )
         {
             // yes, post openstream request
-            EncodeOpenstreamPacket(&Buffer, uiCodecIn, (uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS);
+            EncodeOpenstreamPacket(&Buffer, uiCodecIn, CODEC_ALL ^ uiCodecIn);
             m_Socket.Send(Buffer, m_AmbedIp, TRANSCODER_PORT);
             
             // wait relpy here
@@ -232,7 +232,7 @@ CCodecStream *CTranscoder::GetStream(uint8 uiCodecIn)
                     std::cout << "ambed openstream(" << m_StreamidOpenStream << ") ok" << std::endl;
                 
                     // create stream object
-                    stream = new CCodecStream(m_StreamidOpenStream, uiCodecIn, (uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS);
+                    stream = new CCodecStream(m_StreamidOpenStream, uiCodecIn, CODEC_ALL ^ uiCodecIn);
                     
                     // init it
                     if ( stream->Init(m_PortOpenStream) )
@@ -368,14 +368,14 @@ void CTranscoder::EncodeKeepAlivePacket(CBuffer *Buffer)
     Buffer->Append((uint8 *)(const char *)"XLX000  ", 8);
 }
 
-void CTranscoder::EncodeOpenstreamPacket(CBuffer *Buffer, uint8 uiCodecIn, uint8 uiCodecOut)
+void CTranscoder::EncodeOpenstreamPacket(CBuffer *Buffer, uint8 uiCodecIn, uint8 uiCodecsOut)
 {
     uint8 tag[] = { 'A','M','B','E','D','O','S' };
 
     Buffer->Set(tag, sizeof(tag));
     Buffer->Append((uint8 *)(const char *)"XLX000  ", 8);
     Buffer->Append((uint8)uiCodecIn);
-    Buffer->Append((uint8)uiCodecOut);
+    Buffer->Append((uint8)uiCodecsOut);
 }
 
 void CTranscoder::EncodeClosestreamPacket(CBuffer *Buffer, uint16 uiStreamId)

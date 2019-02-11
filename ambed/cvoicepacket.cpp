@@ -75,6 +75,11 @@ void CVoicePacket::SetVoice(const uint8 *voice, int size)
 
 void CVoicePacket::ApplyGain(int dB)
 {
+    if ( dB == 0 )
+    {
+        return;
+    }
+
     float mult = pow(10, dB/20.0);
     for ( int i = 0; i < m_iSize; i += 2 )
     {

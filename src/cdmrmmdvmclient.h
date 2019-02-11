@@ -48,7 +48,6 @@ public:
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_DMRMMDVM; }
     const char *GetProtocolName(void) const     { return "DMRMmdvm"; }
-    int GetCodec(void) const                    { return CODEC_AMBE2PLUS; }
     bool IsNode(void) const                     { return true; }
     
     // status

@@ -82,50 +82,6 @@ uint8 CUsb3003Interface::GetChannelCodec(int iCh) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// manage vocodec channels
-
-CVocodecChannel *CUsb3003Interface::GetChannelWithChannelIn(int iCh)
-{
-    CVocodecChannel *Channel = NULL;
-    bool done = false;
-    for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
-    {
-        if ( iCh == 2 )
-        {
-            if ( (m_Channels[i]->GetChannelIn() == iCh) && !(m_Channels[i]->IsInterfaceOut(this)) )
-            {
-                Channel = m_Channels[i];
-                done = true;
-            }
-        }
-        else
-        {
-            if ( (m_Channels[i]->GetChannelIn() == iCh) && (m_Channels[i]->IsInterfaceOut(this)) )
-            {
-                Channel = m_Channels[i];
-                done = true;
-            }
-        }
-    }
-    return Channel;
-}
-
-CVocodecChannel *CUsb3003Interface::GetChannelWithChannelOut(int iCh)
-{
-    CVocodecChannel *Channel = NULL;
-    bool done = false;
-    for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
-    {
-        if ( (m_Channels[i]->GetChannelOut() == iCh) && (m_Channels[i]->IsInterfaceOut(this)) )
-        {
-            Channel = m_Channels[i];
-            done = true;
-        }
-    }
-    return Channel;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // decoder helper
 
 bool CUsb3003Interface::IsValidChannelPacket(const CBuffer &buffer, int *ch, CAmbePacket *packet)

@@ -65,7 +65,6 @@ public:
     // identity
     virtual int GetProtocol(void) const                 { return PROTOCOL_NONE; }
     virtual int GetProtocolRevision(void) const         { return 0; }
-    virtual int GetCodec(void) const                    { return CODEC_NONE; }
     virtual const char *GetProtocolName(void) const     { return "none"; }
     virtual bool IsNode(void) const                     { return false; }
     virtual bool IsPeer(void) const                     { return false; }

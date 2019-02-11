@@ -73,6 +73,7 @@ public:
 
 protected:
     // factory helper
+    static void CreateChannelGroup(CVocodecInterface *, int, CVocodecInterface *, int, CVocodecInterface *, int, std::vector<CVocodecChannel *>*);
     static int  CreateUsb3012(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
     static int  CreateUsb3006(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);
     static int  CreateUsb3003(CFtdiDeviceDescr *, std::vector<CVocodecChannel *>*);

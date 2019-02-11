@@ -33,7 +33,8 @@
 
 #define XLX_PROTOCOL_REVISION_0      0       // AMBE only, original connect mechanism
 #define XLX_PROTOCOL_REVISION_1      1       // AMBE only, revised connect mechanism
-#define XLX_PROTOCOL_REVISION_2      2       // Transcoded AMBE+AMBE2 interlink
+#define XLX_PROTOCOL_REVISION_2      2       // Transcoded AMBE+AMBE2 interlink (use AMBE only)
+#define XLX_PROTOCOL_REVISION_3      3       // Transcoded AMBE+AMBE2+Codec 2 interlink
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

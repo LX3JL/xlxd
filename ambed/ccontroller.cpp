@@ -124,7 +124,7 @@ void CController::Task(void)
     CIp         Ip;
     CCallsign   Callsign;
     uint8       CodecIn;
-    uint8       CodecOut;
+    uint8       CodecsOut;
     uint16      StreamId;
     CStream     *Stream;
     
@@ -132,12 +132,12 @@ void CController::Task(void)
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
         // crack packet
-        if ( IsValidOpenstreamPacket(Buffer, &Callsign, &CodecIn, &CodecOut) )
+        if ( IsValidOpenstreamPacket(Buffer, &Callsign, &CodecIn, &CodecsOut) )
         {
             std::cout << "Stream Open from " << Callsign << std::endl;
             
             // try create the stream
-            Stream = OpenStream(Callsign, Ip, CodecIn, CodecOut);
+            Stream = OpenStream(Callsign, Ip, CodecIn, CodecsOut);
             
             // send back details
             if ( Stream != NULL )
@@ -202,14 +202,14 @@ void CController::Task(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // streams management
 
-CStream *CController::OpenStream(const CCallsign &Callsign, const CIp &Ip, uint8 CodecIn, uint8 CodecOut)
+CStream *CController::OpenStream(const CCallsign &Callsign, const CIp &Ip, uint8 CodecIn, uint8 CodecsOut)
 {
     CStream *stream = NULL;
     
     // create a new stream
     m_uiLastStreamId = (m_uiLastStreamId + 1);
     m_uiLastStreamId = (m_uiLastStreamId == NB_MAX_STREAMS+1) ? 1 : m_uiLastStreamId;
-    stream = new CStream(m_uiLastStreamId, Callsign, Ip, CodecIn, CodecOut);
+    stream = new CStream(m_uiLastStreamId, Callsign, Ip, CodecIn, CodecsOut);
     if ( stream->Init(TRANSCODER_PORT+m_uiLastStreamId) )
     {
         std::cout << "Opened stream " << m_uiLastStreamId << std::endl;
@@ -293,7 +293,7 @@ bool CController::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *Calls
     return valid;
 }
 
-bool CController::IsValidOpenstreamPacket(const CBuffer &Buffer, CCallsign *Callsign, uint8 *CodecIn, uint8 *CodecOut)
+bool CController::IsValidOpenstreamPacket(const CBuffer &Buffer, CCallsign *Callsign, uint8 *CodecIn, uint8 *CodecsOut)
 {
     uint8 tag[] = { 'A','M','B','E','D','O','S' };
     
@@ -303,10 +303,10 @@ bool CController::IsValidOpenstreamPacket(const CBuffer &Buffer, CCallsign *Call
         // get callsign here
         Callsign->SetCallsign(&(Buffer.data()[7]), 8);
         *CodecIn = Buffer.data()[15];
-        *CodecOut = Buffer.data()[16];
+        *CodecsOut = Buffer.data()[16];
         
         // valid ?
-        valid = Callsign->IsValid() && IsValidCodecIn(*CodecIn) && IsValidCodecOut(*CodecOut);
+        valid = Callsign->IsValid() && IsValidCodecIn(*CodecIn) && IsValidCodecsOut(*CodecsOut);
     }
     return valid;
 }
@@ -347,7 +347,7 @@ void CController::EncodeStreamDescrPacket(CBuffer *Buffer, const CStream &Stream
     // codecin
     Buffer->Append((uint8)Stream.GetCodecIn());
     // codecout
-    Buffer->Append((uint8)Stream.GetCodecOut());
+    Buffer->Append((uint8)Stream.GetCodecsOut());
 }
 
 void CController::EncodeNoStreamAvailablePacket(CBuffer *Buffer)
@@ -363,11 +363,13 @@ void CController::EncodeNoStreamAvailablePacket(CBuffer *Buffer)
 
 bool CController::IsValidCodecIn(uint8 codec)
 {
-    return ((codec == CODEC_AMBEPLUS) || (codec == CODEC_AMBE2PLUS) );
+    return ((codec == CODEC_AMBEPLUS) || (codec == CODEC_AMBE2PLUS) || (codec == CODEC_CODEC2));
 }
 
-bool CController::IsValidCodecOut(uint8 codec)
+bool CController::IsValidCodecsOut(uint8 codec)
 {
-    return ((codec == CODEC_AMBEPLUS) || (codec == CODEC_AMBE2PLUS) );
+    return ((codec == (CODEC_AMBEPLUS | CODEC_CODEC2)) ||
+            (codec == (CODEC_AMBE2PLUS | CODEC_CODEC2)) ||
+            (codec == (CODEC_AMBEPLUS | CODEC_AMBE2PLUS)));
 }
 

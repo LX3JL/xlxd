@@ -55,7 +55,7 @@ public:
     CDvFramePacket();
     CDvFramePacket(const struct dstar_dvframe *, uint16, uint8);
     CDvFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
-    CDvFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
+    CDvFramePacket(uint16, uint8, const uint8 *, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
     CDvFramePacket(const CDvFramePacket &);
     
     // destructor
@@ -72,12 +72,14 @@ public:
     const uint8 *GetAmbe(uint8) const;
     const uint8 *GetAmbe(void) const        { return m_uiAmbe; }
     const uint8 *GetAmbePlus(void) const    { return m_uiAmbePlus; }
+    const uint8 *GetCodec2(void) const      { return m_uiCodec2; }
     const uint8 *GetDvData(void) const      { return m_uiDvData; }
     const uint8 *GetDvSync(void) const      { return m_uiDvSync; }
     
     // set
     void SetDvData(uint8 *);
     void SetAmbe(uint8, uint8 *);
+    void ClearAmbe(uint8);
 
     // operators
     bool operator ==(const CDvFramePacket &) const;
@@ -86,10 +88,12 @@ protected:
     // get
     uint8 *GetAmbeData(void)                { return m_uiAmbe; }
     uint8 *GetAmbePlusData(void)            { return m_uiAmbePlus; }
+    uint8 *GetCodec2Data(void)              { return m_uiCodec2; }
     
 protected:
     // data (dstar)
     uint8       m_uiAmbe[AMBE_SIZE];
+    uint8       m_uiCodec2[AMBE_SIZE];
     uint8       m_uiDvData[DVDATA_SIZE];
     // data (dmr)
     uint8       m_uiAmbePlus[AMBEPLUS_SIZE];

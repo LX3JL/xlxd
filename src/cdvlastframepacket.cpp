@@ -51,9 +51,9 @@ CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, const uint8 *sync, uin
 
 CDvLastFramePacket::CDvLastFramePacket
     (uint16 sid,
-     uint8 dstarpid, const uint8 *dstarambe, const uint8 *dstardvdata,
+     uint8 dstarpid, const uint8 *dstarambe, const uint8 *dstarcodec2, const uint8 *dstardvdata,
      uint8 dmrpid, uint8 dprspid, const uint8 *dmrambe, const uint8 *dmrsync)
-    : CDvFramePacket(sid, dstarpid, dstarambe, dstardvdata, dmrpid, dprspid, dmrambe, dmrsync)
+    : CDvFramePacket(sid, dstarpid, dstarambe, dstarcodec2, dstardvdata, dmrpid, dprspid, dmrambe, dmrsync)
 {
 }
 

@@ -30,6 +30,7 @@
 #include "cdvheaderpacket.h"
 #include "cdvframepacket.h"
 #include "cdvlastframepacket.h"
+#include "cclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -70,7 +71,13 @@ public:
     // task
     void Task(void);
 
+    // identity
+    int GetProtocol(void) const { return PROTOCOL_DEXTRA; }
+
 protected:
+    // create client
+    CClient             *CreateClient(const CCallsign &, const CIp &, char, int) const;
+
     // queue helper
     void HandleQueue(void);
 

@@ -328,7 +328,7 @@ bool CDmrmmdvmProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &I
             if ( g_Reflector.IsValidModule(Header->GetRpt2Module()) && (CallType == DMR_GROUP_CALL) )
             {
                 // yes, try to open the stream
-                if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
+                if ( (stream = g_Reflector.OpenStream(Header, client, CODEC_AMBE2PLUS)) != NULL )
                 {
                     // keep the handle
                     m_Streams.push_back(stream);

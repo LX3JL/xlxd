@@ -24,8 +24,8 @@
 
 #include "main.h"
 #include <string.h>
-#include "cdextraclient.h"
 #include "cdextraprotocol.h"
+#include "cdextraclient.h"
 #include "creflector.h"
 #include "cgatekeeper.h"
 
@@ -88,7 +88,7 @@ void CDextraProtocol::Task(void)
             //std::cout << "DExtra DV header:"  << std::endl;
             
             // callsign muted?
-            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DEXTRA, Header->GetRpt2Module()) )
+            if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, GetProtocol(), Header->GetRpt2Module()) )
             {
                 // handle it
                 OnDvHeaderPacketIn(Header, Ip);
@@ -110,7 +110,7 @@ void CDextraProtocol::Task(void)
             std::cout << "DExtra connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << " rev " << ProtRev << std::endl;
             
             // callsign authorized?
-            if ( g_GateKeeper.MayLink(Callsign, Ip, PROTOCOL_DEXTRA) )
+            if ( g_GateKeeper.MayLink(Callsign, Ip, GetProtocol()) )
             {
                 // valid module ?
                 if ( g_Reflector.IsValidModule(ToLinkModule) )
@@ -120,7 +120,7 @@ void CDextraProtocol::Task(void)
                     m_Socket.Send(Buffer, Ip);
                     
                     // create the client
-                    CDextraClient *client = new CDextraClient(Callsign, Ip, ToLinkModule, ProtRev);
+                    CClient *client = CreateClient(Callsign, Ip, ToLinkModule, ProtRev);
                     
                     // and append
                     g_Reflector.GetClients()->AddClient(client);
@@ -148,7 +148,7 @@ void CDextraProtocol::Task(void)
             
             // find client & remove it
             CClients *clients = g_Reflector.GetClients();
-            CClient *client = clients->FindClient(Ip, PROTOCOL_DEXTRA);
+            CClient *client = clients->FindClient(Ip, GetProtocol());
             if ( client != NULL )
             {
                 // ack disconnect packet
@@ -174,7 +174,7 @@ void CDextraProtocol::Task(void)
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
-            while ( (client = clients->FindNextClient(Callsign, Ip, PROTOCOL_DEXTRA, &index)) != NULL )
+            while ( (client = clients->FindNextClient(Callsign, Ip, GetProtocol(), &index)) != NULL )
             {
                client->Alive();
             }
@@ -205,6 +205,15 @@ void CDextraProtocol::Task(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// create client
+
+CClient *CDextraProtocol::CreateClient(const CCallsign &callsign, const CIp &ip, char reflectormodule, int revision) const
+{
+    CClient *client = new CDextraClient(callsign, ip, reflectormodule, revision);
+    return client;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // queue helper
 
 void CDextraProtocol::HandleQueue(void)
@@ -224,7 +233,7 @@ void CDextraProtocol::HandleQueue(void)
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
-            while ( (client = clients->FindNextClient(PROTOCOL_DEXTRA, &index)) != NULL )
+            while ( (client = clients->FindNextClient(GetProtocol(), &index)) != NULL )
             {
                 // is this client busy ?
                 if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
@@ -262,7 +271,7 @@ void CDextraProtocol::HandleKeepalives(void)
     CClients *clients = g_Reflector.GetClients();
     int index = -1;
     CClient *client = NULL;
-    while ( (client = clients->FindNextClient(PROTOCOL_DEXTRA, &index)) != NULL )
+    while ( (client = clients->FindNextClient(GetProtocol(), &index)) != NULL )
     {
         // send keepalive
         m_Socket.Send(keepalive, client->GetIp());
@@ -305,7 +314,7 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         CCallsign via(Header->GetRpt1Callsign());
         
         // find this client
-        CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DEXTRA);
+        CClient *client = g_Reflector.GetClients()->FindClient(Ip, GetProtocol());
         if ( client != NULL )
         {
             // get client callsign
@@ -318,7 +327,7 @@ bool CDextraProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
                 Header->SetRpt2Module(client->GetReflectorModule());
             }
             // and try to open the stream
-            if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
+            if ( (stream = g_Reflector.OpenStream(Header, client, Header->GetCodec())) != NULL )
             {
                 // keep the handle
                 m_Streams.push_back(stream);
@@ -521,7 +530,7 @@ bool CDextraProtocol::EncodeDvHeaderPacket(const CDvHeaderPacket &Packet, CBuffe
     uint8 tag[]	= { 'D','S','V','T',0x10,0x00,0x00,0x00,0x20,0x00,0x01,0x02 };
     struct dstar_header DstarHeader;
     
-    Packet.ConvertToDstarStruct(&DstarHeader);
+    Packet.ConvertToDstarStruct(&DstarHeader, CODEC_AMBEPLUS);
     
     Buffer->Set(tag, sizeof(tag));
     Buffer->Append(Packet.GetStreamId());

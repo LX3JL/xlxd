@@ -137,6 +137,7 @@ void CXlxProtocol::Task(void)
                         break;
                     case XLX_PROTOCOL_REVISION_1:
                     case XLX_PROTOCOL_REVISION_2:
+                    case XLX_PROTOCOL_REVISION_3:
                     default:
                         // acknowledge the request
                         EncodeConnectAckPacket(&Buffer, Modules);
@@ -425,7 +426,7 @@ bool CXlxProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         if ( client != NULL )
         {
             // and try to open the stream
-            if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
+            if ( (stream = g_Reflector.OpenStream(Header, client, ((CXlxClient *)client)->GetCodec())) != NULL )
             {
                 // keep the handle
                 m_Streams.push_back(stream);
@@ -562,13 +563,30 @@ CDvFramePacket *CXlxProtocol::IsValidDvFramePacket(const CBuffer &Buffer)
          ((Buffer.data()[14] & 0x40) == 0) )
     {
         // create packet
+        dvframe = new CDvFramePacket((struct dstar_dvframe *)&(Buffer.data()[15]),
+                                     *((uint16 *)&(Buffer.data()[12])), Buffer.data()[14]);
+        // check validity of packet
+        if ( !dvframe->IsValid() )
+        {
+            delete dvframe;
+            dvframe = NULL;
+        }
+    }
+
+    // otherwise try protocol revision 3
+    if ( (dvframe == NULL) &&
+         (Buffer.size() == 54) && (Buffer.Compare((uint8 *)"DSVT", 4) == 0) &&
+         (Buffer.data()[4] == 0x20) && (Buffer.data()[8] == 0x20) &&
+         ((Buffer.data()[14] & 0x40) == 0) )
+    {
+        // create packet
         dvframe = new CDvFramePacket(
             // sid
             *((uint16 *)&(Buffer.data()[12])),
             // dstar
-            Buffer.data()[14], &(Buffer.data()[15]), &(Buffer.data()[24]),
+            Buffer.data()[14], &(Buffer.data()[15]), &(Buffer.data()[24]), &(Buffer.data()[33]),
             // dmr
-            Buffer.data()[27], Buffer.data()[28], &(Buffer.data()[29]), &(Buffer.data()[38]));
+            Buffer.data()[36], Buffer.data()[37], &(Buffer.data()[38]), &(Buffer.data()[47]));
         
         // check validity of packet
         if ( !dvframe->IsValid() )
@@ -596,13 +614,30 @@ CDvLastFramePacket *CXlxProtocol::IsValidDvLastFramePacket(const CBuffer &Buffer
          ((Buffer.data()[14] & 0x40) != 0) )
     {
         // create packet
+        dvframe = new CDvLastFramePacket((struct dstar_dvframe *)&(Buffer.data()[15]),
+                                         *((uint16 *)&(Buffer.data()[12])), Buffer.data()[14]);
+        // check validity of packet
+        if ( !dvframe->IsValid() )
+        {
+            delete dvframe;
+            dvframe = NULL;
+        }
+    }
+
+    // otherwise try protocol revision 3
+    if ( (dvframe == NULL) &&
+         (Buffer.size() == 54) && (Buffer.Compare((uint8 *)"DSVT", 4) == 0) &&
+         (Buffer.data()[4] == 0x20) && (Buffer.data()[8] == 0x20) &&
+         ((Buffer.data()[14] & 0x40) != 0) )
+    {
+        // create packet
         dvframe = new CDvLastFramePacket(
                                      // sid
                                      *((uint16 *)&(Buffer.data()[12])),
                                      // dstar
-                                     Buffer.data()[14], &(Buffer.data()[15]), &(Buffer.data()[24]),
+                                     Buffer.data()[14], &(Buffer.data()[15]), &(Buffer.data()[24]), &(Buffer.data()[33]),
                                      // dmr
-                                     Buffer.data()[27], Buffer.data()[28], &(Buffer.data()[29]), &(Buffer.data()[38]));
+                                     Buffer.data()[36], Buffer.data()[37], &(Buffer.data()[38]), &(Buffer.data()[47]));
         
         // check validity of packet
         if ( !dvframe->IsValid() )
@@ -692,6 +727,7 @@ bool CXlxProtocol::EncodeDvFramePacket(const CDvFramePacket &Packet, CBuffer *Bu
     Buffer->Append(Packet.GetStreamId());
     Buffer->Append((uint8)(Packet.GetDstarPacketId() % 21));
     Buffer->Append((uint8 *)Packet.GetAmbe(), AMBE_SIZE);
+    Buffer->Append((uint8 *)Packet.GetCodec2(), AMBE_SIZE);
     Buffer->Append((uint8 *)Packet.GetDvData(), DVDATA_SIZE);
     
     Buffer->Append((uint8)Packet.GetDmrPacketId());
@@ -712,6 +748,7 @@ bool CXlxProtocol::EncodeDvLastFramePacket(const CDvLastFramePacket &Packet, CBu
     Buffer->Set(tag, sizeof(tag));
     Buffer->Append(Packet.GetStreamId());
     Buffer->Append((uint8)((Packet.GetPacketId() % 21) | 0x40));
+    Buffer->Append(dstarambe, sizeof(dstarambe));
     Buffer->Append(dstarambe, sizeof(dstarambe));
     Buffer->Append(dstardvdata, sizeof(dstardvdata));
     

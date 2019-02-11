@@ -1,8 +1,8 @@
 //
-//  cdextraclient.h
+//  cdextraopenclient.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
+//  Created by Antony Chazapis (SV9OAN) on 19/12/2018.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,10 +22,10 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
 // ----------------------------------------------------------------------------
 
-#ifndef cdextraclient_h
-#define cdextraclient_h
+#ifndef cdextraopenclient_h
+#define cdextraopenclient_h
 
-#include "cclient.h"
+#include "cdextraclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
@@ -34,30 +34,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CDextraClient : public CClient
+class CDextraOpenClient : public CDextraClient
 {
 public:
     // constructors
-    CDextraClient();
-    CDextraClient(const CCallsign &, const CIp &, char = ' ', int = 0);
-    CDextraClient(const CDextraClient &);
+    CDextraOpenClient();
+    CDextraOpenClient(const CCallsign &, const CIp &, char = ' ', int = 0);
+    CDextraOpenClient(const CDextraClient &);
     
     // destructor
-    virtual ~CDextraClient() {};
-    
-    // identity
-    int GetProtocol(void) const                 { return PROTOCOL_DEXTRA; }
-    int GetProtocolRevision(void) const         { return m_ProtRev; }
-    const char *GetProtocolName(void) const     { return "DExtra"; }
-    bool IsNode(void) const                     { return true; }
-    
-    // status
-    bool IsAlive(void) const;
+    virtual ~CDextraOpenClient() {};
 
-protected:
-    // data
-    int     m_ProtRev;
+    // identity
+    int GetProtocol(void) const                 { return PROTOCOL_DEXTRA_OPEN; }
+    const char *GetProtocolName(void) const     { return "DExtra Open"; }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdextraclient_h */
+#endif /* cdextraopenclient_h */

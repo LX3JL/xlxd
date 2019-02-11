@@ -200,13 +200,14 @@ bool CVocodecs::Init(void)
     
     
     // done
+    iNbCh /= 3;
     if ( ok )
     {
-        std::cout << "Codec interfaces initialized successfully : " << iNbCh << " channels available" << std::endl;
+        std::cout << "Codec interfaces initialized successfully : " << iNbCh << " channel group" << ( iNbCh > 1 ? "s" : "" ) << " available" << std::endl;
     }
     else
     {
-        std::cout << "At least one codec interfaces failed to initialize : " << iNbCh << " channels availables" << std::endl;
+        std::cout << "At least one codec interfaces failed to initialize : " << iNbCh << " channel group" << ( iNbCh > 1 ? "s" : "" ) << " available" << std::endl;
     }
     // done
     return ok;
@@ -267,7 +268,7 @@ bool CVocodecs::DiscoverFtdiDevices(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // manage channels
 
-CVocodecChannel *CVocodecs::OpenChannel(uint8 uiCodecIn, uint8 uiCodecOut)
+CVocodecChannel *CVocodecs::OpenChannel(uint8 uiCodecIn, uint8 uiCodecsOut)
 {
     CVocodecChannel *Channel = NULL;
     bool done = false;
@@ -276,9 +277,9 @@ CVocodecChannel *CVocodecs::OpenChannel(uint8 uiCodecIn, uint8 uiCodecOut)
     m_MutexChannels.lock();
     for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
     {
-        if ( !m_Channels[i]->IsOpen() &&
-             (m_Channels[i]->GetCodecIn() == uiCodecIn) &&
-             (m_Channels[i]->GetCodecOut() == uiCodecOut) )
+        if ( (m_Channels[i]->GetCodecIn() == uiCodecIn) &&
+             (m_Channels[i]->GetCodecsOut() == uiCodecsOut) &&
+             m_Channels[i]->IsAvailable() )
         {
             if ( m_Channels[i]->Open() )
             {
@@ -295,5 +296,7 @@ CVocodecChannel *CVocodecs::OpenChannel(uint8 uiCodecIn, uint8 uiCodecOut)
 
 void CVocodecs::CloseChannel(CVocodecChannel *Channel)
 {
+    m_MutexChannels.lock();
     Channel->Close();
+    m_MutexChannels.unlock();
 }

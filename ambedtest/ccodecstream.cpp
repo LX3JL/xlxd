@@ -34,14 +34,14 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CCodecStream::CCodecStream(uint16 uiId, uint8 uiCodecIn, uint8 uiCodecOut)
+CCodecStream::CCodecStream(uint16 uiId, uint8 uiCodecIn, uint8 uiCodecsOut)
 {
     m_bStopThread = false;
     m_pThread = NULL;
     m_uiStreamId = uiId;
     m_uiPid = 0;
     m_uiCodecIn = uiCodecIn;
-    m_uiCodecOut = uiCodecOut;
+    m_uiCodecsOut = uiCodecsOut;
     m_bConnected = false;
     m_iAmbeSrcPtr = 0;
     m_iAmbeDestPtr = 0;
@@ -166,7 +166,10 @@ void CCodecStream::Task(void)
 {
     CBuffer Buffer;
     CIp     Ip;
-    uint8   Ambe[AMBE_SIZE];
+    uint8   Codec1;
+    uint8   Codec2;
+    uint8   Ambe1[AMBE_SIZE];
+    uint8   Ambe2[AMBE_SIZE];
     
     // connected ?
     if ( m_bConnected )
@@ -208,7 +211,7 @@ void CCodecStream::Task(void)
         if ( m_Socket.Receive(&Buffer, &Ip, 1) != -1 )
         {
             // crack
-            if ( IsValidAmbePacket(Buffer, Ambe) )
+            if ( IsValidAmbePacket(Buffer, &Codec1, Ambe1, &Codec2, Ambe2) )
             {
                 m_TimeoutTimer.Now();
                 
@@ -246,13 +249,16 @@ void CCodecStream::Task(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 /// packet decoding helpers
 
-bool CCodecStream::IsValidAmbePacket(const CBuffer &Buffer, uint8 *Ambe)
+bool CCodecStream::IsValidAmbePacket(const CBuffer &Buffer, uint8 *Codec1, uint8 *Ambe1, uint8 *Codec2, uint8 *Ambe2)
 {
     bool valid = false;
     
-    if ( (Buffer.size() == 11) && (Buffer.data()[0] == m_uiCodecOut) )
+    if ( (Buffer.size() == 21) && ((Buffer.data()[0] | Buffer.data()[1]) == m_uiCodecsOut) )
     {
-        ::memcpy(Ambe, &(Buffer.data()[2]), 9);
+        *Codec1 = Buffer.data()[0];
+        ::memcpy(Ambe1, &(Buffer.data()[3]), 9);
+        *Codec2 = Buffer.data()[1];
+        ::memcpy(Ambe2, &(Buffer.data()[12]), 9);
         valid = true;
     }
     return valid;
@@ -299,7 +305,7 @@ void CCodecStream::DisplayStats(void)
     // displays
     char sz[256];
     sprintf(sz, "Stream %d (%d->%d) : %u / %u / %u : %.1f fps",
-            m_uiStreamId, m_uiCodecIn, m_uiCodecOut,
+            m_uiStreamId, m_uiCodecIn, m_uiCodecsOut,
             uiSent, uiReceived, uiBad, fps);
     std::cout << sz << std::endl;
 }

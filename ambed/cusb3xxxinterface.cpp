@@ -150,11 +150,17 @@ void CUsb3xxxInterface::Task(void)
             Channel = GetChannelWithChannelIn(iCh);
             if ( Channel != NULL )
             {
-                Queue = Channel->GetVoiceQueue();
-                CVoicePacket *clone = new CVoicePacket(VoicePacket);
-                clone->ApplyGain(Channel->GetSpeechGain());
-                Queue->push(clone);
-                Channel->ReleaseVoiceQueue();
+                CVoicePacket *clone1 = new CVoicePacket(VoicePacket);
+                clone1->ApplyGain(Channel->GetSpeechGain());
+                CVoicePacket *clone2 = new CVoicePacket(*clone1);
+
+                Queue = Channel->GetVoiceQueue1();
+                Queue->push(clone1);
+                Channel->ReleaseVoiceQueue1();
+
+                Queue = Channel->GetVoiceQueue2();
+                Queue->push(clone2);
+                Channel->ReleaseVoiceQueue2();
             }
         }
         else if ( IsValidChannelPacket(Buffer, &iCh, &AmbePacket) )
@@ -170,10 +176,20 @@ void CUsb3xxxInterface::Task(void)
             Channel = GetChannelWithChannelOut(iCh);
             if ( Channel != NULL )
             {
-                Queue = Channel->GetPacketQueueOut();
                 CAmbePacket *clone = new CAmbePacket(AmbePacket);
-                Queue->push(clone);
-                Channel->ReleasePacketQueueOut();
+
+                if ( Channel->IsInterfaceOut1(this) )
+                {
+                    Queue = Channel->GetPacketQueueOut1();
+                    Queue->push(clone);
+                    Channel->ReleasePacketQueueOut1();
+                }
+                else if ( Channel->IsInterfaceOut2(this) )
+                {
+                    Queue = Channel->GetPacketQueueOut2();
+                    Queue->push(clone);
+                    Channel->ReleasePacketQueueOut2();
+                }
             }
         }
     }
@@ -184,15 +200,15 @@ void CUsb3xxxInterface::Task(void)
     do
     {
         done = true;
-        for ( int i = 0; i < m_Channels.size(); i++)
+        for ( int i = 0; i < GetNbChannels(); i++ )
         {
-            // get channel
-            Channel = m_Channels[i];
+            // get active outgoing channel for interface channel
+            Channel = GetChannelWithChannelOut(i);
             
-            // any packet in voice queue ?
-            if ( Channel->IsInterfaceOut(this) )
+            // any packet in voice queue 1 ?
+            if ( Channel != NULL && Channel->IsInterfaceOut1(this) )
             {
-                Queue = Channel->GetVoiceQueue();
+                Queue = Channel->GetVoiceQueue1();
                 if ( !Queue->empty() )
                 {
                     // get packet
@@ -201,17 +217,41 @@ void CUsb3xxxInterface::Task(void)
                     // this is second step of transcoding
                     // we just received from hardware a decoded speech packet
                     // post it to relevant channel encoder
-                    int i = Channel->GetChannelOut();
+                    int i = Channel->GetChannelOut1();
                     Packet->SetChannel(i);
                     m_SpeechQueues[i]->push(Packet);
                     // done
                     done = false;
                 }
-                Channel->ReleaseVoiceQueue();
+                Channel->ReleaseVoiceQueue1();
+            }
+
+            // any packet in voice queue 2 ?
+            if ( Channel != NULL && Channel->IsInterfaceOut2(this) )
+            {
+                Queue = Channel->GetVoiceQueue2();
+                if ( !Queue->empty() )
+                {
+                    // get packet
+                    CVoicePacket *Packet = (CVoicePacket *)Queue->front();
+                    Queue->pop();
+                    // this is second step of transcoding
+                    // we just received from hardware a decoded speech packet
+                    // post it to relevant channel encoder
+                    int i = Channel->GetChannelOut2();
+                    Packet->SetChannel(i);
+                    m_SpeechQueues[i]->push(Packet);
+                    // done
+                    done = false;
+                }
+                Channel->ReleaseVoiceQueue2();
             }
             
+            // get active incoming channel for interface channel
+            Channel = GetChannelWithChannelIn(i);
+
             // any packet in ambe queue for us ?
-            if ( Channel->IsInterfaceIn(this) )
+            if ( Channel != NULL && Channel->IsInterfaceIn(this) )
             {
                 Queue = Channel->GetPacketQueueIn();
                 if ( !Queue->empty() )

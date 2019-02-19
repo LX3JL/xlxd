@@ -148,22 +148,6 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
     }
 }
 
-void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
-{
-    // find the stream
-    CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
-    if ( stream != NULL )
-    {
-        // push
-        stream->Lock();
-        stream->Push(Frame);
-        stream->Unlock();
-        
-        // and close the stream
-        g_Reflector.CloseStream(stream);
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // stream handle helpers
 
@@ -185,6 +169,15 @@ CPacketStream *CProtocol::GetStream(uint16 uiStreamId, const CIp *Ip)
     }
     // done
     return stream;
+}
+
+void CProtocol::CloseStreamForDvLastFramePacket(CDvLastFramePacket *Frame, const CIp *Ip)
+{
+    CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
+    if ( stream != NULL )
+    {
+        g_Reflector.CloseStream(stream);
+    }
 }
 
 void CProtocol::CheckStreamsTimeout(void)

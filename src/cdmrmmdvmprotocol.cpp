@@ -93,7 +93,7 @@ void CDmrmmdvmProtocol::Task(void)
     uint8               CallType;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frames[3];
-    CDvLastFramePacket  *LastFrame;
+    CDvLastFramePacket  *LastFrame = NULL;
     
     // handle incoming packets
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -128,8 +128,9 @@ void CDmrmmdvmProtocol::Task(void)
         else if ( IsValidDvLastFramePacket(Buffer, &LastFrame) )
         {
             //std::cout << "DMRmmdvm DV last frame"  << std::endl;
-            
-            OnDvLastFramePacketIn(LastFrame, &Ip);
+
+            // handle it
+            OnDvFramePacketIn(LastFrame, &Ip);
         }
         else if ( IsValidConnectPacket(Buffer, &Callsign, Ip) )
         {
@@ -257,6 +258,10 @@ void CDmrmmdvmProtocol::Task(void)
     // handle queue from reflector
     HandleQueue();
     
+    if ( LastFrame != NULL )
+    {
+        CloseStreamForDvLastFramePacket(LastFrame, &Ip);
+    }
     
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DMRMMDVM_KEEPALIVE_PERIOD )

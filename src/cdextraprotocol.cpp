@@ -69,7 +69,7 @@ void CDextraProtocol::Task(void)
     int                 ProtRev;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frame;
-    CDvLastFramePacket  *LastFrame = NULL;
+    CDvLastFramePacket  *LastFrame;
     
     // any incoming packet ?
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -101,9 +101,9 @@ void CDextraProtocol::Task(void)
         else if ( (LastFrame = IsValidDvLastFramePacket(Buffer)) != NULL )
         {
             //std::cout << "DExtra DV last frame" << std::endl;
-
+            
             // handle it
-            OnDvFramePacketIn(LastFrame, &Ip);
+            OnDvLastFramePacketIn(LastFrame, &Ip);
         }
         else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule, &ProtRev) )
         {
@@ -193,11 +193,6 @@ void CDextraProtocol::Task(void)
     // handle queue from reflector
     HandleQueue();
         
-    if ( LastFrame != NULL )
-    {
-        CloseStreamForDvLastFramePacket(LastFrame, &Ip);
-    }
-
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DEXTRA_KEEPALIVE_PERIOD )
     {

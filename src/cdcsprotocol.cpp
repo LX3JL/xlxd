@@ -68,7 +68,7 @@ void CDcsProtocol::Task(void)
     CCallsign           Callsign;
     char                ToLinkModule;
     CDvHeaderPacket     *Header;
-    CDvFramePacket      *Frame = NULL;
+    CDvFramePacket      *Frame;
     
     // handle incoming packets
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -89,12 +89,16 @@ void CDcsProtocol::Task(void)
                     //std::cout << "DCS DV frame" << std::endl;
                     OnDvFramePacketIn(Frame, &Ip);
                 }
+                else
+                {
+                    //std::cout << "DCS DV last frame" << std::endl;
+                    OnDvLastFramePacketIn((CDvLastFramePacket *)Frame, &Ip);
+                }
             }
             else
             {
                 delete Header;
                 delete Frame;
-                Frame = NULL;
             }
         }
         else if ( IsValidConnectPacket(Buffer, &Callsign, &ToLinkModule) )
@@ -184,11 +188,6 @@ void CDcsProtocol::Task(void)
     // handle queue from reflector
     HandleQueue();
     
-    if ( Frame != NULL && Frame->IsLastPacket() )
-    {
-        CloseStreamForDvLastFramePacket((CDvLastFramePacket *)Frame, &Ip);
-    }
-
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DCS_KEEPALIVE_PERIOD )
     {

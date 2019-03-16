@@ -69,7 +69,7 @@ void CDplusProtocol::Task(void)
     CCallsign           Callsign;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frame;
-    CDvLastFramePacket  *LastFrame = NULL;
+    CDvLastFramePacket  *LastFrame;
     
     // handle incoming packets
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -100,9 +100,9 @@ void CDplusProtocol::Task(void)
         else if ( (LastFrame = IsValidDvLastFramePacket(Buffer)) != NULL )
         {
             //std::cout << "DPlus DV last frame" << std::endl;
-
+            
             // handle it
-            OnDvFramePacketIn(LastFrame, &Ip);
+            OnDvLastFramePacketIn(LastFrame, &Ip);
        }
         else if ( IsValidConnectPacket(Buffer) )
         {
@@ -180,11 +180,6 @@ void CDplusProtocol::Task(void)
     // handle queue from reflector
     HandleQueue();
     
-    if ( LastFrame )
-    {
-        CloseStreamForDvLastFramePacket(LastFrame, &Ip);
-    }
-
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DPLUS_KEEPALIVE_PERIOD )
     {

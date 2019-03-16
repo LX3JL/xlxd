@@ -63,6 +63,7 @@ protected:
     // stream helpers
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &);
     void OnDvFramePacketIn(CDvFramePacket *, const CIp * = NULL);
+    void OnDvLastFramePacketIn(CDvLastFramePacket *, const CIp * = NULL);
     
     // packet decoding helpers
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);

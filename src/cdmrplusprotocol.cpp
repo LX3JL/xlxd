@@ -83,7 +83,6 @@ void CDmrplusProtocol::Task(void)
     char                ToLinkModule;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frames[3];
-    int                 CloseStreamFrameNr = -1;
     
     // handle incoming packets
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -100,11 +99,12 @@ void CDmrplusProtocol::Task(void)
                 /*if ( !Frames[i]->IsLastPacket() )
                 {
                     //std::cout << "DMRplus DV frame" << std::endl;
+                    OnDvFramePacketIn(Frames[i], &Ip);
                 }
                 else
                 {
                     //std::cout << "DMRplus DV last frame" << std::endl;
-                    CloseStreamFrameNr = i;
+                    OnDvLastFramePacketIn((CDvLastFramePacket *)Frames[i], &Ip);
                 }*/
             }
         }
@@ -190,10 +190,6 @@ void CDmrplusProtocol::Task(void)
     // handle queue from reflector
     HandleQueue();
     
-    if ( CloseStreamFrameNr >= 0 )
-    {
-        CloseStreamForDvLastFramePacket((CDvLastFramePacket *)Frames[CloseStreamFrameNr], &Ip);
-    }
     
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > DMRPLUS_KEEPALIVE_PERIOD )

@@ -102,13 +102,24 @@ void CDvHeaderPacket::ConvertToDstarStruct(struct dstar_header *buffer, uint8 Co
     ::memset(buffer, 0, sizeof(struct dstar_header));
     buffer->Flag1 = m_uiFlag1;
     buffer->Flag2 = m_uiFlag2;
-    buffer->Flag3 = (CodecOut == CODEC_AMBEPLUS) ? 0x00 : 0x01 ;
+    buffer->Flag3 = m_uiFlag3;
     m_csUR.GetCallsign(buffer->UR);
     m_csRPT1.GetCallsign(buffer->RPT1);
     m_csRPT2.GetCallsign(buffer->RPT2);
     m_csMY.GetCallsign(buffer->MY);
     m_csMY.GetSuffix(buffer->SUFFIX);
     buffer->Crc = m_uiCrc;
+
+    if ( CodecOut == CODEC_AMBEPLUS )
+    {
+        buffer->Flag3 = 0x00;
+    }
+    else if ( CodecOut == CODEC_CODEC2_3200 && m_uiFlag3 == 0x00 )
+    {
+        // If the codec is not set, it means the stream came from another
+        // protocol, so it should be transcoded into Codec 2 mode 3200.
+        buffer->Flag3 = 0x01;
+    }
 }
 
 
@@ -134,11 +145,14 @@ uint8 CDvHeaderPacket::GetCodec(void) const
 {
     // The D-STAR vocoder extension by SV9OAN uses Flag 3 of the header
     // to identify whether the voice data payload is in Codec 2 format.
-    // Two Codec 2 modes are allowed (3200 or 2400) and optional FEC.
-    // Only support 3200 mode and no FEC here.
+    // Two Codec 2 modes are allowed, either 3200, or 2400 with added FEC.
     if ( m_uiFlag3 == 0x01 )
     {
-        return CODEC_CODEC2;
+        return CODEC_CODEC2_3200;
+    }
+    if ( m_uiFlag3 == 0x03 )
+    {
+        return CODEC_CODEC2_2400;
     }
 
     return CODEC_AMBEPLUS;

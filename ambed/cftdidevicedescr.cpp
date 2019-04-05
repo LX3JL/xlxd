@@ -197,20 +197,30 @@ int CFtdiDeviceDescr::GetNbChannels(void) const
 ////////////////////////////////////////////////////////////////////////////////////////
 // factory helper
 
-void CFtdiDeviceDescr::CreateChannelGroup(CVocodecInterface *InterfaceAmbe, int ChannelAmbe, CVocodecInterface *InterfaceAmbePlus, int ChannelAmbePlus, CVocodecInterface *InterfaceCodec2, int ChannelCodec2, std::vector<CVocodecChannel *>*channels)
+void CFtdiDeviceDescr::CreateChannelGroup(CVocodecInterface *InterfaceAmbe, int ChannelAmbe, CVocodecInterface *InterfaceAmbePlus, int ChannelAmbePlus, CVocodecInterface *InterfaceCodec2, std::vector<CVocodecChannel *>*channels)
 {
-    CVocodecChannel *ChannelA = new CVocodecChannel(InterfaceAmbe, ChannelAmbe, InterfaceAmbePlus, ChannelAmbePlus, InterfaceCodec2, ChannelCodec2, CODECGAIN_AMBEPLUS);
-    CVocodecChannel *ChannelB = new CVocodecChannel(InterfaceAmbePlus, ChannelAmbePlus, InterfaceAmbe, ChannelAmbe, InterfaceCodec2, ChannelCodec2, CODECGAIN_AMBE2PLUS);
-    CVocodecChannel *ChannelC = new CVocodecChannel(InterfaceCodec2, ChannelCodec2, InterfaceAmbe, ChannelAmbe, InterfaceAmbePlus, ChannelAmbePlus, CODECGAIN_CODEC2);
+    // The Codec 2 interface has two channels: 0 for mode 3200, 1 for mode 2400.
+    // Use both for input, but only channel 0 for output.
+    CVocodecChannel *ChannelA = new CVocodecChannel(InterfaceAmbe, ChannelAmbe, InterfaceAmbePlus, ChannelAmbePlus, InterfaceCodec2, 0, CODECGAIN_AMBEPLUS);
+    CVocodecChannel *ChannelB = new CVocodecChannel(InterfaceAmbePlus, ChannelAmbePlus, InterfaceAmbe, ChannelAmbe, InterfaceCodec2, 0, CODECGAIN_AMBE2PLUS);
+    CVocodecChannel *ChannelC = new CVocodecChannel(InterfaceCodec2, 0, InterfaceAmbe, ChannelAmbe, InterfaceAmbePlus, ChannelAmbePlus, CODECGAIN_CODEC2);
+    CVocodecChannel *ChannelD = new CVocodecChannel(InterfaceCodec2, 1, InterfaceAmbe, ChannelAmbe, InterfaceAmbePlus, ChannelAmbePlus, CODECGAIN_CODEC2);
     ChannelA->AddGroupChannel(ChannelB);
     ChannelA->AddGroupChannel(ChannelC);
+    ChannelA->AddGroupChannel(ChannelD);
     ChannelB->AddGroupChannel(ChannelA);
     ChannelB->AddGroupChannel(ChannelC);
+    ChannelB->AddGroupChannel(ChannelD);
     ChannelC->AddGroupChannel(ChannelA);
     ChannelC->AddGroupChannel(ChannelB);
+    ChannelC->AddGroupChannel(ChannelD);
+    ChannelD->AddGroupChannel(ChannelA);
+    ChannelD->AddGroupChannel(ChannelB);
+    ChannelD->AddGroupChannel(ChannelC);
     channels->push_back(ChannelA);
     channels->push_back(ChannelB);
     channels->push_back(ChannelC);
+    channels->push_back(ChannelD);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -251,12 +261,12 @@ int CFtdiDeviceDescr::CreateUsb3012(CFtdiDeviceDescr *descr, std::vector<CVocode
          Codec2E->Init() && Codec2F->Init() )
     {
         // create the channels in groups
-        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, 0, channels);
-        CreateChannelGroup(Usb3003B, 0, Usb3003B, 1, Codec2B, 0, channels);
-        CreateChannelGroup(Usb3003A, 2, Usb3003B, 2, Codec2C, 0, channels);
-        CreateChannelGroup(Usb3003C, 0, Usb3003C, 1, Codec2D, 0, channels);
-        CreateChannelGroup(Usb3003D, 0, Usb3003D, 1, Codec2E, 0, channels);
-        CreateChannelGroup(Usb3003C, 2, Usb3003D, 2, Codec2F, 0, channels);
+        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, channels);
+        CreateChannelGroup(Usb3003B, 0, Usb3003B, 1, Codec2B, channels);
+        CreateChannelGroup(Usb3003A, 2, Usb3003B, 2, Codec2C, channels);
+        CreateChannelGroup(Usb3003C, 0, Usb3003C, 1, Codec2D, channels);
+        CreateChannelGroup(Usb3003D, 0, Usb3003D, 1, Codec2E, channels);
+        CreateChannelGroup(Usb3003C, 2, Usb3003D, 2, Codec2F, channels);
         // done
         nStreams = 18;
     }
@@ -306,9 +316,9 @@ int CFtdiDeviceDescr::CreateUsb3006(CFtdiDeviceDescr *descr, std::vector<CVocode
          Codec2A->Init() && Codec2B->Init() && Codec2C->Init() )
     {
         // create the channels in groups
-        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, 0, channels);
-        CreateChannelGroup(Usb3003B, 0, Usb3003B, 1, Codec2B, 0, channels);
-        CreateChannelGroup(Usb3003A, 2, Usb3003B, 2, Codec2C, 0, channels);
+        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, channels);
+        CreateChannelGroup(Usb3003B, 0, Usb3003B, 1, Codec2B, channels);
+        CreateChannelGroup(Usb3003A, 2, Usb3003B, 2, Codec2C, channels);
         // done
         nStreams = 9;
     }
@@ -351,7 +361,7 @@ int CFtdiDeviceDescr::CreateUsb3003(CFtdiDeviceDescr *descr, std::vector<CVocode
     if ( (Usb3003 != NULL) && Usb3003->Init(CODEC_NONE) && Codec2->Init() )
     {
         // create the channels in groups
-        CreateChannelGroup(Usb3003, 0, Usb3003, 1, Codec2, 0, channels);
+        CreateChannelGroup(Usb3003, 0, Usb3003, 1, Codec2, channels);
         // done
         nStreams = 3;
     }
@@ -381,7 +391,7 @@ int CFtdiDeviceDescr::CreatePair(CUsb3000Interface *Usb3000A, CUsb3000Interface 
     if ( Usb3000A->Init(CODEC_AMBEPLUS) && Usb3000B->Init(CODEC_AMBE2PLUS) && Codec2->Init() )
     {
         // create the channels in groups
-        CreateChannelGroup(Usb3000A, 0, Usb3000B, 0, Codec2, 0, channels);
+        CreateChannelGroup(Usb3000A, 0, Usb3000B, 0, Codec2, channels);
         // done
         nStreams = 3;
     }
@@ -415,9 +425,9 @@ int CFtdiDeviceDescr::CreatePair(CUsb3003Interface *Usb3003A, CUsb3003Interface 
          Codec2A->Init() && Codec2B->Init() && Codec2C->Init() )
     {
         // create the channels in groups
-        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, 0, channels);
-        CreateChannelGroup(Usb3003B, 0, Usb3003B, 1, Codec2B, 0, channels);
-        CreateChannelGroup(Usb3003A, 2, Usb3003B, 2, Codec2C, 0, channels);
+        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, channels);
+        CreateChannelGroup(Usb3003B, 0, Usb3003B, 1, Codec2B, channels);
+        CreateChannelGroup(Usb3003A, 2, Usb3003B, 2, Codec2C, channels);
         // done
         nStreams = 9;
     }
@@ -451,8 +461,8 @@ int CFtdiDeviceDescr::CreatePair(CUsb3003Interface *Usb3003A, CUsb3000Interface 
          Codec2A->Init() && Codec2B->Init() )
     {
         // create the channels in groups
-        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, 0, channels);
-        CreateChannelGroup(Usb3003A, 2, Usb3000B, 0, Codec2B, 0, channels);
+        CreateChannelGroup(Usb3003A, 0, Usb3003A, 1, Codec2A, channels);
+        CreateChannelGroup(Usb3003A, 2, Usb3000B, 0, Codec2B, channels);
         // done
         nStreams = 6;
     }

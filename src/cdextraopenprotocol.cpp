@@ -73,7 +73,7 @@ bool CDextraOpenProtocol::EncodeDvHeaderPacket(const CDvHeaderPacket &Packet, CB
     uint8 tag[] = { 'D','S','V','T',0x10,0x00,0x00,0x00,0x20,0x00,0x01,0x02 };
     struct dstar_header DstarHeader;
     
-    Packet.ConvertToDstarStruct(&DstarHeader, CODEC_CODEC2);
+    Packet.ConvertToDstarStruct(&DstarHeader, CODEC_CODEC2_3200);
     
     Buffer->Set(tag, sizeof(tag));
     Buffer->Append(Packet.GetStreamId());

@@ -63,11 +63,11 @@
 #define TRANSCODER_KEEPALIVE_TIMEOUT    30                                  // in seconds
 
 // Codecs -------------------------------------------------------
-#define CODEC_NONE                      0
-#define CODEC_AMBEPLUS                  1
-#define CODEC_AMBE2PLUS                 2
-#define CODEC_CODEC2                    4
-#define CODEC_ALL                       7                                   // all available bits set
+#define CODEC_NONE          0
+#define CODEC_AMBEPLUS      1                                               // DStar
+#define CODEC_AMBE2PLUS     2                                               // DMR
+#define CODEC_CODEC2_3200   4                                               // Codec 2 mode 3200
+#define CODEC_CODEC2_2400   8                                               // Codec 2 mode 2400
 
 // Transcoding speech gains
 #define CODECGAIN_AMBEPLUS              -10                                 // in dB

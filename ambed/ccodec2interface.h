@@ -47,21 +47,22 @@ public:
     const char *GetName(void) const     { return "Codec 2"; }
     
     // manage channels
-    int   GetNbChannels(void) const     { return 1; }
-    uint8 GetChannelCodec(int) const    { return CODEC_CODEC2; }
+    int   GetNbChannels(void) const     { return 2; }
+    uint8 GetChannelCodec(int) const;
 
     // task
     void Task(void);
 
 protected:
     // decoder helper
-    void DecodeAmbePacket(CAmbePacket *, CVoicePacket *);
+    void DecodeAmbePacket(CAmbePacket *, CVoicePacket *, uint8);
     
     // encoder helpers
-    void EncodeVoicePacket(CVoicePacket *, CAmbePacket *);
+    void EncodeVoicePacket(CVoicePacket *, CAmbePacket *, uint8);
 
     // data
-    struct CODEC2 *codec2_state;
+    struct CODEC2 *codec2_3200_state;
+    struct CODEC2 *codec2_2400_state;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

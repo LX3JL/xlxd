@@ -29,6 +29,7 @@
 #include "cvoicepacket.h"
 #include "ccodec2interface.h"
 #include "cvocodecchannel.h"
+#include <codec2/golay23.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +44,8 @@ CCodec2Interface::CCodec2Interface()
 
 CCodec2Interface::~CCodec2Interface()
 {
-    codec2_destroy(codec2_state);
+    codec2_destroy(codec2_3200_state);
+    codec2_destroy(codec2_2400_state);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -54,8 +56,9 @@ bool CCodec2Interface::Init(void)
     bool ok = true;
 
     // create codec state    
-    codec2_state = codec2_create(CODEC2_MODE_3200);
-    if (codec2_state == NULL)
+    codec2_3200_state = codec2_create(CODEC2_MODE_3200);
+    codec2_2400_state = codec2_create(CODEC2_MODE_2400);
+    if (codec2_3200_state == NULL || codec2_2400_state == NULL)
     {
         ok = false;
     }
@@ -68,6 +71,14 @@ bool CCodec2Interface::Init(void)
     
     // done
     return ok;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// manage Channels
+
+uint8 CCodec2Interface::GetChannelCodec(int iCh) const
+{
+    return (iCh == 0) ? CODEC_CODEC2_3200 : CODEC_CODEC2_2400;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -107,9 +118,9 @@ void CCodec2Interface::Task(void)
                 if ( Packet != NULL )
                 {
                     // this is second step of transcoding
-                    // we just received from a decoded speech packet
+                    // we just received a decoded speech packet
                     // encode and cpush back to relevant channel outcoming queue
-                    EncodeVoicePacket(Packet, &AmbePacket);
+                    EncodeVoicePacket(Packet, &AmbePacket, GetChannelCodec(i));
                     AmbePacket.SetPid(Packet->GetPid());
                     delete Packet;
 
@@ -124,7 +135,7 @@ void CCodec2Interface::Task(void)
                 }
             }
 
-            // any packet in voice queue 1 ?
+            // any packet in voice queue 2 ?
             if ( Channel != NULL && Channel->IsInterfaceOut2(this) )
             {
                 CVoicePacket *Packet = NULL;
@@ -141,9 +152,9 @@ void CCodec2Interface::Task(void)
                 if ( Packet != NULL )
                 {
                     // this is second step of transcoding
-                    // we just received from a decoded speech packet
+                    // we just received a decoded speech packet
                     // encode and cpush back to relevant channel outcoming queue
-                    EncodeVoicePacket(Packet, &AmbePacket);
+                    EncodeVoicePacket(Packet, &AmbePacket, GetChannelCodec(i));
                     AmbePacket.SetPid(Packet->GetPid());
                     delete Packet;
 
@@ -180,7 +191,7 @@ void CCodec2Interface::Task(void)
                     // this is first step of transcoding
                     // a fresh new packet to be transcoded is showing up
                     // decode and copy the result into both voice queues
-                    DecodeAmbePacket(Packet, &VoicePacket);
+                    DecodeAmbePacket(Packet, &VoicePacket, GetChannelCodec(i));
                     VoicePacket.SetPid(Packet->GetPid());
                     delete Packet;
 
@@ -210,11 +221,45 @@ void CCodec2Interface::Task(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // decoder helper
 
-void CCodec2Interface::DecodeAmbePacket(CAmbePacket *PacketIn, CVoicePacket *PacketOut)
+void CCodec2Interface::DecodeAmbePacket(CAmbePacket *PacketIn, CVoicePacket *PacketOut, uint8 Codec)
 {
+    unsigned char ambe[AMBE_SIZE];
+    struct CODEC2 *codec2_state;
     short voice[160];
 
-    codec2_decode(codec2_state, voice, (unsigned char *)PacketIn->GetAmbe());
+    ::memcpy(ambe, (unsigned char *)PacketIn->GetAmbe(), AMBE_SIZE);
+
+    if ( Codec == CODEC_CODEC2_2400 )
+    {
+        uint32 received_codeword;
+        uint32 corrected_codeword;
+        uint8 partial_byte;
+        // unsigned int bit_errors = 0;
+
+        received_codeword = ((ambe[0] << 15) |
+                             (((ambe[1] >> 4) & 0x0F) << 11) |
+                             (ambe[6] << 3) |
+                             ((ambe[7] >> 5) & 0x07));
+        corrected_codeword = golay23_decode(received_codeword);
+        // bit_errors += golay23_count_errors(received_codeword, corrected_codeword);
+
+        ambe[0] = (uint8)((corrected_codeword >> 15) & 0xFF);
+        partial_byte = (uint8)(((corrected_codeword >> 11) & 0x0F) << 4);
+
+        received_codeword = (((ambe[1] & 0x0F) << 19) |
+                             (ambe[2] << 11) |
+                             ((ambe[7] & 0x1F) << 6) |
+                             ((ambe[8] >> 2) & 0x3F));
+        corrected_codeword = golay23_decode(received_codeword);
+        // bit_errors += golay23_count_errors(received_codeword, corrected_codeword);
+        // std::cout << "Packet decoded with " << bit_errors << " bit errors" << std::endl;
+
+        ambe[1] = partial_byte | (uint8)((corrected_codeword >> 19) & 0x0F);
+        ambe[2] = (uint8)((corrected_codeword >> 11) & 0xFF);
+    }
+
+    codec2_state = (Codec == CODEC_CODEC2_3200) ? codec2_3200_state : codec2_2400_state;
+    codec2_decode(codec2_state, voice, ambe);
     for ( int i = 0; i < 160; i++ )
     {
         voice[i] = MAKEWORD(HIBYTE(voice[i]), LOBYTE(voice[i]));
@@ -225,8 +270,14 @@ void CCodec2Interface::DecodeAmbePacket(CAmbePacket *PacketIn, CVoicePacket *Pac
 ////////////////////////////////////////////////////////////////////////////////////////
 // encoder helpers
 
-void CCodec2Interface::EncodeVoicePacket(CVoicePacket *PacketIn, CAmbePacket *PacketOut)
+void CCodec2Interface::EncodeVoicePacket(CVoicePacket *PacketIn, CAmbePacket *PacketOut, uint8 Codec)
 {
+    // Output always in mode 3200.
+    if ( Codec != CODEC_CODEC2_3200 )
+    {
+        return;
+    }
+
     unsigned char ambe[AMBE_SIZE];
     short voice[160];
 
@@ -235,8 +286,8 @@ void CCodec2Interface::EncodeVoicePacket(CVoicePacket *PacketIn, CAmbePacket *Pa
     {
         voice[i] = MAKEWORD(HIBYTE(voice[i]), LOBYTE(voice[i]));
     }
-    codec2_encode(codec2_state, ambe, voice);
+    codec2_encode(codec2_3200_state, ambe, voice);
     ambe[8] = 0x00;
-    PacketOut->SetCodec(CODEC_CODEC2);
+    PacketOut->SetCodec(CODEC_CODEC2_3200);
     PacketOut->SetAmbe((uint8 *)ambe);
 }

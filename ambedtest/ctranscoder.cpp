@@ -221,7 +221,7 @@ CCodecStream *CTranscoder::GetStream(uint8 uiCodecIn)
         if ( m_bConnected )
         {
             // yes, post openstream request
-            EncodeOpenstreamPacket(&Buffer, uiCodecIn, CODEC_ALL ^ uiCodecIn);
+            EncodeOpenstreamPacket(&Buffer, uiCodecIn, GetCodecsOut(uiCodecIn));
             m_Socket.Send(Buffer, m_AmbedIp, TRANSCODER_PORT);
             
             // wait relpy here
@@ -232,7 +232,7 @@ CCodecStream *CTranscoder::GetStream(uint8 uiCodecIn)
                     std::cout << "ambed openstream(" << m_StreamidOpenStream << ") ok" << std::endl;
                 
                     // create stream object
-                    stream = new CCodecStream(m_StreamidOpenStream, uiCodecIn, CODEC_ALL ^ uiCodecIn);
+                    stream = new CCodecStream(m_StreamidOpenStream, uiCodecIn, GetCodecsOut(uiCodecIn));
                     
                     // init it
                     if ( stream->Init(m_PortOpenStream) )
@@ -295,6 +295,20 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
             }
         }
         Unlock();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// codec helpers
+
+uint8 CTranscoder::GetCodecsOut(uint8 CodecIn)
+{
+    switch (CodecIn) {
+        case CODEC_AMBEPLUS:    return CODEC_AMBE2PLUS | CODEC_CODEC2_3200;
+        case CODEC_AMBE2PLUS:   return CODEC_AMBEPLUS | CODEC_CODEC2_3200;
+        case CODEC_CODEC2_3200:
+        case CODEC_CODEC2_2400: return CODEC_AMBEPLUS | CODEC_AMBE2PLUS;
+        default:                return CODEC_NONE;
     }
 }
 

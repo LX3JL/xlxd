@@ -363,13 +363,16 @@ void CController::EncodeNoStreamAvailablePacket(CBuffer *Buffer)
 
 bool CController::IsValidCodecIn(uint8 codec)
 {
-    return ((codec == CODEC_AMBEPLUS) || (codec == CODEC_AMBE2PLUS) || (codec == CODEC_CODEC2));
+    return ((codec == CODEC_AMBEPLUS) ||
+            (codec == CODEC_AMBE2PLUS) ||
+            (codec == CODEC_CODEC2_3200) ||
+            (codec == CODEC_CODEC2_2400));
 }
 
 bool CController::IsValidCodecsOut(uint8 codec)
 {
-    return ((codec == (CODEC_AMBEPLUS | CODEC_CODEC2)) ||
-            (codec == (CODEC_AMBE2PLUS | CODEC_CODEC2)) ||
+    return ((codec == (CODEC_AMBEPLUS | CODEC_CODEC2_3200)) ||
+            (codec == (CODEC_AMBE2PLUS | CODEC_CODEC2_3200)) ||
             (codec == (CODEC_AMBEPLUS | CODEC_AMBE2PLUS)));
 }
 

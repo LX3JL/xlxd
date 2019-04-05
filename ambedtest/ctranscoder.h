@@ -67,6 +67,9 @@ public:
     void Task(void);
 
 protected:
+    // codec helper
+    uint8 GetCodecsOut(uint8 CodecIn);
+
     // keepalive helpers
     void HandleKeepalives(void);
 

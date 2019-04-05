@@ -66,7 +66,7 @@ int main(int argc, const char * argv[])
     for ( int i = 0; i < nCodec2; i++ )
     {
         CTimePoint::TaskSleepFor(300);
-        Streams.push_back(g_Transcoder.GetStream(CODEC_CODEC2));
+        Streams.push_back(g_Transcoder.GetStream(CODEC_CODEC2_3200));
     }
     
     // and loop wait

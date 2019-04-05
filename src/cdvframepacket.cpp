@@ -108,7 +108,8 @@ const uint8 *CDvFramePacket::GetAmbe(uint8 uiCodec) const
     {
         case CODEC_AMBEPLUS:    return m_uiAmbe;
         case CODEC_AMBE2PLUS:   return m_uiAmbePlus;
-        case CODEC_CODEC2:      return m_uiCodec2;
+        case CODEC_CODEC2_3200:
+        case CODEC_CODEC2_2400: return m_uiCodec2;
         default:                return NULL;
     }
 }
@@ -131,7 +132,8 @@ void CDvFramePacket::SetAmbe(uint8 uiCodec, uint8 *Ambe)
         case CODEC_AMBE2PLUS:
             ::memcpy(m_uiAmbePlus, Ambe, sizeof(m_uiAmbePlus));
             break;
-        case CODEC_CODEC2:
+        case CODEC_CODEC2_3200:
+        case CODEC_CODEC2_2400:
             ::memcpy(m_uiCodec2, Ambe, sizeof(m_uiCodec2));
             break;
     }
@@ -147,7 +149,8 @@ void CDvFramePacket::ClearAmbe(uint8 uiCodec)
         case CODEC_AMBE2PLUS:
             ::memset(m_uiAmbePlus, 0, sizeof(m_uiAmbePlus));
             break;
-        case CODEC_CODEC2:
+        case CODEC_CODEC2_3200:
+        case CODEC_CODEC2_2400:
             ::memset(m_uiCodec2, 0, sizeof(m_uiCodec2));
             break;
     }

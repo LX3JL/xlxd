@@ -24,7 +24,7 @@ class xReflector {
    private $CallingHomeOverrideIP    = null;
    private $Transferinterlink        = null;
    private $Interlinkfile            = null;
-   public $Interlinks               = null;
+   public $Interlinks                = null;
    private $InterlinkXML             = null;
    private $ReflectorXML             = null;
    
@@ -239,7 +239,12 @@ class xReflector {
       $i        = 0;
       while ($i < $this->NodeCount()) {
          if ($this->Nodes[$i]->GetRandomID() == $RandomId) {
-            return $this->Nodes[$i]->GetCallSign().'-'.$this->Nodes[$i]->GetSuffix();
+            if (trim($this->Nodes[$i]->GetSuffix()) == "") {
+               return $this->Nodes[$i]->GetCallSign();
+            }
+            else {
+               return $this->Nodes[$i]->GetCallSign().'-'.$this->Nodes[$i]->GetSuffix();
+            }
          }
          $i++;
       }

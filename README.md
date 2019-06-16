@@ -1,6 +1,6 @@
 # Copyright
 
-© 2016 Luc Engelmann LX1IQ
+Â© 2016 Luc Engelmann LX1IQ
 
 The XLX Multiprotocol Gateway Reflector Server is part of the software system
 for the D-Star Network.
@@ -120,5 +120,7 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 62030         (MMDVM protocol)
  - UDP port 10100         (AMBE controller port)
  - UDP port 10101 - 10199 (AMBE transcoding port)
+ - UDP port 12345 - 12346 (Icom Terminal presence and request port)
+ - UDP port 40000         (Icom Terminal dv port)
 
-© 2016 Luc Engelmann LX1IQ
+Â© 2016 Luc Engelmann LX1IQ

@@ -29,6 +29,7 @@
 #include "cxlxprotocol.h"
 #include "cdmrplusprotocol.h"
 #include "cdmrmmdvmprotocol.h"
+#include "cg3protocol.h"
 #include "cprotocols.h"
 
 
@@ -96,6 +97,11 @@ bool CProtocols::Init(void)
         delete m_Protocols[5];
         m_Protocols[5] = new CDmrmmdvmProtocol;
         ok &= m_Protocols[5]->Init();
+        
+        // create and initialize G3
+        delete m_Protocols[6];
+        m_Protocols[6] = new CG3Protocol;
+        ok &= m_Protocols[6]->Init();
     }
     m_Mutex.unlock();
    

@@ -65,7 +65,7 @@
 
 // protocols ---------------------------------------------------
 
-#define NB_OF_PROTOCOLS                 6
+#define NB_OF_PROTOCOLS                 7
 
 #define PROTOCOL_ANY                    -1
 #define PROTOCOL_NONE                   0
@@ -75,6 +75,7 @@
 #define PROTOCOL_XLX                    4
 #define PROTOCOL_DMRPLUS                5
 #define PROTOCOL_DMRMMDVM               6
+#define PROTOCOL_G3                     7
 
 // DExtra
 #define DEXTRA_PORT                     30001                               // UDP port
@@ -110,6 +111,13 @@
 #define DMRMMDVM_KEEPALIVE_TIMEOUT      (DMRMMDVM_KEEPALIVE_PERIOD*10)      // in seconds
 #define DMRMMDVM_REFLECTOR_SLOT         DMR_SLOT2
 #define DMRMMDVM_REFLECTOR_COLOUR       1
+
+// G3 Terminal
+#define G3_PRESENCE_PORT                12346                               // UDP port
+#define G3_CONFIG_PORT                  12345                               // UDP port
+#define G3_DV_PORT                      40000                               // UDP port
+#define G3_KEEPALIVE_PERIOD             10                                  // in seconds
+#define G3_KEEPALIVE_TIMEOUT            3600                                // in seconds, 1 hour
 
 // Transcoder server --------------------------------------------
 

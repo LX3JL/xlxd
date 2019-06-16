@@ -53,6 +53,7 @@ CUdpSocket::~CUdpSocket()
 bool CUdpSocket::Open(uint16 uiPort)
 {
     bool open = false;
+    int on = 1;
     
     // create socket
     m_Socket = socket(PF_INET,SOCK_DGRAM,0);
@@ -67,6 +68,7 @@ bool CUdpSocket::Open(uint16 uiPort)
         if ( bind(m_Socket, (struct sockaddr *)&m_SocketAddr, sizeof(struct sockaddr_in)) == 0 )
         {
             fcntl(m_Socket, F_SETFL, O_NONBLOCK);
+            setsockopt(m_Socket, IPPROTO_IP, IP_PKTINFO, (char *)&on, sizeof(on));
             open = true;
         }
         else
@@ -99,10 +101,34 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
     unsigned int uiFromLen = sizeof(struct sockaddr_in);
     int iRecvLen = -1;
     struct timeval tv;
-    
+
+    struct msghdr Msg;
+    struct iovec Iov[1];
+
+    union {
+         struct cmsghdr cm;
+         unsigned char pktinfo_sizer[sizeof(struct cmsghdr) + sizeof(struct in_pktinfo)];
+    } Control;
+
     // socket valid ?
     if ( m_Socket != -1 )
     {
+        // allocate buffer
+        Buffer->resize(UDP_BUFFER_LENMAX);
+
+        //prepare msghdr
+        bzero(&Msg, sizeof(Msg));
+        Iov[0].iov_base = Buffer->data();
+        Iov[0].iov_len = UDP_BUFFER_LENMAX;
+
+        bzero(&Sin, sizeof(Sin));
+        Msg.msg_name = &Sin;
+        Msg.msg_namelen = sizeof(Sin);
+        Msg.msg_iov = Iov;
+        Msg.msg_iovlen = 1;
+        Msg.msg_control = &Control;
+        Msg.msg_controllen = sizeof(Control);
+
         // control socket
         FD_ZERO(&FdSet);
         FD_SET(m_Socket, &FdSet);
@@ -110,13 +136,8 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
         tv.tv_usec = (timeout % 1000) * 1000;
         select(m_Socket + 1, &FdSet, 0, 0, &tv);
         
-        // allocate buffer
-        Buffer->resize(UDP_BUFFER_LENMAX);
-        
         // read
-        iRecvLen = (int)recvfrom(m_Socket,
-            (void *)Buffer->data(), UDP_BUFFER_LENMAX,
-            0, (struct sockaddr *)&Sin, &uiFromLen);
+        iRecvLen = (int)recvmsg(m_Socket, &Msg, 0);
         
         // handle
         if ( iRecvLen != -1 )
@@ -126,6 +147,17 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
             
             // get IP
             Ip->SetSockAddr(&Sin);
+
+            // get local IP
+            struct cmsghdr *Cmsg;
+            for (Cmsg = CMSG_FIRSTHDR(&Msg); Cmsg != NULL; Cmsg = CMSG_NXTHDR(&Msg, Cmsg))
+            {
+                if (Cmsg->cmsg_level == IPPROTO_IP && Cmsg->cmsg_type == IP_PKTINFO)
+                {
+                    struct in_pktinfo *PktInfo = (struct in_pktinfo *)CMSG_DATA(Cmsg);
+                    m_LocalAddr.s_addr = PktInfo->ipi_spec_dst.s_addr;
+                }
+            }
         }
     }
  

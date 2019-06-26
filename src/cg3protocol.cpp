@@ -44,7 +44,7 @@ bool CG3Protocol::Init(void)
     ok = CProtocol::Init();
 
     // update reflector callsign
-    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRF", 3);
+    m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);
 
     // create our DV socket
     ok &= m_Socket.Open(G3_DV_PORT);

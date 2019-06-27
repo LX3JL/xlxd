@@ -25,6 +25,7 @@
 #ifndef cg3protocol_h
 #define cg3protocol_h
 
+#include <string>
 #include "ctimepoint.h"
 #include "cprotocol.h"
 #include "cdvheaderpacket.h"
@@ -59,7 +60,7 @@ class CG3Protocol : public CProtocol
 {
 public:
     // constructor
-    CG3Protocol() {};
+    CG3Protocol() : m_GwAddress(0u), m_Modules("*"), m_LastModTime(0) {};
     
     // destructor
     virtual ~CG3Protocol() {};
@@ -84,6 +85,13 @@ protected:
     void ConfigTask(void);
     void IcmpTask(void);
 
+    // config
+    void ReadOptions(void);
+
+    // helper
+    char *TrimWhiteSpaces(char *);
+    bool NeedReload(void);
+
     // queue helper
     void HandleQueue(void);
 
@@ -97,12 +105,12 @@ protected:
     CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &);
     CDvFramePacket      *IsValidDvFramePacket(const CBuffer &);
     CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &);
-    
+
     // packet encoding helpers
     bool                EncodeDvHeaderPacket(const CDvHeaderPacket &, CBuffer *) const;
     bool                EncodeDvFramePacket(const CDvFramePacket &, CBuffer *) const;
     bool                EncodeDvLastFramePacket(const CDvLastFramePacket &, CBuffer *) const;
-    
+
 protected:
     std::thread         *m_pPresenceThread;
     std::thread         *m_pConfigThread;
@@ -116,6 +124,11 @@ protected:
     CUdpSocket          m_PresenceSocket;
     CUdpSocket          m_ConfigSocket;
     int                 m_IcmpRawSocket;
+
+    // optional params
+    uint32              m_GwAddress;
+    std::string         m_Modules;
+    time_t              m_LastModTime;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

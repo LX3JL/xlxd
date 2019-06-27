@@ -153,6 +153,7 @@
 #define WHITELIST_PATH                  "/xlxd/xlxd.whitelist"
 #define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"
 #define INTERLINKLIST_PATH              "/xlxd/xlxd.interlink"
+#define TERMINALOPTIONS_PATH            "/xlxd/xlxd.terminal"
 #define DEBUGDUMP_PATH                  "/var/log/xlxd.debug"
 
 // system constants ---------------------------------------------

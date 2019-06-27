@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include <string.h>
+#include <sys/stat.h>
 #include "cg3client.h"
 #include "cg3protocol.h"
 #include "creflector.h"
@@ -39,6 +40,8 @@
 bool CG3Protocol::Init(void)
 {
     bool ok;
+
+    ReadOptions();
 
     // base class
     ok = CProtocol::Init();
@@ -260,6 +263,7 @@ void CG3Protocol::ConfigTask(void)
                 }
                 else
                 {
+                    std::cout << "Module " << Call << " invalid" << std::endl;
                     Buffer.data()[3] = 0x01; // reject
                 }
             }
@@ -269,10 +273,19 @@ void CG3Protocol::ConfigTask(void)
                 Buffer.data()[3] = 0x01; // reject
             }
 
+            char module = Call.GetModule();
+
+            if (!strchr(m_Modules.c_str(), module) && !strchr(m_Modules.c_str(), '*'))
+            {
+                // restricted
+                std::cout << "Module " << Call << " restricted by configuration" << std::endl;
+                Buffer.data()[3] = 0x01; // reject
+            }
+
             // UR
             Buffer.resize(8);
             Buffer.Append((uint8 *)(const char *)Call, CALLSIGN_LEN - 1);
-            Buffer.Append((uint8)Call.GetModule());
+            Buffer.Append((uint8)module);
 
             // RPT1
             Buffer.Append((uint8 *)(const char *)GetReflectorCallsign(), CALLSIGN_LEN - 1);
@@ -293,7 +306,16 @@ void CG3Protocol::ConfigTask(void)
 
             if (Buffer.data()[3] == 0x00)
             {
-                Buffer.Append(*(uint32 *)m_ConfigSocket.GetLocalAddr()); 
+                std::cout << "External G3 gateway address " << inet_ntoa(*(in_addr *)&m_GwAddress) << std::endl;
+
+                if (m_GwAddress == 0)
+                {
+                    Buffer.Append(*(uint32 *)m_ConfigSocket.GetLocalAddr()); 
+                }
+                else
+                {
+                    Buffer.Append(m_GwAddress);
+                }
             }
             else
             {
@@ -400,14 +422,14 @@ void CG3Protocol::Task(void)
             if ( (Frame = IsValidDvFramePacket(Buffer)) != NULL )
             {
                 //std::cout << "Terminal DV frame"  << std::endl;
-            
+
                 // handle it
                 OnDvFramePacketIn(Frame, BaseIp);
             }
             else if ( (Header = IsValidDvHeaderPacket(Buffer)) != NULL )
             {
                 //std::cout << "Terminal DV header"  << std::endl;
-            
+
                 // callsign muted?
                 if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_G3, Header->GetRpt2Module()) )
                 {
@@ -452,6 +474,9 @@ void CG3Protocol::Task(void)
         
         // update time
         m_LastKeepaliveTime.Now();
+
+        // reload option if needed
+        NeedReload();
     }
 }
 
@@ -566,7 +591,18 @@ bool CG3Protocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
             {
                 if (client->GetReflectorModule() != Header->GetRpt2Callsign().GetModule())
                 {
-                    client->SetReflectorModule(Header->GetRpt2Callsign().GetModule());
+                    char new_module = Header->GetRpt2Callsign().GetModule();
+                    if (strchr(m_Modules.c_str(), '*') || strchr(m_Modules.c_str(), new_module))
+                    {
+                        client->SetReflectorModule(new_module);
+                    }
+                    else
+                    {
+                        // drop if invalid module
+                        delete Header;
+                        g_Reflector.ReleaseClients();
+                        return NULL;
+                    }
                 }
 
                 // get client callsign
@@ -722,5 +758,107 @@ bool CG3Protocol::EncodeDvLastFramePacket(const CDvLastFramePacket &Packet, CBuf
     Buffer->Append(tag2, sizeof(tag2));
     
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// option helpers
+
+char *CG3Protocol::TrimWhiteSpaces(char *str)
+{
+    char *end;
+    while ((*str == ' ') || (*str == '\t')) str++;
+    if (*str == 0)
+        return str;
+    end = str + strlen(str) - 1;
+    while ((end > str) && ((*end == ' ') || (*end == '\t') || (*end == '\r'))) end --;
+    *(end + 1) = 0;
+    return str;
+}
+
+
+bool CG3Protocol::NeedReload(void)
+{
+    struct stat fileStat;
+
+    if (::stat(TERMINALOPTIONS_PATH, &fileStat) != -1)
+    {
+        if (m_LastModTime != fileStat.st_mtime)
+        {
+            ReadOptions();
+        }
+    }
+
+    // iterate on clients
+    CClients *clients = g_Reflector.GetClients();
+    int index = -1;
+    CClient *client = NULL;
+    while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
+    {
+        char module = client->GetReflectorModule();
+        if (!strchr(m_Modules.c_str(), module) && !strchr(m_Modules.c_str(), '*'))
+        {
+            clients->RemoveClient(client);
+        }
+    }
+    g_Reflector.ReleaseClients();
+}
+
+void CG3Protocol::ReadOptions(void)
+{
+    char sz[256];
+    int opts = 0;
+
+
+    std::ifstream file(TERMINALOPTIONS_PATH);
+    if (file.is_open())
+    {
+        m_GwAddress = 0u;
+        m_Modules = "*";
+
+        while (file.getline(sz, sizeof(sz)).good())
+        {
+            char *szt = TrimWhiteSpaces(sz);
+            char *szval;
+
+            if ((::strlen(szt) > 0) && szt[0] != '#')
+            {
+                if ((szt = ::strtok(szt, " ,\t")) != NULL)
+                {
+                    if ((szval = ::strtok(NULL, " ,\t")) != NULL)
+                    {
+                        if (::strncmp(szt, "address", 7) == 0)
+                        {
+                            in_addr addr = { .s_addr = inet_addr(szval) };
+                            if (addr.s_addr)
+                            {
+                                std::cout << "G3 handler address set to " << inet_ntoa(addr) << std::endl;
+                                m_GwAddress = addr.s_addr;
+                                opts++;
+                            }
+                        }
+                        else if (strncmp(szt, "modules", 7) == 0)
+                        {
+                            std::cout << "G3 handler module list set to " << szval << std::endl;
+                            m_Modules = szval;
+                            opts++;
+                        }
+                        else
+                        {
+                            // unknown option - ignore
+                        }
+                    }
+                }
+            }
+        }
+        std::cout << "G3 handler loaded " << opts << " options from file " << TERMINALOPTIONS_PATH << std::endl;
+        file.close();
+
+        struct stat fileStat;
+
+        if (::stat(TERMINALOPTIONS_PATH, &fileStat) != -1)
+        {
+            m_LastModTime = fileStat.st_mtime;
+        }
+    }
 }
 

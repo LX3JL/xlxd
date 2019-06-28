@@ -177,8 +177,14 @@ void CG3Protocol::PresenceTask(void)
             Buffer.data()[2] = 0x80; // response
             Buffer.data()[3] = 0x00; // ok
 
-            // todo: handle reflector IP 0.0.0.0
-            Buffer.Append(g_Reflector.GetListenIp().GetAddr()); 
+            if (m_GwAddress == 0)
+            {
+                Buffer.Append(*(uint32 *)m_ConfigSocket.GetLocalAddr()); 
+            }
+            else
+            {
+                Buffer.Append(m_GwAddress);
+            }
 
             CClients *clients = g_Reflector.GetClients();
 
@@ -195,7 +201,20 @@ void CG3Protocol::PresenceTask(void)
 
             if (extant == NULL)
             {
-                // create client
+                // do we already have a client with the same call (IP changed)?
+                while ( (extant = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
+                {
+                    {
+                        if (extant->GetCallsign().HasSameCallsign(Terminal))
+                        {
+                            //delete old client
+                            clients->RemoveClient(extant);
+                            break;
+                        }
+                    }
+                }
+
+                // create new client
                 CG3Client *client = new CG3Client(Terminal, Ip);
 
                 // and append
@@ -203,6 +222,7 @@ void CG3Protocol::PresenceTask(void)
             }
             else
             {
+                // client changed callsign
                 if (!extant->GetCallsign().HasSameCallsign(Terminal))
                 {
                     //delete old client
@@ -381,7 +401,7 @@ void CG3Protocol::IcmpTask(void)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// task
+// DV task
 
 void CG3Protocol::Task(void)
 {

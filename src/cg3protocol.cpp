@@ -222,6 +222,7 @@ void CG3Protocol::PresenceTask(void)
             }
             else
             {
+                index = -1;
                 // client changed callsign
                 if (!extant->GetCallsign().HasSameCallsign(Terminal))
                 {

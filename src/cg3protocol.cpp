@@ -201,6 +201,8 @@ void CG3Protocol::PresenceTask(void)
 
             if (extant == NULL)
             {
+                index = -1;
+                
                 // do we already have a client with the same call (IP changed)?
                 while ( (extant = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
                 {
@@ -222,7 +224,6 @@ void CG3Protocol::PresenceTask(void)
             }
             else
             {
-                index = -1;
                 // client changed callsign
                 if (!extant->GetCallsign().HasSameCallsign(Terminal))
                 {

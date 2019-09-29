@@ -798,7 +798,7 @@ char *CG3Protocol::TrimWhiteSpaces(char *str)
 }
 
 
-bool CG3Protocol::NeedReload(void)
+void CG3Protocol::NeedReload(void)
 {
     struct stat fileStat;
 

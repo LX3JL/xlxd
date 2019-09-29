@@ -90,7 +90,7 @@ protected:
 
     // helper
     char *TrimWhiteSpaces(char *);
-    bool NeedReload(void);
+    void NeedReload(void);
 
     // queue helper
     void HandleQueue(void);

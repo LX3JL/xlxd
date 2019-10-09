@@ -63,8 +63,9 @@ bool CDmrplusProtocol::Init(void)
     m_LastKeepaliveTime.Now();
     
     // random number generator
-    time_t t;
-    ::srand((unsigned) time(&t));
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    m_Random = mt;
     
     // done
     return ok;
@@ -88,7 +89,7 @@ void CDmrplusProtocol::Task(void)
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
        // crack the packet
-        if ( IsValidDvFramePacket(Ip, Buffer, Frames) )
+        if ( IsValidDvFramePacket(Buffer, Frames) )
         {
             //std::cout << "DMRplus DV frame" << std::endl;
             //Buffer.DebugDump(g_Reflector.m_DebugFile);
@@ -108,7 +109,7 @@ void CDmrplusProtocol::Task(void)
                 }*/
             }
         }
-        else if ( IsValidDvHeaderPacket(Ip, Buffer, &Header) )
+        else if ( IsValidDvHeaderPacket(Buffer, &Header) )
         {
             //std::cout << "DMRplus DV header:"  << std::endl;
             //std::cout << "DMRplus DV header:"  << std::endl <<  *Header << std::endl;
@@ -444,7 +445,7 @@ bool CDmrplusProtocol::IsValidDisconnectPacket(const CBuffer &Buffer, CCallsign 
     return valid;
 }
 
-bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffer, CDvHeaderPacket **Header)
+bool CDmrplusProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CDvHeaderPacket **Header)
 {
     bool valid = false;
     *Header = NULL;
@@ -470,7 +471,7 @@ bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffe
             rpt1.SetModule(DMRPLUS_MODULE_ID);
             CCallsign rpt2 = m_ReflectorCallsign;
             rpt2.SetModule(DmrDstIdToModule(uiDstId));
-            uint32 uiStreamId = IpToStreamId(Ip);
+            uint32 uiStreamId = CreateStreamId();
             
             // and packet
             *Header = new CDvHeaderPacket(uiSrcId, CCallsign("CQCQCQ"), rpt1, rpt2, uiStreamId, 0, 0);
@@ -486,7 +487,7 @@ bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffe
     return valid;
 }
 
-bool CDmrplusProtocol::IsValidDvFramePacket(const CIp &Ip, const CBuffer &Buffer, CDvFramePacket **frames)
+bool CDmrplusProtocol::IsValidDvFramePacket(const CBuffer &Buffer, CDvFramePacket **frames)
 {
     bool valid = false;
     frames[0] = NULL;
@@ -528,7 +529,7 @@ bool CDmrplusProtocol::IsValidDvFramePacket(const CIp &Ip, const CBuffer &Buffer
             dmrsync[6] = dmrframe[19] & 0xF0;
             
             // and create 3 dv frames
-            uint32 uiStreamId = IpToStreamId(Ip);
+            uint32 uiStreamId = CreateStreamId();
             // frame1
             memcpy(dmrambe, &dmr3ambe[0], 9);
             frames[0] = new CDvFramePacket(dmrambe, dmrsync, uiStreamId, uiVoiceSeq, 1);
@@ -840,7 +841,7 @@ void CDmrplusProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId) 
 
 
 // uiStreamId helpers
-uint32 CDmrplusProtocol::IpToStreamId(const CIp &ip) const
+uint32 CDmrplusProtocol::CreateStreamId(void) const
 {
-    return ip.GetAddr() ^ (uint32)(MAKEDWORD(ip.GetPort(), ip.GetPort()));
+    return m_Random();
 }

@@ -22,7 +22,7 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-VERSION: 1.3.2
+VERSION: 1.3.4
 
 Hardware compatibility.
 ======================
@@ -44,7 +44,7 @@ device			DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
 3000(pair)		1				1				2
 3003			1				1				2
 3003(pair)		3				3				4
-3003-3000(pair)	2				2				not tested
+3003-3000(pair)	2				2				4
 3006			3				3				6
 3012			6				6				12
 

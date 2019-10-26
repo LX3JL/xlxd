@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2010,2016 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -16,24 +16,17 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#if !defined(CRC_H)
-#define	CRC_H
+#ifndef Golay24128_H
+#define Golay24128_H
 
-class CCRC
-{
+class CGolay24128 {
 public:
-    static bool checkFiveBit(bool* in, unsigned int tcrc);
-    static void encodeFiveBit(const bool* in, unsigned int& tcrc);
+    static unsigned int encode23127(unsigned int data);
+    static unsigned int encode24128(unsigned int data);
     
-    static void addCCITT161(unsigned char* in, unsigned int length);
-    static void addCCITT162(unsigned char* in, unsigned int length);
-    
-    static bool checkCCITT161(const unsigned char* in, unsigned int length);
-    static bool checkCCITT162(const unsigned char* in, unsigned int length);
-    
-    static unsigned char crc8(const unsigned char* in, unsigned int length);
-    
-    static unsigned char addCRC(const unsigned char* in, unsigned int length);
+    static unsigned int decode23127(unsigned int code);
+    static unsigned int decode24128(unsigned int code);
+    static unsigned int decode24128(unsigned char* bytes);
 };
 
 #endif

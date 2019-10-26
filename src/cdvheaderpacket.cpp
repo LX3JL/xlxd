@@ -70,6 +70,22 @@ CDvHeaderPacket::CDvHeaderPacket(uint32 my, const CCallsign &ur, const CCallsign
     m_csMY = CCallsign("", my);
 }
 
+// YSF constructor
+
+CDvHeaderPacket::CDvHeaderPacket(const CCallsign &my, const CCallsign &ur, const CCallsign &rpt1, const CCallsign &rpt2, uint16 sid, uint8 pid)
+: CPacket(sid, pid, 0, 0)
+{
+    m_uiFlag1 = 0;
+    m_uiFlag2 = 0;
+    m_uiFlag3 = 0;
+    m_uiCrc = 0;
+    m_csUR = ur;
+    m_csRPT1 = rpt1;
+    m_csRPT2 = rpt2;
+    m_csMY = my;
+}
+
+
 // copy constructor
 
 CDvHeaderPacket::CDvHeaderPacket(const CDvHeaderPacket &Header)

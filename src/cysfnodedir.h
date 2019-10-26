@@ -1,9 +1,9 @@
 //
-//  cdmriddir.h
+//  cysfnodedir.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 08/10/2016.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 08/10/2019.
+//  Copyright © 2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,8 +22,8 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cdmriddir_h
-#define cdmriddir_h
+#ifndef cysfnodedir_h
+#define cysfnodedir_h
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -31,28 +31,32 @@
 #include <netdb.h>
 #include "cbuffer.h"
 #include "ccallsign.h"
+#include "cysfnode.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+// define
+
 
 // compare function for std::map::find
 
-struct CDmridDirCallsignCompare
+struct CYsfNodeDirCallsignCompare
 {
     bool operator() (const CCallsign &cs1, const CCallsign &cs2) const
     { return cs1.HasLowerCallsign(cs2);}
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
+// class
 
-class CDmridDir
+class CYsfNodeDir : public std::map <CCallsign, CYsfNode, CYsfNodeDirCallsignCompare>
 {
 public:
     // constructor
-    CDmridDir();
-    
+    CYsfNodeDir();
     // destructor
-    ~CDmridDir();
-    
-    // init & close
+    virtual ~CYsfNodeDir();
+
+     // init & close
     virtual bool Init(void);
     virtual void Close(void);
     
@@ -63,33 +67,29 @@ public:
     // refresh
     virtual bool LoadContent(CBuffer *)             { return false; }
     virtual bool RefreshContent(const CBuffer &)    { return false; }
-    
+
     // find
-    const CCallsign *FindCallsign(uint32);
-    uint32 FindDmrid(const CCallsign &);
-    
+    bool FindFrequencies(const CCallsign &, uint32 *, uint32 *);
+
 protected:
     // thread
-    static void Thread(CDmridDir *);
+    static void Thread(CYsfNodeDir *);
 
     // reload helpers
     bool Reload(void);
     virtual bool NeedReload(void)                    { return false; }
-    bool IsValidDmrid(const char *);
+    //bool IsValidDmrid(const char *);
     
-protected:
-	// data
-    std::map <uint32, CCallsign> m_CallsignMap;
-    std::map <CCallsign, uint32, CDmridDirCallsignCompare> m_DmridMap;
-    
-    // Lock()
-    std::mutex          m_Mutex;
-           
-    // thread
-    bool                m_bStopThread;
-    std::thread         *m_pThread;
 
+protected:
+    // Lock()
+     std::mutex          m_Mutex;
+            
+     // thread
+     bool                m_bStopThread;
+     std::thread         *m_pThread;
 };
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdmriddir_h */
+#endif /* cysfnodedir_h */

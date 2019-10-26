@@ -182,6 +182,7 @@ CBuffer::operator const char *() const
 
 void CBuffer::DebugDump(std::ofstream &debugout) const
 {
+    // dump an hex line
     for ( int i = 0; i < size(); i++ )
     {
         char sz[16];
@@ -198,4 +199,30 @@ void CBuffer::DebugDump(std::ofstream &debugout) const
         }
     }
 }
+
+void CBuffer::DebugDumpAscii(std::ofstream &debugout) const
+{
+    // dump an ascii line
+    for ( int i = 0; i < size(); i++ )
+    {
+        char c = data()[i];
+        if ( isascii(c) )
+        {
+            debugout << c;
+        }
+        else
+        {
+            debugout << '.';
+        }
+        if ( i == size()-1 )
+        {
+            debugout << std::endl;
+        }
+        //else
+        //{
+        //    debugout << ',';
+        //}
+    }
+}
+
 

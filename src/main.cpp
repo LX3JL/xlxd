@@ -125,7 +125,6 @@ int main(int argc, const char * argv[])
         std::cin.get();
 #ifdef DEBUG_DUMPFILE
         g_Reflector.m_DebugFile.close();
-        g_Reflector.m_DebugFile.open("/Users/jeanluc/Desktop/dmrdebug.txt");
 #endif
     }
 #endif

@@ -3,7 +3,7 @@
 //  xlxd
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Copyright © 2015-2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -48,14 +48,16 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR                   2
-#define VERSION_MINOR                   2
-#define VERSION_REVISION                2
+#define VERSION_MINOR                   3
+#define VERSION_REVISION                1
 
 // global ------------------------------------------------------
 
 #define RUN_AS_DAEMON
 #define JSON_MONITOR
-//#define NO_ERROR_ON_XML_OPEN_FAIL
+
+// debug -------------------------------------------------------
+//#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
 //#define DEBUG_DUMPFILE
 
 // reflector ---------------------------------------------------
@@ -65,7 +67,7 @@
 
 // protocols ---------------------------------------------------
 
-#define NB_OF_PROTOCOLS                 6
+#define NB_OF_PROTOCOLS                 7
 
 #define PROTOCOL_ANY                    -1
 #define PROTOCOL_NONE                   0
@@ -75,6 +77,7 @@
 #define PROTOCOL_XLX                    4
 #define PROTOCOL_DMRPLUS                5
 #define PROTOCOL_DMRMMDVM               6
+#define PROTOCOL_YSF                    7
 
 // DExtra
 #define DEXTRA_PORT                     30001                               // UDP port
@@ -111,6 +114,14 @@
 #define DMRMMDVM_REFLECTOR_SLOT         DMR_SLOT2
 #define DMRMMDVM_REFLECTOR_COLOUR       1
 
+// YSF
+#define YSF_PORT                        42000                               // UDP port
+#define YSF_KEEPALIVE_PERIOD            3                                   // in seconds
+#define YSF_KEEPALIVE_TIMEOUT           (YSF_KEEPALIVE_PERIOD*10)           // in seconds
+#define YSF_DEFAULT_NODE_TX_FREQ        437000000                           // in Hz
+#define YSF_DEFAULT_NODE_RX_FREQ        437000000                           // in Hz
+
+
 // Transcoder server --------------------------------------------
 
 #define TRANSCODER_PORT                 10100                               // UDP port
@@ -120,9 +131,9 @@
 
 // codec --------------------------------------------------------
 
-#define CODEC_NONE          0
-#define CODEC_AMBEPLUS      1                                               // DStar
-#define CODEC_AMBE2PLUS     2                                               // DMR
+#define CODEC_NONE                      0
+#define CODEC_AMBEPLUS                  1                                   // DStar
+#define CODEC_AMBE2PLUS                 2                                   // DMR
 
 
 // DMRid database -----------------------------------------------
@@ -131,6 +142,11 @@
 #define DMRIDDB_PATH                    "/xlxd/dmrid.dat"                   // local file path
 #define DMRIDDB_REFRESH_RATE            180                                 // in minutes
 
+// Wires-X node database ----------------------------------------
+
+#define YSFNODEDB_USE_RLX_SERVER        1                                   // 1 = use http, 0 = use local file
+#define YSFNODEDB_PATH                  "/xlxd/ysfnode.dat"                 // local file path
+#define YSFNODEDB_REFRESH_RATE          180                                 // in minutes
 
 // xml & json reporting -----------------------------------------
 
@@ -187,6 +203,14 @@ extern CGateKeeper g_GateKeeper;
 #else
     class CDmridDirFile;
     extern CDmridDirFile   g_DmridDir;
+#endif
+
+#if (YSFNODEDB_USE_RLX_SERVER == 1)
+    class CYsfNodeDirHttp;
+    extern CYsfNodeDirHttp   g_YsfNodeDir;
+#else
+    class CYsfNodeDirFile;
+    extern CYsfNodeDirFile   g_YsfNodeDir;
 #endif
 
 class CTranscoder;

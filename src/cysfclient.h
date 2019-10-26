@@ -1,8 +1,8 @@
 //
-//  cdvlastframepacket.h
+//  cysfclient.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 03/11/2015.
+//  Created by Jean-Luc Deltombe (LX3JL) on 20/05/2018.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -19,44 +19,41 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cdvlastframepacket_h
-#define cdvlastframepacket_h
+#ifndef cysfclient_h
+#define cysfclient_h
 
-
-#include "cdvframepacket.h"
+#include "cclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// defines
+// define
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CDvLastFramePacket : public CDvFramePacket
+class CYsfClient : public CClient
 {
 public:
-    // constructor
-    CDvLastFramePacket();
-    CDvLastFramePacket(const struct dstar_dvframe *, uint16, uint8);
-    CDvLastFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
-    CDvLastFramePacket(const uint8 *, uint16, uint8, uint8, uint8);
-    CDvLastFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
-    CDvLastFramePacket(const CDvLastFramePacket &);
+    // constructors
+    CYsfClient();
+    CYsfClient(const CCallsign &, const CIp &, char = ' ');
+    CYsfClient(const CYsfClient &);
     
     // destructor
-    virtual ~CDvLastFramePacket() {};
-    
-    // virtual duplication
-    CPacket *Duplicate(void) const;
+    virtual ~CYsfClient() {};
     
     // identity
-    bool IsLastPacket(void) const           { return true; }
-    bool HaveTranscodableAmbe(void) const   { return false; }
+    int GetProtocol(void) const                 { return PROTOCOL_YSF; }
+    const char *GetProtocolName(void) const     { return "YSF"; }
+    int GetCodec(void) const                    { return CODEC_AMBE2PLUS; }
+    bool IsNode(void) const                     { return true; }
+    
+    // status
+    bool IsAlive(void) const;
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdvlastframepacket_h */
+#endif /* cysfclient_h */

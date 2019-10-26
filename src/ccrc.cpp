@@ -237,3 +237,15 @@ unsigned char CCRC::crc8(const unsigned char *in, unsigned int length)
     
     return crc;
 }
+
+unsigned char CCRC::addCRC(const unsigned char* in, unsigned int length)
+{
+    assert(in != NULL);
+
+    unsigned char crc = 0U;
+
+    for (unsigned int i = 0U; i < length; i++)
+        crc += in[i];
+
+    return crc;
+}

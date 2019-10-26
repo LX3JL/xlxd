@@ -139,7 +139,7 @@ protected:
     CCallsign       m_ReflectorCallsign;
     
     // debug
-    CTimePoint          m_DebugTimer;
+    CTimePoint      m_DebugTimer;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

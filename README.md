@@ -51,11 +51,12 @@ Please use the stable version listed above, we cannot support others.
  # apt-get install g++-4.7 (skip this step on Debian 8.x) 
 ```
 ###### After downloading and before compiling, please have a look at the main.h file
-...
-
+```
  # nano /xlxd/src/main.h
+
  For YSF you need to define a default HotSpot frrequency !!!
-...
+
+```
 ###### Download and compile the XLX sources
 ```
 # git clone https://github.com/LX3JL/xlxd.git

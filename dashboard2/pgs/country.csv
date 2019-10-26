@@ -10,7 +10,7 @@ Andorra;AD;C3
 Angola;AO;D2-D3
 Anguilla;AI;VP2E
 Annobon Island;GQ;3C0
-Antarctica;AQ;CE9-KC4
+Antarctica;AQ;CE9-KC4A-KC4U
 Antigua and Barbuda;AG;V2
 Argentina;AR;LO-LP-LQ-LR-LS-LT-LU-LV-LW
 Armenia;AM;EK
@@ -88,7 +88,7 @@ Eastern Kiribati (Line Island);KI;T32
 Ecuador;EC;HC-HD
 Egypt;EG;SU
 El Salvador;SV;YS-HU
-England;GB;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-MB-MM-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GB-GX
+England;EN;2E-M0-M1-M2-M3-M4-M5-M6-M7-M8-M9-MB-MX-G0-G1-G2-G3-G4-G5-G6-G7-G8-G9-GB-GX
 Equatorial Guinea;GQ;3C
 Eritrea;ER;E3
 Estonia;EE;ES
@@ -139,7 +139,7 @@ Israel;IL;4X-4Z
 Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IK-IN-IQ-IR-IS-IT-IU-IV-IW-IZ
 Jamaica;JM;6Y
 Jan Mayen;NO;JX
-Japan;JP;JA-JB-JC-JD-JE-JF-JG-JH-JI-JJ-JK-JL-JM-JN-JO-JP-JQ-JR-JS-7J-7K-7L-7M-7N
+Japan;JP;JA-JB-JC-JD-JE-JF-JG-JH-JI-JJ-JK-JL-JM-JN-JO-JP-JQ-JR-JS-7J-7K-7L-7M-7N-8N
 Jersey;JE;GJ-GH
 Johnston Island;US;KH3
 Jordan;JO;JY
@@ -148,7 +148,7 @@ Kazakhstan;KZ;UN-UO-UP-UQ
 Kenya;KE;5Y-5Z
 Kermadec Islands;NZ;ZL8
 Korea Democratic People's Republic of;KP;P5
-Korea Republic of;KR;HL-6K-6L-6M-6N
+Korea Republic of;KR;HL-6K-6L-6M-6N-DS
 Kure Island;US;KH7K
 Kuwait;KW;9K
 Kyrgyzstan;KG;EX
@@ -203,7 +203,7 @@ Niger;NE;5U
 Nigeria;NG;5N
 Niue;NU;ZK2
 Norfolk Island;NF;VK9N
-Northern Ireland;NIE;GI-GN
+Northern Ireland;NIE;MI-GI-GN-2I
 Northern Mariana Islands;MP;KH0
 Norway;NO;LA-LB-LC-LD-LE-LF-LG-LH-LI-LJ-LK-LL-LM-LN
 Oman;OM;A4-YP-YQ-YR
@@ -242,7 +242,7 @@ Sao Tome and Principe;ST;S9
 Sardinia;IT;IS0-IM0
 Saudi Arabia;SA;HZ
 Scarborough Reef;;BS7
-Scotland;SH;GM-GS-2M0
+Scotland;SH;GM-GS-MM-2M0
 Senegal;SN;6V-6W
 Serbia;RS;YT-YU
 Seychelles;SC;S7
@@ -299,7 +299,7 @@ Virgin Islands U.S.;VI;KP2
 Wake Island;US;KH9
 Wales;WL;2W-GC-GW-MW
 Wallis and Futuna;WF;FW
-West Malaysia;MY;9M2-9M4
+West Malaysia;MY;9M2-9M4-9W2
 Western Kiribati (Gilbert Island);KI;T30
 Western Sahara;EH;S0
 Willis Island;AU;VK9W

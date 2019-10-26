@@ -1,9 +1,9 @@
 //
-//  cdvlastframepacket.h
+//  cwiresxpacketqueue.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 03/11/2015.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 09/10/2019.
+//  Copyright © 2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -19,44 +19,36 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cdvlastframepacket_h
-#define cdvlastframepacket_h
+#ifndef cwiresxpacketqueue_h
+#define cwiresxpacketqueue_h
 
-
-#include "cdvframepacket.h"
+#include "cwiresxpacket.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// defines
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CDvLastFramePacket : public CDvFramePacket
+class CWiresxPacketQueue : public std::queue<CWiresxPacket>
 {
 public:
     // constructor
-    CDvLastFramePacket();
-    CDvLastFramePacket(const struct dstar_dvframe *, uint16, uint8);
-    CDvLastFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
-    CDvLastFramePacket(const uint8 *, uint16, uint8, uint8, uint8);
-    CDvLastFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
-    CDvLastFramePacket(const CDvLastFramePacket &);
+    CWiresxPacketQueue() {};
     
     // destructor
-    virtual ~CDvLastFramePacket() {};
+    ~CWiresxPacketQueue() {};
     
-    // virtual duplication
-    CPacket *Duplicate(void) const;
+    // lock
+    void Lock()                 { m_Mutex.lock(); }
+    void Unlock()               { m_Mutex.unlock(); }
     
-    // identity
-    bool IsLastPacket(void) const           { return true; }
-    bool HaveTranscodableAmbe(void) const   { return false; }
+protected:
+    // status
+    std::mutex  m_Mutex;
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdvlastframepacket_h */
+#endif /* cwiresxpacketqueue_h */

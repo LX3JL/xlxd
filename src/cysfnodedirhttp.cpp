@@ -1,9 +1,9 @@
 //
-//  cdmriddirhttp.cpp
+//  cysfnodedirhttp.cpp
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 29/12/2017.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 08/10/2019.
+//  Copyright © 2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -25,67 +25,70 @@
 #include <string.h>
 #include "main.h"
 #include "creflector.h"
-#include "cdmriddirhttp.h"
+#include "cysfnodedirhttp.h"
 
-#if (DMRIDDB_USE_RLX_SERVER == 1)
-CDmridDirHttp g_DmridDir;
+#if (YSFNODEDB_USE_RLX_SERVER == 1)
+CYsfNodeDirHttp g_YsfNodeDir;
 #endif
-
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // refresh
 
-bool CDmridDirHttp::LoadContent(CBuffer *buffer)
+bool CYsfNodeDirHttp::LoadContent(CBuffer *buffer)
 {
     // get file from xlxapi server
-    return HttpGet("xlxapi.rlx.lu", "api/exportdmr.php", 80, buffer);
+    return HttpGet("xlxapi.rlx.lu", "api/exportysfrepeaters.php", 80, buffer);
 }
 
-bool CDmridDirHttp::RefreshContent(const CBuffer &buffer)
+bool CYsfNodeDirHttp::RefreshContent(const CBuffer &buffer)
 {
     bool ok = false;
 
     // clear directory
-    m_CallsignMap.clear();
-    m_DmridMap.clear();
+    clear();
     
-    // scan file
+    // scan buffer
     if ( buffer.size() > 0 )
     {
+        // crack it
         char *ptr1 = (char *)buffer.data();
         char *ptr2;
+        
         // get next line
         while ( (ptr2 = ::strchr(ptr1, '\n')) != NULL )
         {
             *ptr2 = 0;
             // get items
-            char *dmrid;
             char *callsign;
-            if ( ((dmrid = ::strtok(ptr1, ";")) != NULL) && IsValidDmrid(dmrid) )
+            char *txfreq;
+            char *rxfreq;
+            if ( ((callsign = ::strtok(ptr1, ";")) != NULL) )
             {
-                if ( ((callsign = ::strtok(NULL, ";")) != NULL) )
+                if ( ((txfreq = ::strtok(NULL, ";")) != NULL) )
                 {
-                    // new entry
-                    uint32 ui = atoi(dmrid);
-                    CCallsign cs(callsign, ui);
-                    if ( cs.IsValid() )
+                    if ( ((rxfreq = ::strtok(NULL, ";")) != NULL) )
                     {
-                        m_CallsignMap.insert(std::pair<uint32,CCallsign>(ui, cs));
-                        m_DmridMap.insert(std::pair<CCallsign,uint32>(cs,ui));
+                        // new entry
+                        CCallsign cs(callsign);
+                        CYsfNode node(cs, atoi(txfreq), atoi(rxfreq));
+                        if ( cs.IsValid() && node.IsValid() )
+                        {
+                            insert(std::pair<CCallsign, CYsfNode>(cs, node));
+                        }
                     }
                 }
             }
             // next line
             ptr1 = ptr2+1;
         }
+        
         // done
         ok = true;
     }
     
     // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR ids from xlxapi.rlx.lu database " << std::endl;
+    std::cout << "Read " << size() << " YSF nodes from xlxapi.rlx.lu database " << std::endl;
     
     // done
     return ok;
@@ -95,9 +98,9 @@ bool CDmridDirHttp::RefreshContent(const CBuffer &buffer)
 ////////////////////////////////////////////////////////////////////////////////////////
 // httpd helpers
 
-#define DMRID_HTTPGET_SIZEMAX       (256)
+#define YSFNODE_HTTPGET_SIZEMAX       (256)
 
-bool CDmridDirHttp::HttpGet(const char *hostname, const char *filename, int port, CBuffer *buffer)
+bool CYsfNodeDirHttp::HttpGet(const char *hostname, const char *filename, int port, CBuffer *buffer)
 {
     bool ok = false;
     int sock_id;
@@ -120,7 +123,7 @@ bool CDmridDirHttp::HttpGet(const char *hostname, const char *filename, int port
             if ( ::connect(sock_id, (struct sockaddr *)&servaddr, sizeof(servaddr)) == 0)
             {
                 // send the GET request
-                char request[DMRID_HTTPGET_SIZEMAX];
+                char request[YSFNODE_HTTPGET_SIZEMAX];
                 ::sprintf(request, "GET /%s HTTP/1.0\r\nFrom: %s\r\nUser-Agent: xlxd\r\n\r\n",
                           filename, (const char *)g_Reflector.GetCallsign());
                 ::write(sock_id, request, strlen(request));

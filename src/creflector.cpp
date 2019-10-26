@@ -29,6 +29,8 @@
 #include "cdmriddirfile.h"
 #include "cdmriddirhttp.h"
 #include "ctranscoder.h"
+#include "cysfnodedirfile.h"
+#include "cysfnodedirhttp.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
@@ -43,7 +45,7 @@ CReflector::CReflector()
         m_RouterThreads[i] = NULL;
     }
 #ifdef DEBUG_DUMPFILE
-    m_DebugFile.open("/Users/jeanluc/Desktop/dmrdebug.txt");
+    m_DebugFile.open("/Users/jeanluc/Desktop/xlxdebug.txt");
 #endif
 }
 
@@ -104,6 +106,9 @@ bool CReflector::Start(void)
     
     // init dmrid directory
     g_DmridDir.Init();
+    
+    // init wiresx node directory
+    g_YsfNodeDir.Init();
     
     // init the transcoder
     g_Transcoder.Init();
@@ -173,6 +178,11 @@ void CReflector::Stop(void)
     
     // close gatekeeper
     g_GateKeeper.Close();
+    
+    // close databases
+    g_DmridDir.Close();
+    g_YsfNodeDir.Close();
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -389,7 +399,7 @@ void CReflector::XmlReportThread(CReflector *This)
             // and close file
             xmlFile.close();
         }
-#ifndef NO_ERROR_ON_XML_OPEN_FAIL
+#ifndef DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
         else
         {
             std::cout << "Failed to open " << XML_PATH  << std::endl;

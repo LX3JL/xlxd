@@ -62,6 +62,7 @@ public:
     
     // debug
     void DebugDump(std::ofstream &) const;
+    void DebugDumpAscii(std::ofstream &) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

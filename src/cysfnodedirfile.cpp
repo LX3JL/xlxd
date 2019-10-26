@@ -1,9 +1,9 @@
 //
-//  cdmriddirfile.cpp
+//  cysfnodedirfile.cpp
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 29/12/2017.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 08/10/2019.
+//  Copyright © 2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -26,34 +26,33 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "main.h"
-#include "cdmriddirfile.h"
+#include "cysfnodedirfile.h"
 
 
-#if (DMRIDDB_USE_RLX_SERVER == 0)
-CDmridDirFile g_DmridDir;
+#if (YSFNODEDB_USE_RLX_SERVER == 0)
+CYsfNodeDirFile   g_YsfNodeDir;
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor & destructor
 
-CDmridDirFile::CDmridDirFile()
+CYsfNodeDirFile::CYsfNodeDirFile()
 {
     ::memset(&m_LastModTime, 0, sizeof(time_t));
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // init & close
 
-bool CDmridDirFile::Init(void)
+bool CYsfNodeDirFile::Init(void)
 {
-    return CDmridDir::Init();
+    return CYsfNodeDir::Init();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // refresh
 
-bool CDmridDirFile::NeedReload(void)
+bool CYsfNodeDirFile::NeedReload(void)
 {
     bool needReload = false;
     
@@ -65,14 +64,14 @@ bool CDmridDirFile::NeedReload(void)
     return needReload;
 }
 
-bool CDmridDirFile::LoadContent(CBuffer *buffer)
+bool CYsfNodeDirFile::LoadContent(CBuffer *buffer)
 {
     bool ok = false;
     std::ifstream file;
     std::streampos size;
     
     // open file
-    file.open(DMRIDDB_PATH, std::ios::in | std::ios::binary | std::ios::ate);
+    file.open(YSFNODEDB_PATH, std::ios::in | std::ios::binary | std::ios::ate);
     if ( file.is_open() )
     {
         // read file
@@ -99,15 +98,14 @@ bool CDmridDirFile::LoadContent(CBuffer *buffer)
     return ok;
 }
 
-bool CDmridDirFile::RefreshContent(const CBuffer &buffer)
+bool CYsfNodeDirFile::RefreshContent(const CBuffer &buffer)
 {
     bool ok = false;
     
     // clear directory
-    m_CallsignMap.clear();
-    m_DmridMap.clear();
+    clear();
     
-    // scan buffer
+    // scan buffer    
     if ( buffer.size() > 0 )
     {
         // crack it
@@ -119,19 +117,22 @@ bool CDmridDirFile::RefreshContent(const CBuffer &buffer)
         {
             *ptr2 = 0;
             // get items
-            char *dmrid;
             char *callsign;
-            if ( ((dmrid = ::strtok(ptr1, ";")) != NULL) && IsValidDmrid(dmrid) )
+            char *txfreq;
+            char *rxfreq;
+            if ( ((callsign = ::strtok(ptr1, ";")) != NULL) )
             {
-                if ( ((callsign = ::strtok(NULL, ";")) != NULL) )
+                if ( ((txfreq = ::strtok(NULL, ";")) != NULL) )
                 {
-                    // new entry
-                    uint32 ui = atoi(dmrid);
-                    CCallsign cs(callsign, ui);
-                    if ( cs.IsValid() )
+                    if ( ((rxfreq = ::strtok(NULL, ";")) != NULL) )
                     {
-                        m_CallsignMap.insert(std::pair<uint32,CCallsign>(ui, cs));
-                        m_DmridMap.insert(std::pair<CCallsign,uint32>(cs,ui));
+                        // new entry
+                        CCallsign cs(callsign);
+                        CYsfNode node(cs, atoi(txfreq), atoi(rxfreq));
+                        if ( cs.IsValid() && node.IsValid() )
+                        {
+                            insert(std::pair<CCallsign, CYsfNode>(cs, node));
+                        }
                     }
                 }
             }
@@ -142,21 +143,22 @@ bool CDmridDirFile::RefreshContent(const CBuffer &buffer)
         // done
         ok = true;
     }
+
     
     // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR ids from file " << DMRIDDB_PATH << std::endl;
+    std::cout << "Read " << size() << " YSF nodes from file " << YSFNODEDB_PATH << std::endl;
     
     // done
     return ok;
 }
 
 
-bool CDmridDirFile::GetLastModTime(time_t *time)
+bool CYsfNodeDirFile::GetLastModTime(time_t *time)
 {
     bool ok = false;
     
     struct stat fileStat;
-    if( ::stat(DMRIDDB_PATH, &fileStat) != -1 )
+    if( ::stat(YSFNODEDB_PATH, &fileStat) != -1 )
     {
         *time = fileStat.st_mtime;
         ok = true;

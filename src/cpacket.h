@@ -42,7 +42,8 @@ public:
     CPacket();
     CPacket(uint16 sid, uint8 dstarpid);
     CPacket(uint16 sid, uint8 dmrpid, uint8 dmrsubpid);
-    CPacket(uint16 sid, uint8 dstarpid, uint8 dmrpid, uint8 dmrsubpid);
+    CPacket(uint16 sid, uint8 ysfpid, uint8 ysfsubpid, uint8 ysfsubpidmax);
+    CPacket(uint16 sid, uint8 dstarpid, uint8 dmrpid, uint8 dmrsubpid, uint8 ysfpid, uint8 ysfsubpid, uint8 ysfsubpidmax);
     
     // destructor
     virtual ~CPacket() {};
@@ -63,6 +64,9 @@ public:
     uint8  GetDstarPacketId(void) const             { return m_uiDstarPacketId; }
     uint8  GetDmrPacketId(void) const               { return m_uiDmrPacketId; }
     uint8  GetDmrPacketSubid(void) const            { return m_uiDmrPacketSubid; }
+    uint8  GetYsfPacketId(void) const               { return m_uiYsfPacketId; }
+    uint8  GetYsfPacketSubId(void) const            { return m_uiYsfPacketSubId; }
+    uint8  GetYsfPacketFrameId(void) const          { return m_uiYsfPacketFrameId; }
     uint8  GetModuleId(void) const                  { return m_uiModuleId; }
     bool   IsLocalOrigin(void) const                { return (m_uiOriginId == ORIGIN_LOCAL); }
     
@@ -78,6 +82,9 @@ protected:
     uint8   m_uiDstarPacketId;
     uint8   m_uiDmrPacketId;
     uint8   m_uiDmrPacketSubid;
+    uint8   m_uiYsfPacketId;
+    uint8   m_uiYsfPacketSubId;
+    uint8   m_uiYsfPacketFrameId;
     uint8   m_uiModuleId;
     uint8   m_uiOriginId;
 };

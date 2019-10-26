@@ -1,9 +1,9 @@
 //
-//  cdvlastframepacket.h
+//  cysfnode.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 03/11/2015.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Jean-Luc Deltombe (LX3JL) on 08/10/2019.
+//  Copyright © 2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -19,44 +19,44 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cdvlastframepacket_h
-#define cdvlastframepacket_h
+#ifndef cysfnode_h
+#define cysfnode_h
 
-
-#include "cdvframepacket.h"
+#include "main.h"
+#include "ccallsign.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// defines
+// define
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CDvLastFramePacket : public CDvFramePacket
+class CYsfNode
 {
 public:
     // constructor
-    CDvLastFramePacket();
-    CDvLastFramePacket(const struct dstar_dvframe *, uint16, uint8);
-    CDvLastFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
-    CDvLastFramePacket(const uint8 *, uint16, uint8, uint8, uint8);
-    CDvLastFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
-    CDvLastFramePacket(const CDvLastFramePacket &);
+    CYsfNode();
+    CYsfNode(const CCallsign &, uint32, uint32);
+    CYsfNode(const CYsfNode &);
     
     // destructor
-    virtual ~CDvLastFramePacket() {};
+    virtual ~CYsfNode() {}
     
-    // virtual duplication
-    CPacket *Duplicate(void) const;
+    // get
+    uint32  GetTxFrequency(void) const          { return m_uiTxFreq; }
+    uint32  GetRxFrequency(void) const          { return m_uiRxFreq; }
+    bool       IsValid(void) const;
     
-    // identity
-    bool IsLastPacket(void) const           { return true; }
-    bool HaveTranscodableAmbe(void) const   { return false; }
+protected:
+    // data
+    CCallsign   m_Callsign;
+    uint32      m_uiTxFreq;
+    uint32      m_uiRxFreq;
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdvlastframepacket_h */
+#endif /* cysfnode_h */

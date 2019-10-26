@@ -54,7 +54,7 @@ Please use the stable version listed above, we cannot support others.
 ```
  # nano /xlxd/src/main.h
 
- For YSF you need to define a default HotSpot frrequency !!!
+ For YSF you need to define a default HotSpot frequency !!!
 
 ```
 ###### Download and compile the XLX sources

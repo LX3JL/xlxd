@@ -113,7 +113,7 @@ protected:
     bool IsValidwirexPacket(const CBuffer &, CYSFFICH *, CCallsign *, int *, int*);
     
     // uiStreamId helpers
-    uint32 IpToStreamId(const CIp &) const;
+    uint32 CreateStreamId(void) const;
     
     // debug
     bool DebugTestDecodePacket(const CBuffer &);
@@ -127,6 +127,9 @@ protected:
     
     // for queue header caches
     std::array<CYsfStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
+    
+    // random number generator
+    mutable std::mt19937 m_Random;
     
     // for wires-x
     CWiresxCmdHandler   m_WiresxCmdHandler;

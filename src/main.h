@@ -3,7 +3,7 @@
 //  xlxd
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
-//  Copyright © 2015-2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -49,7 +49,7 @@
 
 #define VERSION_MAJOR                   2
 #define VERSION_MINOR                   3
-#define VERSION_REVISION                1
+#define VERSION_REVISION                2
 
 // global ------------------------------------------------------
 
@@ -120,6 +120,8 @@
 #define YSF_KEEPALIVE_TIMEOUT           (YSF_KEEPALIVE_PERIOD*10)           // in seconds
 #define YSF_DEFAULT_NODE_TX_FREQ        437000000                           // in Hz
 #define YSF_DEFAULT_NODE_RX_FREQ        437000000                           // in Hz
+#define YSF_AUTOLINK_ENABLE             0                                   // 1 = enable, 0 = disable auto-link
+#define YSF_AUTOLINK_MODULE             'B'                                 // module for client to auto-link to
 
 
 // Transcoder server --------------------------------------------

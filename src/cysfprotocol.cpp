@@ -176,6 +176,11 @@ void CYsfProtocol::Task(void)
                     // create the client
                     CYsfClient *newclient = new CYsfClient(Callsign, Ip);
                     
+                    // aautolink, if enabled
+                    #if YSF_AUTOLINK_ENABLE
+                        newclient->SetReflectorModule(YSF_AUTOLINK_MODULE);
+                    #endif
+                    
                     // and append
                     clients->AddClient(newclient);
                 }

@@ -177,9 +177,12 @@ CPacketStream *CProtocol::GetStream(uint16 uiStreamId, const CIp *Ip)
         if ( m_Streams[i]->GetStreamId() == uiStreamId )
         {
             // if Ip not NULL, also check if IP match
-            if ( (Ip != NULL) && (*Ip == *(m_Streams[i]->GetOwnerIp())) )
+            if ( (Ip != NULL) && (m_Streams[i]->GetOwnerIp() != NULL) )
             {
-                stream = m_Streams[i];
+                if ( *Ip == *(m_Streams[i]->GetOwnerIp()) )
+                {
+                    stream = m_Streams[i];
+                }
             }
         }
     }

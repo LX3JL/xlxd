@@ -1,9 +1,9 @@
 //
-//  cudpsocket.h
+//  cg3client.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Marius Petrescu (YO2LOJ) on 03/06/2019.
+//  Copyright © 2019 Marius Petrescu (YO2LOJ). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,59 +22,41 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
 // ----------------------------------------------------------------------------
 
-#ifndef cudpsocket_h
-#define cudpsocket_h
+#ifndef cg3client_h
+#define cg3client_h
 
-#include <sys/types.h>
-//#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <arpa/inet.h>
-
-#include "cip.h"
-#include "cbuffer.h"
+#include "cclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
-
-#define UDP_BUFFER_LENMAX       1024
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CUdpSocket
+class CG3Client : public CClient
 {
 public:
-    // constructor
-    CUdpSocket();
+    // constructors
+    CG3Client();
+    CG3Client(const CCallsign &, const CIp &, char = ' ');
+    CG3Client(const CG3Client &);
     
     // destructor
-    ~CUdpSocket();
+    virtual ~CG3Client() {};
     
-    // open & close
-    bool Open(uint16);
-    void Close(void);
-    int  GetSocket(void)        { return m_Socket; }
+    // identity
+    int GetProtocol(void) const                 { return PROTOCOL_G3; }
+    const char *GetProtocolName(void) const     { return "Terminal/AP"; }
+    int GetCodec(void) const                    { return CODEC_AMBEPLUS; }
+    bool IsNode(void) const                     { return true; }
     
-    // read
-    int Receive(CBuffer *, CIp *, int);
-    
-    // write
-    int Send(const CBuffer &, const CIp &);
-    int Send(const CBuffer &, const CIp &, uint16);
-    int Send(const char *, const CIp &);
-    int Send(const char *, const CIp &, uint16);
-    
-    struct in_addr *GetLocalAddr(void)   { return &m_LocalAddr; }
+    // status
+    bool IsAlive(void) const;
+
 protected:
     // data
-    int                 m_Socket;
-    struct sockaddr_in  m_SocketAddr;
-    struct in_addr      m_LocalAddr;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cudpsocket_h */
+#endif /* cg3client_h */

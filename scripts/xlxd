@@ -19,7 +19,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 # change below settings according to your system
 NAME="xlxd"
 DAEMON="/xlxd/xlxd"
-ARGUMENTS="XLX270 158.64.26.132"
+ARGUMENTS="XLX999 192.168.1.240 127.0.0.1"
 PIDFILE="/var/log/xlxd.pid"
 USER=root
 GROUP=root

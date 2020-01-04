@@ -112,6 +112,13 @@ protected:
     // Wires-X packet decoding helpers
     bool IsValidwirexPacket(const CBuffer &, CYSFFICH *, CCallsign *, int *, int*);
     
+    // server status packet decoding helpers
+    bool IsValidServerStatusPacket(const CBuffer &) const;
+    uint32 CalcHash(const uint8 *, int) const;
+    
+    // server status packet encoding helpers
+    bool EncodeServerStatusPacket(CBuffer *) const;
+    
     // uiStreamId helpers
     uint32 IpToStreamId(const CIp &) const;
     

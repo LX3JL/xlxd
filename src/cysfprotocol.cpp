@@ -200,7 +200,14 @@ void CYsfProtocol::Task(void)
             // and post it to hadler's queue
             m_WiresxCmdHandler.GetCmdQueue()->push(WiresxCmd);
             m_WiresxCmdHandler.ReleaseCmdQueue();
-         }
+        }
+        else if ( IsValidServerStatusPacket(Buffer) )
+        {
+            std::cout << "YSF server status enquiry from " << Ip   << std::endl;
+            // reply
+            EncodeServerStatusPacket(&Buffer);
+            m_Socket.Send(Buffer, Ip);
+        }
         else
         {
             // invalid packet
@@ -926,6 +933,63 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, CYSFFICH *Fich, CCa
     }
     return valid;
 }
+
+// server status packet decoding helpers
+
+bool CYsfProtocol::IsValidServerStatusPacket(const CBuffer &Buffer) const
+{
+    uint8 tag[] = { 'Y','S','F','S' };
+     
+    return ( (Buffer.size() >= 4) && (Buffer.Compare(tag, sizeof(tag)) == 0) );
+}
+
+// server status packet encoding helpers
+
+bool CYsfProtocol::EncodeServerStatusPacket(CBuffer *Buffer) const
+{
+    uint8 tag[] = { 'Y','S','F','S' };
+    uint8 callsign[16];
+     
+    // tag
+    Buffer->Set(tag, sizeof(tag));
+    // hash
+    ::memset(callsign, ' ', sizeof(callsign));
+    g_Reflector.GetCallsign().GetCallsign(callsign);
+    char sz[16];
+    ::sprintf(sz, "%05u", CalcHash(callsign, 16) % 100000U);
+    Buffer->Append((uint8 *)sz, 5);
+    // name
+    Buffer->Append(callsign, 16);
+    // desscription
+    Buffer->Append(' ', 14);
+    // connected clients
+    CClients *clients = g_Reflector.GetClients();
+    int count = MIN(999, clients->GetSize());
+    g_Reflector.ReleaseClients();
+    ::sprintf(sz, "%03u", count);
+    Buffer->Append((uint8 *)sz, 3);
+    
+    // done
+    return true;
+}
+
+uint32 CYsfProtocol::CalcHash(const uint8 *buffer, int len) const
+{
+    uint32 hash = 0U;
+
+    for ( int i = 0; i < len; i++)
+    {
+        hash += buffer[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+
+    return hash;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // uiStreamId helpers

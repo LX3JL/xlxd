@@ -948,6 +948,7 @@ bool CYsfProtocol::IsValidServerStatusPacket(const CBuffer &Buffer) const
 bool CYsfProtocol::EncodeServerStatusPacket(CBuffer *Buffer) const
 {
     uint8 tag[] = { 'Y','S','F','S' };
+    uint8 description[] = { 'X','L','X',' ','r','e','f','l','e','c','t','o','r',' ' };
     uint8 callsign[16];
      
     // tag
@@ -961,7 +962,7 @@ bool CYsfProtocol::EncodeServerStatusPacket(CBuffer *Buffer) const
     // name
     Buffer->Append(callsign, 16);
     // desscription
-    Buffer->Append(' ', 14);
+    Buffer->Append(description, 14);
     // connected clients
     CClients *clients = g_Reflector.GetClients();
     int count = MIN(999, clients->GetSize());

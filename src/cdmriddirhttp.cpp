@@ -70,6 +70,7 @@ bool CDmridDirHttp::RefreshContent(const CBuffer &buffer)
                     // new entry
                     uint32 ui = atoi(dmrid);
                     CCallsign cs(callsign, ui);
+                    cs.SetSuffix("DMR");
                     if ( cs.IsValid() )
                     {
                         m_CallsignMap.insert(std::pair<uint32,CCallsign>(ui, cs));

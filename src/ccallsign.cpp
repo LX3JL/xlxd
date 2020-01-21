@@ -110,22 +110,34 @@ bool CCallsign::IsValid(void) const
         }
     }
     valid &= (iNum < 3);
-    // all remaining char are letter, number or space
+    // all remaining char are letter, number or space (or underscore in extended checks)
     for ( ; i < CALLSIGN_LEN; i++)
     {
+#ifdef EXTENDED_DMRID_CHECKS
+        valid &= IsLetter(m_Callsign[i]) || IsNumber(m_Callsign[i]) || IsSpace(m_Callsign[i]) || IsUnderscore(m_Callsign[i]);
+#else
         valid &= IsLetter(m_Callsign[i]) || IsNumber(m_Callsign[i]) || IsSpace(m_Callsign[i]);
+#endif
     }
     
     // prefix
-    // all chars are number, uppercase or space
+    // all chars are number, uppercase or space (or underscore  in extend checks)
     for ( i = 0; i < CALLSUFFIX_LEN; i++ )
     {
+#ifdef EXTENDED_DMRID_CHECKS
+        valid &= IsLetter(m_Suffix[i]) || IsNumber(m_Suffix[i]) || IsSpace(m_Suffix[i]) || IsUnderscore(m_Suffix[i]);
+#else
         valid &= IsLetter(m_Suffix[i]) || IsNumber(m_Suffix[i]) || IsSpace(m_Suffix[i]);
+#endif
     }
     
     // module
     // is an letter or space
+#ifdef EXTENDED_DMRID_CHECKS
+    valid &= IsLetter(m_Module) || IsSpace(m_Module) || IsNumber(m_Module);
+#else
     valid &= IsLetter(m_Module) || IsSpace(m_Module);
+#endif
     
     // dmrid is not tested, as it can be NULL
     // if station does is not dmr registered
@@ -360,6 +372,13 @@ bool CCallsign::IsLetter(char c) const
 {
     return ((c >= 'A') && (c <= 'Z'));
 }
+
+#ifdef EXTENDED_DMRID_CHECKS
+bool CCallsign::IsUnderscore(char c) const
+{
+    return (c == '_');
+}
+#endif
 
 bool CCallsign::IsSpace(char c) const
 {

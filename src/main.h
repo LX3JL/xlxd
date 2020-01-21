@@ -144,6 +144,11 @@
 #define DMRIDDB_PATH                    "/xlxd/dmrid.dat"                   // local file path
 #define DMRIDDB_REFRESH_RATE            180                                 // in minutes
 
+// Extended DMR ID checks ---------------------------------------
+
+//#define EXTENDED_DMRID_CHECKS                                             // Also allow extended "callsigns" like "IPSC_EU2" 
+                                                                            // used for incoming DMR-DL master connections
+
 // Wires-X node database ----------------------------------------
 
 #define YSFNODEDB_USE_RLX_SERVER        1                                   // 1 = use http, 0 = use local file

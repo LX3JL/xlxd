@@ -85,6 +85,9 @@ protected:
     bool IsNumber(char) const;
     bool IsLetter(char) const;
     bool IsSpace(char) const;
+#ifdef EXTENDED_DMRID_CHECKS
+    bool IsUnderscore(char) const;
+#endif
     
 protected:
     // data

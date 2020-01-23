@@ -158,6 +158,9 @@
 #define YSFNODEDB_PATH                  "/xlxd/ysfnode.dat"                 // local file path
 #define YSFNODEDB_REFRESH_RATE          180                                 // in minutes
 
+//Set to 1 to get rid of Suffixes for legal reasons e.g. LX
+#define REMOVE_CALLSIGN_SUFFIX          0
+
 // xml & json reporting -----------------------------------------
 
 #define LASTHEARD_USERS_MAX_SIZE        100

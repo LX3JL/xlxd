@@ -68,6 +68,7 @@ CDvHeaderPacket::CDvHeaderPacket(uint32 my, const CCallsign &ur, const CCallsign
     m_csRPT1 = rpt1;
     m_csRPT2 = rpt2;
     m_csMY = CCallsign("", my);
+    m_csMY.SetSuffix("DMR");
 }
 
 // YSF constructor
@@ -83,6 +84,7 @@ CDvHeaderPacket::CDvHeaderPacket(const CCallsign &my, const CCallsign &ur, const
     m_csRPT1 = rpt1;
     m_csRPT2 = rpt2;
     m_csMY = my;
+    m_csMY.SetSuffix("YSF");
 }
 
 

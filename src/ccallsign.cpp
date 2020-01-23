@@ -61,31 +61,38 @@ CCallsign::CCallsign(const char *sz, uint32 dmrid)
         // dmrid ok ?
         if ( m_uiDmrid == 0 )
         {
-			g_DmridDir.Lock();
-			{
-            	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+            g_DmridDir.Lock();
+            {
+                m_uiDmrid = g_DmridDir.FindDmrid(*this);
             }
             g_DmridDir.Unlock();
         }
     }
     else if ( m_uiDmrid != 0 )
     {
-    	g_DmridDir.Lock();
-    	{
-			const CCallsign *callsign = g_DmridDir.FindCallsign(m_uiDmrid);
-			if ( callsign != NULL )
-			{
-				::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
-			}
-		}
-		g_DmridDir.Unlock();
+        g_DmridDir.Lock();
+        {
+            const CCallsign *callsign = g_DmridDir.FindCallsign(m_uiDmrid);
+            if ( callsign != NULL )
+            {
+                ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+#if (REMOVE_CALLSIGN_SUFFIX == 1)
+                ::memcpy(m_Suffix, callsign->m_Suffix, sizeof(m_Suffix));
+#endif
+            }
+        }
+        g_DmridDir.Unlock();
     }
 }
 
 CCallsign::CCallsign(const CCallsign &callsign)
 {
     ::memcpy(m_Callsign, callsign.m_Callsign, sizeof(m_Callsign));
+#if (REMOVE_CALLSIGN_SUFFIX == 1)
+    ::memset(m_Suffix, ' ', sizeof(m_Suffix));
+#else
     ::memcpy(m_Suffix, callsign.m_Suffix, sizeof(m_Suffix));
+#endif
     m_Module = callsign.m_Module;
     m_uiDmrid = callsign.m_uiDmrid;
 }
@@ -160,9 +167,9 @@ void CCallsign::SetCallsign(const char *sz, bool UpdateDmrid)
     // and update dmrid
     if ( UpdateDmrid )
     {
-    	g_DmridDir.Lock();
-    	{
-        	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+        g_DmridDir.Lock();
+        {
+            m_uiDmrid = g_DmridDir.FindDmrid(*this);
         }
         g_DmridDir.Unlock();
     }
@@ -187,9 +194,9 @@ void CCallsign::SetCallsign(const uint8 *buffer, int len, bool UpdateDmrid)
     }
     if ( UpdateDmrid )
     {
-    	g_DmridDir.Lock();
-    	{
-        	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+        g_DmridDir.Lock();
+        {
+            m_uiDmrid = g_DmridDir.FindDmrid(*this);
         }
         g_DmridDir.Unlock();
     }
@@ -200,15 +207,15 @@ void CCallsign::SetDmrid(uint32 dmrid, bool UpdateCallsign)
     m_uiDmrid = dmrid;
     if ( UpdateCallsign )
     {
-    	g_DmridDir.Lock();
-    	{
-			const CCallsign *callsign = g_DmridDir.FindCallsign(dmrid);
-			if ( callsign != NULL )
-			{
-				::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
-			}
-		}
-		g_DmridDir.Unlock();
+        g_DmridDir.Lock();
+        {
+            const CCallsign *callsign = g_DmridDir.FindCallsign(dmrid);
+            if ( callsign != NULL )
+            {
+                ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+            }
+        }
+        g_DmridDir.Unlock();
     }
 }
 
@@ -229,14 +236,18 @@ void CCallsign::SetModule(char c)
 void CCallsign::SetSuffix(const char *sz)
 {
     ::memset(m_Suffix, ' ', sizeof(m_Suffix));
+#if (REMOVE_CALLSIGN_SUFFIX == 1)    
     ::memcpy(m_Suffix, sz, MIN(strlen(sz), sizeof(m_Suffix)));
+#endif
 }
 
 void CCallsign::SetSuffix(const uint8 *buffer, int len)
 {
-    len = MIN(len, sizeof(m_Suffix));
     ::memset(m_Suffix, ' ', sizeof(m_Suffix));
+#if (REMOVE_CALLSIGN_SUFFIX == 0)    
+    len = MIN(len, sizeof(m_Suffix));
     ::memcpy(m_Suffix, buffer, len);
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -325,17 +336,17 @@ bool CCallsign::operator ==(const CCallsign &callsign) const
 
 CCallsign::operator const char *() const
 {
-	char *sz = (char *)(const char *)m_sz;
-	
-	// empty
-	::memset(sz, 0, sizeof(m_sz));	
+    char *sz = (char *)(const char *)m_sz;
+    
+    // empty
+    ::memset(sz, 0, sizeof(m_sz));    
     // callsign
     sz[CALLSIGN_LEN] = 0;
     ::memcpy(sz, m_Callsign, sizeof(m_Callsign));
     // module
     if ( HasModule() )
     {
-    	sz[sizeof(m_Callsign)] = m_Module;
+        sz[sizeof(m_Callsign)] = m_Module;
     }
     // suffix
     if ( HasSuffix() )

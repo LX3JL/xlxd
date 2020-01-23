@@ -1,4 +1,4 @@
-//
+﻿//
 //  cgatekeeper.cpp
 //  xlxd
 //
@@ -102,6 +102,7 @@ bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol
         case PROTOCOL_DMRPLUS:
         case PROTOCOL_DMRMMDVM:
         case PROTOCOL_YSF:
+        case PROTOCOL_G3:
             // first check is IP & callsigned listed OK
             ok &= IsNodeListedOk(callsign, ip);
             // todo: then apply any protocol specific authorisation for the operation
@@ -143,6 +144,7 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
         case PROTOCOL_DMRPLUS:
         case PROTOCOL_DMRMMDVM:
         case PROTOCOL_YSF:
+        case PROTOCOL_G3:
             // first check is IP & callsigned listed OK
             ok &= IsNodeListedOk(callsign, ip, module);
             // todo: then apply any protocol specific authorisation for the operation

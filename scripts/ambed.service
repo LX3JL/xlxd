@@ -1,0 +1,13 @@
+[Unit]
+Description=AMBE Transcoder Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/xlxd/ambed 127.0.0.1
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target

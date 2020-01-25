@@ -17,6 +17,6 @@ clean:
 	$(RM) $(EXECUTABLE) *.o
 
 install:
-	mkdir -p /ambed
-	cp $(EXECUTABLE) /ambed/
-	cp ./run /ambed/
+	mkdir -p /xlxd
+	cp $(EXECUTABLE) /xlxd/
+	cp ./run /ambed/run-ambed

@@ -3,4 +3,4 @@
 
 sudo rmmod ftdi_sio
 sudo rmmod usbserial
-sudo /ambed/ambed 127.0.0.1 &
+sudo /xlxd/ambed 127.0.0.1 &

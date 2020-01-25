@@ -77,11 +77,11 @@ Follow FTDI provided documentation for installation and testing of the drivers.
 
 3) configuring ambed startup script
 
-# nano /ambed/run
+# nano /xlxd/run-ambed
 
 edit following line to match your IP:
 
-sudo /ambed/ambed 127.0.0.1 &
+sudo /xlxd/ambed 127.0.0.1 &
 
 if ambed is running on same machine than xlxd, use default 127.0.0.1
 otherwise use the machine own IP
@@ -117,4 +117,34 @@ and kill the process
 
 where xxxx is PID found previously.
 
+6) OPTIONAL for Linux - Using a systemd service script to start/stop ambed
+
+From the top of the xlxd source tree, copy scripts/ambed.service 
+to /lib/systemd/system/ambed.service. Then edit
+/lib/systemd/system/ambed.service and change the location of the
+ambed executable or the IP address as necessary. Save the file
+and then issue the following commands:
+
+# systemd daemon-reload
+# systemd restart ambed
+# journalctl -xe
+
+You should see something like:
+
+-- A start job for unit ambed.service has finished successfully.
+--
+-- The job identifier is 1853.
+Jan 25 14:48:24 xcoder ambed[10187]: Starting AMBEd 1.3.4
+Jan 25 14:48:24 xcoder ambed[10187]: Initializing vocodecs:
+Jan 25 14:48:24 xcoder ambed[10187]: Detected 1 USB-FTDI devices
+Jan 25 14:48:24 xcoder ambed[10187]: Description : DVstick-33         Serial : DO3KFHPI
+Jan 25 14:48:24 xcoder ambed[10187]: Opening DVstick-33:DO3KFHPI device
+Jan 25 14:48:24 xcoder ambed[10187]: Trying DF2ET-3003 soft reset
+Jan 25 14:48:24 xcoder ambed[10187]: DF2ET-3003 soft reset succeeded
+Jan 25 14:48:24 xcoder ambed[10187]: ReadDeviceVersion : 0AMBE3003F
+Jan 25 14:48:24 xcoder ambed[10187]: 1V120.E100.XXXX.C106.G514.R008.A0030608.C0020208
+Jan 25 14:48:24 xcoder ambed[10187]: [2B blob data]
+Jan 25 14:48:24 xcoder ambed[10187]: Codec interfaces initialized successfully : 2 channels available
+Jan 25 14:48:24 xcoder ambed[10187]: Initializing controller
+Jan 25 14:48:24 xcoder ambed[10187]: AMBEd started and listening on 127.0.0.1
 

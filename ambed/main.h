@@ -68,8 +68,8 @@
 #define CODEC_AMBE2PLUS                 2
 
 // Transcoding speech gains
-#define CODECGAIN_AMBEPLUS              -10                                  // in dB
-#define CODECGAIN_AMBE2PLUS             +10                                 // in dB
+#define CODECGAIN_AMBEPLUS              -3//-10                                  // in dB
+#define CODECGAIN_AMBE2PLUS             +3//+10                                 // in dB
 
 // Timeouts -----------------------------------------------------
 #define STREAM_ACTIVITY_TIMEOUT         3                                   // in seconds

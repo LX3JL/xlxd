@@ -27,11 +27,11 @@
 #include "cvocodecchannel.h"
 #include "cvocodecinterface.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
 CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVocodecInterface *InterfaceOut, int iChOut, int iSpeechGain)
+: m_AGC((float)iSpeechGain)
 {
     m_bOpen = false;
     m_InterfaceIn = InterfaceIn;

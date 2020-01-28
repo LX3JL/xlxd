@@ -27,6 +27,7 @@
 #define cvocodecchannel_h
 
 #include "cpacketqueue.h"
+#include "cagc.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -53,6 +54,7 @@ public:
     int   GetChannelIn(void) const          { return m_iChannelIn; }
     int   GetChannelOut(void) const         { return m_iChannelOut; }
     int   GetSpeechGain(void) const         { return m_iSpeechGain; }
+    CAGC& GetAGC()                          { return m_AGC; };
     
     // interfaces
     bool IsInterfaceIn(const CVocodecInterface *interface)      { return (interface == m_InterfaceIn); }
@@ -92,6 +94,8 @@ protected:
     // settings
     int                 m_iSpeechGain;
     
+private:
+    CAGC m_AGC;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

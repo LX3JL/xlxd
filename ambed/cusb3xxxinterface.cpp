@@ -152,7 +152,10 @@ void CUsb3xxxInterface::Task(void)
             {
                 Queue = Channel->GetVoiceQueue();
                 CVoicePacket *clone = new CVoicePacket(VoicePacket);
-                clone->ApplyGain(Channel->GetSpeechGain());
+                CAGC agc = Channel->GetAGC();
+                agc.Apply(clone->GetVoice(), clone->GetVoiceSize());
+                std::cout << "Gain : " << agc.GetGain();
+                //clone->ApplyGain(Channel->GetSpeechGain());
                 Queue->push(clone);
                 Channel->ReleaseVoiceQueue();
             }

@@ -28,6 +28,7 @@
 
 #include "cpacketqueue.h"
 #include "cagc.h"
+#include "cvoicepacket.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -54,7 +55,9 @@ public:
     int   GetChannelIn(void) const          { return m_iChannelIn; }
     int   GetChannelOut(void) const         { return m_iChannelOut; }
     int   GetSpeechGain(void) const         { return m_iSpeechGain; }
-    CAGC& GetAGC()                          { return m_AGC; };
+    
+    //Processing
+    void ApplyAGC(CVoicePacket& voicePacket);
     
     // interfaces
     bool IsInterfaceIn(const CVocodecInterface *interface)      { return (interface == m_InterfaceIn); }

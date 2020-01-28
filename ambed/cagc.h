@@ -29,6 +29,7 @@
 #define cagc_h
 
 #include "main.h"
+#include "math.h"
 
 class CAGC
 {
@@ -38,10 +39,9 @@ public:
 
     //methods
     void Apply(uint8 * voice, int size);
-    float GetGain(){ return m_scale; }//gets current gain (linear)
-
+    float GetGain(){ return -20.0f*log10(m_g); }//gets current gain 
+    
 private:
-    // gain variables
     float m_g;            // current gain value
     float m_scale;        // output scale value
 

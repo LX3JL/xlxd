@@ -92,6 +92,12 @@ uint8 CVocodecChannel::GetCodecOut(void) const
     return m_InterfaceOut->GetChannelCodec(m_iChannelOut);
 }
 
+void CVocodecChannel::ApplyAGC(CVoicePacket& voicePacket)
+{
+    m_AGC.Apply(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
+    std::cout << "Gain : " << m_AGC.GetGain() << "\n";
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // queues helpers
 

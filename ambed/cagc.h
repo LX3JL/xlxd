@@ -43,7 +43,7 @@ public:
 private:
     float m_g;            // current gain value
     float m_gMax, m_gMin;       //gain clamping
-    float m_scale;        // scale value
+    float m_scale;        // scale value for target energy
 
     // gain control loop filter parameters
     float m_bandwidth;    // bandwidth-time constant

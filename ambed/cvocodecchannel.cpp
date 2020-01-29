@@ -95,7 +95,7 @@ uint8 CVocodecChannel::GetCodecOut(void) const
 void CVocodecChannel::ApplyAGC(CVoicePacket& voicePacket)
 {
     m_AGC.Apply(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
-    std::cout << "Gain : " << m_AGC.GetGain() << "\n";
+    //std::cout << "Gain : " << m_AGC.GetGain() << "\n";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

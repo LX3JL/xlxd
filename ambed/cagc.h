@@ -41,16 +41,16 @@ public:
     float GetGain();//gets current gain 
     
 private:
-    float m_g;            // current gain value
-    float m_gMax, m_gMin;       //gain clamping
-    float m_scale;        // scale value for target energy
+    float m_Gain;            // current gain value
+    float m_GainMax, m_GainMin;       //gain clamping
+    float m_targetEnergy;        // scale value for target energy
 
     // gain control loop filter parameters
-    float m_bandwidth;    // bandwidth-time constant
-    float m_alpha;        // feed-back gain
+    float m_Bandwidth;    // bandwidth-time constant
+    float m_Alpha;        // feed-back gain
 
     // signal level estimate
-    float m_y2_prime;     // filtered output signal energy estimate
+    float m_EnergyPrime;     // filtered output signal energy estimate
 };
 
 #endif /* cgc_h */

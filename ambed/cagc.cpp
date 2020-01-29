@@ -36,15 +36,23 @@
 CAGC::CAGC(float initialLeveldB)
 {
     // set internal gain appropriately
-    m_g = powf(10.0f, -initialLeveldB/20.0f);
+    m_g = pow(10.0f, initialLeveldB/20.0f);
 
     // ensure resulting gain is not arbitrarily low
     if (m_g < 1e-16f)
         m_g = 1e-16f;
 
-    m_scale = 1.0f;
-    m_bandwidth = 1e-2f;
+    m_scale = (float)0xFFFF;
+    m_bandwidth = 1e-2f;                              //TODO : Move to parameter ?
+    m_gMax = pow(10.0f, initialLeveldB + 10.0f/20.0f);//+- 10dB Margin, TODO Move margin to constant
+    m_gMin = pow(10.0f, initialLeveldB - 10.0f/20.0f);
+    m_alpha = m_bandwidth;
     m_y2_prime = 1.0f;
+}
+
+float CAGC::GetGain()
+{
+    return 20.0f*log10(m_g);
 }
 
 void CAGC::Apply(uint8 * voice, int size)
@@ -53,6 +61,11 @@ void CAGC::Apply(uint8 * voice, int size)
     {
         //Get the sample
         float _x = (float)(short)MAKEWORD(voice[i+1], voice[i]);
+
+        //This AGC tries to smooth energy so it does not exceed 1
+        //Therefore divide by our max supposed value
+        //Maybe we could also change y2 prime calculation below, but for now stick with this
+        _x /= m_scale;
 
         //apply AGC
         // apply gain to input sample
@@ -66,16 +79,18 @@ void CAGC::Apply(uint8 * voice, int size)
 
         // update gain according to output energy
         if (m_y2_prime > 1e-6f)
-            m_g *= exp( -0.5f * m_alpha * log(m_y2_prime) );
+            m_g *= exp( -0.5f * m_alpha * log(m_y2_prime) ); 
 
-        // clamp to 120 dB gain
-        if (m_g > 1e6f)
-            m_g = 1e6f;
+        // clamp gain
+        if (m_g > m_gMax)
+            m_g = m_gMax;
+        else if(m_g < m_gMin)
+            m_g = m_gMin;
 
         // apply output scale
         _y *= m_scale;
 
-        //write processed sample back to it
+        //write processed sample back
         voice[i] = HIBYTE((short)_y);
         voice[i+1] = LOBYTE((short)_y);
     }    

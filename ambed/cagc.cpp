@@ -36,23 +36,21 @@
 CAGC::CAGC(float initialLeveldB)
 {
     // set internal gain appropriately
-    m_g = pow(10.0f, initialLeveldB/20.0f);
+    m_Gain = pow(10.0f, initialLeveldB/20.0f);
+    //+- 10dB Margin, TODO Move margin to constant
+    m_GainMax = pow(10.0f, (initialLeveldB + 10.0f)/20.0f);
+    m_GainMin = pow(10.0f, (initialLeveldB - 10.0f)/20.0f);
+                        
+    m_EnergyPrime = 1.0f;
+    m_targetEnergy = 32768.0f;//TODO : Move to parameter ?
 
-    // ensure resulting gain is not arbitrarily low
-    if (m_g < 1e-16f)
-        m_g = 1e-16f;
-
-    m_scale = 32768.0f;
-    m_bandwidth = 1e-2f;                              //TODO : Move to parameter ?
-    m_gMax = pow(10.0f, (initialLeveldB + 10.0f)/20.0f);//+- 10dB Margin, TODO Move margin to constant
-    m_gMin = pow(10.0f, (initialLeveldB - 10.0f)/20.0f);
-    m_alpha = m_bandwidth;
-    m_y2_prime = 1.0f;
+    m_Bandwidth = 1e-2f;//TODO : Move to parameter ?    
+    m_Alpha = m_Bandwidth;  
 }
 
 float CAGC::GetGain()
 {
-    return 20.0f*log10(m_g);
+    return 20.0f*log10(m_Gain);
 }
 
 void CAGC::Apply(uint8 * voice, int size)
@@ -60,30 +58,30 @@ void CAGC::Apply(uint8 * voice, int size)
     for (int i = 0; i < size; i+=2)
     {
         //Get the sample
-        float _x = (float)(short)MAKEWORD(voice[i+1], voice[i]);
+        float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
 
         //apply AGC
         // apply gain to input sample
-        float _y = _x * m_g;
+        float output = input * m_Gain;
 
         // compute output signal energy
-        float y2 = (_y * _y) / m_scale;
+        float instantEnergy = (output * output) / m_targetEnergy;
 
         // smooth energy estimate using single-pole low-pass filter
-        m_y2_prime = (1.0f - m_alpha) * m_y2_prime + m_alpha*y2;
+        m_EnergyPrime = (1.0f - m_Alpha) * m_EnergyPrime + m_Alpha * instantEnergy;
 
         // update gain according to output energy
-        if (m_y2_prime > 1e-6f)
-            m_g *= exp( -0.5f * m_alpha * log(m_y2_prime) ); 
+        if (m_EnergyPrime > 1e-6f)
+            m_Gain *= exp( -0.5f * m_Alpha * log(m_EnergyPrime) ); 
 
         // clamp gain
-        if (m_g > m_gMax)
-            m_g = m_gMax;
-        else if(m_g < m_gMin)
-            m_g = m_gMin;
+        if (m_Gain > m_GainMax)
+            m_Gain = m_GainMax;
+        else if(m_Gain < m_GainMin)
+            m_Gain = m_GainMin;
 
         //write processed sample back
-        voice[i] = HIBYTE((short)_y);
-        voice[i+1] = LOBYTE((short)_y);
+        voice[i] = HIBYTE((short)output);
+        voice[i+1] = LOBYTE((short)output);
     }    
 }

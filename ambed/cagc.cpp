@@ -44,8 +44,8 @@ CAGC::CAGC(float initialLeveldB)
 
     m_scale = (float)0xFFFF;
     m_bandwidth = 1e-2f;                              //TODO : Move to parameter ?
-    m_gMax = pow(10.0f, initialLeveldB + 10.0f/20.0f);//+- 10dB Margin, TODO Move margin to constant
-    m_gMin = pow(10.0f, initialLeveldB - 10.0f/20.0f);
+    m_gMax = pow(10.0f, (initialLeveldB + 10.0f)/20.0f);//+- 10dB Margin, TODO Move margin to constant
+    m_gMin = pow(10.0f, (initialLeveldB - 10.0f)/20.0f);
     m_alpha = m_bandwidth;
     m_y2_prime = 1.0f;
 }

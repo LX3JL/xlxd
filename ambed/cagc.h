@@ -23,7 +23,7 @@
 // ----------------------------------------------------------------------------
 // Geoffrey Merck F4FXL / KC3FRA AGC code largely inspired by Liquid DSP
 // Only took the parts we need qnd recoeded it to be close the XLX coding style
-// https://github.com/jgaeddert/liquid-dsp/blob/master/src/agc/src/agc.c
+// https://github.com/jgaeddert/liquid-dsp/blob/master/src/agc/src/agc.c 
 
 #ifndef cagc_h
 #define cagc_h

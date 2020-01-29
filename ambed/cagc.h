@@ -21,7 +21,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
-// Geoffrey Merck F4FXL / KC3FRA AGC code borrowed from Liquid DSP
+// Geoffrey Merck F4FXL / KC3FRA AGC code largely inspired by Liquid DSP
 // Only took the parts we need qnd recoeded it to be close the XLX coding style
 // https://github.com/jgaeddert/liquid-dsp/blob/master/src/agc/src/agc.c
 
@@ -29,7 +29,6 @@
 #define cagc_h
 
 #include "main.h"
-#include "math.h"
 
 class CAGC
 {
@@ -39,11 +38,12 @@ public:
 
     //methods
     void Apply(uint8 * voice, int size);
-    float GetGain(){ return -20.0f*log10(m_g); }//gets current gain 
+    float GetGain();//gets current gain 
     
 private:
     float m_g;            // current gain value
-    float m_scale;        // output scale value
+    float m_gMax, m_gMin;       //gain clamping
+    float m_scale;        // scale value
 
     // gain control loop filter parameters
     float m_bandwidth;    // bandwidth-time constant

@@ -42,7 +42,7 @@ CAGC::CAGC(float initialLeveldB)
     if (m_g < 1e-16f)
         m_g = 1e-16f;
 
-    m_scale = (float)0xFFFF;
+    m_scale = 32768.0f;
     m_bandwidth = 1e-2f;                              //TODO : Move to parameter ?
     m_gMax = pow(10.0f, (initialLeveldB + 10.0f)/20.0f);//+- 10dB Margin, TODO Move margin to constant
     m_gMin = pow(10.0f, (initialLeveldB - 10.0f)/20.0f);
@@ -62,17 +62,12 @@ void CAGC::Apply(uint8 * voice, int size)
         //Get the sample
         float _x = (float)(short)MAKEWORD(voice[i+1], voice[i]);
 
-        //This AGC tries to smooth energy so it does not exceed 1
-        //Therefore divide by our max supposed value
-        //Maybe we could also change y2 prime calculation below, but for now stick with this
-        _x /= m_scale;
-
         //apply AGC
         // apply gain to input sample
         float _y = _x * m_g;
 
         // compute output signal energy
-        float y2 = _y * _y;
+        float y2 = (_y * _y) / m_scale;
 
         // smooth energy estimate using single-pole low-pass filter
         m_y2_prime = (1.0f - m_alpha) * m_y2_prime + m_alpha*y2;
@@ -86,9 +81,6 @@ void CAGC::Apply(uint8 * voice, int size)
             m_g = m_gMax;
         else if(m_g < m_gMin)
             m_g = m_gMin;
-
-        // apply output scale
-        _y *= m_scale;
 
         //write processed sample back
         voice[i] = HIBYTE((short)_y);

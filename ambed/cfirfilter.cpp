@@ -30,6 +30,7 @@ CFIRFilter::CFIRFilter(const float* taps, int tapsLength)
 {
     m_taps = new float[tapsLength];
     m_buffer = new float[tapsLength];
+    m_tapsLength = tapsLength;
 
     ::memcpy(m_taps, taps, tapsLength * sizeof(float));
     ::memset(m_buffer, 0, tapsLength * sizeof(float));

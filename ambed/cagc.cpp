@@ -81,10 +81,10 @@ void CAGC::Apply(uint8 * voice, int size)
             m_Gain *= exp( -0.5f * m_Alpha * log(m_EnergyPrime) ); 
 
         // clamp gain
-        /*if (m_Gain > m_GainMax)
+        if (m_Gain > m_GainMax)
             m_Gain = m_GainMax;
         else if(m_Gain < m_GainMin)
-            m_Gain = m_GainMin;*/
+            m_Gain = m_GainMin;
 
         //write processed sample back
         voice[i] = HIBYTE((short)output);

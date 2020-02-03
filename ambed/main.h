@@ -70,8 +70,12 @@
 #define CODEC_AMBE2PLUS                 2
 
 // Transcoding speech gains
-#define CODECGAIN_AMBEPLUS              -3//-10                                  // in dB
-#define CODECGAIN_AMBE2PLUS             +3//+10                                 // in dB
+#define CODECGAIN_AMBEPLUS              -10                                  // in dB
+#define CODECGAIN_AMBE2PLUS             +10                                 // in dB
+
+// Transcoding Tweaks
+#define USE_AGC                         0
+#define USE_BANDPASSFILTER              1
 
 // Timeouts -----------------------------------------------------
 #define STREAM_ACTIVITY_TIMEOUT         3                                   // in seconds
@@ -97,6 +101,42 @@ typedef unsigned int            uint;
 #define HIBYTE(w)				((uint8)((((uint16)(w)) >> 8) & 0xFF))
 #define LOWORD(dw)				((uint16)(uint32)(dw & 0x0000FFFF))
 #define HIWORD(dw)				((uint16)((((uint32)(dw)) >> 16) & 0xFFFF))
+
+////////////////////////////////////////////////////////////////////////////////////////
+// FIR Filter coefficients computed to be the closest to the recommended filter in 
+// Documentation
+//
+// Following GNU Octave script was used
+/*
+pkg load signal;
+fsamp = 8000;
+fcuts = [200 300 3000 3400];
+mags = [0 1 0];
+devs = [0.2 1 0.2];
+
+[n,Wn,beta,ftype] = kaiserord(fcuts,mags,devs,fsamp);
+n = n + rem(n,2);
+hh = fir1(n,Wn,ftype,kaiser(n+1,beta),'noscale');
+
+freqz(hh);
+[H,f] = freqz(hh,1,1024,fsamp);
+plot(f,abs(H))
+disp(hh);
+grid
+*/
+
+#if USE_BANDPASSFILTER == 1
+
+const float FILTER_TAPS[] {
+-0.0153779f,  0.0114832f, -0.0060703f, -0.0221526f, 0.0085472f, -0.0449400f,
+-0.0068112f, -0.0307485f, -0.0548559f, -0.0022596f, -0.0879344f, -0.0166698f,
+-0.0533627f, -0.1015552f,  0.0424673f, -0.2116654f,  0.1267453f,  0.7375000f,
+0.1267453f, -0.2116654f,  0.0424673f, -0.1015552f, -0.0533627f, -0.0166698f,
+-0.0879344f, -0.0022596f, -0.0548559f, -0.0307485f, -0.0068112f, -0.0449400f,
+0.0085472f, -0.0221526f, -0.0060703f,  0.0114832f, -0.0153779f };
+#define FILTER_TAPS_LENGTH          35
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // global objects

@@ -27,7 +27,12 @@
 #define cvocodecchannel_h
 
 #include "cpacketqueue.h"
+#if USE_AGC == 1
 #include "cagc.h"
+#endif
+#if USE_BANDPASSFILTER == 1
+#include "cfirfilter.h"
+#endif
 #include "cvoicepacket.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +62,12 @@ public:
     int   GetSpeechGain(void) const         { return m_iSpeechGain; }
     
     //Processing
+#if USE_AGC == 1
     void ApplyAGC(CVoicePacket& voicePacket);
+#endif
+#if USE_BANDPASSFILTER
+    void ApplyFilter(CVoicePacket& voicePacket);
+#endif
     
     // interfaces
     bool IsInterfaceIn(const CVocodecInterface *interface)      { return (interface == m_InterfaceIn); }
@@ -98,7 +108,12 @@ protected:
     int                 m_iSpeechGain;
     
 private:
-    CAGC m_AGC;
+#if USE_AGC == 1
+    CAGC* m_AGC;
+#endif
+#if USE_BANDPASSFILTER == 1
+    CFIRFilter* m_filter;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

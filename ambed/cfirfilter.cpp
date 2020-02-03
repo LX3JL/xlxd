@@ -34,7 +34,7 @@ CFIRFilter::CFIRFilter(const float* taps, int tapsLength)
 
     ::memcpy(m_taps, taps, tapsLength * sizeof(float));
     ::memset(m_buffer, 0, tapsLength * sizeof(float));
-    m_currentBufferPostion = 0;
+    m_currentBufferPosition = m_tapsLength -1;
 }
 
 CFIRFilter::~CFIRFilter()
@@ -46,15 +46,15 @@ CFIRFilter::~CFIRFilter()
 inline float CFIRFilter::Process(float inputSample)
 {
     // Buffer latest sample
-    m_buffer[m_currentBufferPostion] = inputSample;
+    m_buffer[m_currentBufferPosition] = inputSample;
 
     float outputSample = 0.0f;
     for(int i = 0; i < m_tapsLength; i++)
     {
-        outputSample += m_taps[i] * m_buffer[(m_currentBufferPostion + i) % m_tapsLength];
+        outputSample += m_taps[i] * m_buffer[(m_currentBufferPosition + i) % m_tapsLength];
     }
 
-    m_currentBufferPostion = (m_currentBufferPostion + 1) % m_tapsLength;
+    m_currentBufferPosition = MAX(0, m_currentBufferPosition - 1);
 
     return outputSample;
 }

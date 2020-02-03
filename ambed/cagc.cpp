@@ -42,7 +42,7 @@ CAGC::CAGC(float initialLeveldB)
     m_GainMin = pow(10.0f, (initialLeveldB - 10.0f)/20.0f);
                         
     m_EnergyPrime = 1.0f;
-    m_targetEnergy = 32768.0f;//TODO : Move to parameter ?
+    m_targetEnergy = 32767.0f;//TODO : Move to parameter ?
 
     m_Bandwidth = 1e-2f;//TODO : Move to parameter ?    
     m_Alpha = m_Bandwidth;  
@@ -70,8 +70,8 @@ void CAGC::Apply(uint8 * voice, int size)
         // apply gain to input sample
         float output = input * m_Gain;
 
-        // compute output signal energy
-        float instantEnergy = (output * output) / m_targetEnergy;
+        // compute output signal energy, scaled to 0 to 1
+        float instantEnergy = abs(output) / m_targetEnergy;
 
         // smooth energy estimate using single-pole low-pass filter
         m_EnergyPrime = (1.0f - m_Alpha) * m_EnergyPrime + m_Alpha * instantEnergy;
@@ -81,10 +81,10 @@ void CAGC::Apply(uint8 * voice, int size)
             m_Gain *= exp( -0.5f * m_Alpha * log(m_EnergyPrime) ); 
 
         // clamp gain
-        if (m_Gain > m_GainMax)
+        /*if (m_Gain > m_GainMax)
             m_Gain = m_GainMax;
         else if(m_Gain < m_GainMin)
-            m_Gain = m_GainMin;
+            m_Gain = m_GainMin;*/
 
         //write processed sample back
         voice[i] = HIBYTE((short)output);

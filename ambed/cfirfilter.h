@@ -45,7 +45,7 @@ private:
     float* m_taps;
     int m_tapsLength;
     float* m_buffer;
-    int m_currentBufferPostion;
+    int m_currentBufferPosition;
 };
 
 #endif //cfirfilter_h

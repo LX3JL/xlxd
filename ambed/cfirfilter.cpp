@@ -34,7 +34,7 @@ CFIRFilter::CFIRFilter(const float* taps, int tapsLength)
 
     ::memcpy(m_taps, taps, tapsLength * sizeof(float));
     ::memset(m_buffer, 0, tapsLength * sizeof(float));
-    m_currentBufferPosition = m_tapsLength -1;
+    m_currentBufferPosition = 0;
 }
 
 CFIRFilter::~CFIRFilter()
@@ -45,23 +45,30 @@ CFIRFilter::~CFIRFilter()
 
 inline float CFIRFilter::Process(float inputSample)
 {
-    // Buffer latest sample
+    float output = 0.0f;
+    int iTaps = 0;
+
+    // Buffer latest sample into delay line
     m_buffer[m_currentBufferPosition] = inputSample;
 
-    float outputSample = 0.0f;
-    for(int i = 0; i < m_tapsLength; i++)
+    for(int i = m_currentBufferPosition; i >= 0; i--)
     {
-        outputSample += m_taps[i] * m_buffer[(m_currentBufferPosition + i) % m_tapsLength];
+        output += m_taps[iTaps++] * m_buffer[i];
     }
 
-    m_currentBufferPosition = MAX(0, m_currentBufferPosition - 1);
+    for(int i = m_tapsLength - 1; i > m_currentBufferPosition; i--)
+    {
+        output += m_taps[iTaps++] * m_buffer[i];
+    }
+    
+    m_currentBufferPosition = (m_currentBufferPosition + 1) % m_tapsLength;
 
-    return outputSample;
+    return output;
 }
 
 void CFIRFilter::Process(uint8* voice, int length)
 {
-    for(int i = 0; i < length; i++)
+    for(int i = 0; i < length; i+=2)
     {
         //Get the sample
         float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);

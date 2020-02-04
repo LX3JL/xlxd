@@ -68,11 +68,12 @@
 #define CODEC_AMBE2PLUS                 2
 
 // Transcoding speech gains
-#define CODECGAIN_AMBEPLUS              -10                                  // in dB
-#define CODECGAIN_AMBE2PLUS             +10                                 // in dB
+#define CODECGAIN_AMBEPLUS              -16                                 // in dB
+#define CODECGAIN_AMBE2PLUS             +16                                 // in dB
 
 // Transcoding Tweaks
-#define USE_AGC                         0
+#define USE_AGC                         1
+#define AGC_CLAMPING                    3                                   //clamps the AGC gain to +- this value
 #define USE_BANDPASSFILTER              1
 
 // Timeouts -----------------------------------------------------

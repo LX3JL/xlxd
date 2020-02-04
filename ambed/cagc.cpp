@@ -38,11 +38,13 @@ CAGC::CAGC(float initialLeveldB)
     // set internal gain appropriately
     m_Gain = pow(10.0f, initialLeveldB/20.0f);
     //+- 10dB Margin, TODO Move margin to constant
-    m_GainMax = pow(10.0f, (initialLeveldB + 10.0f)/20.0f);
-    m_GainMin = pow(10.0f, (initialLeveldB - 10.0f)/20.0f);
+    m_GainMax = pow(10.0f, (initialLeveldB + AGC_CLAMPING)/20.0f);
+    m_GainMin = pow(10.0f, (initialLeveldB - AGC_CLAMPING)/20.0f);
                         
     m_EnergyPrime = 1.0f;
-    m_targetEnergy = 32767.0f;//TODO : Move to parameter ?
+
+    // We do not target full scale to avoid stauration
+    m_targetEnergy = 32767.0f/2.0f;//TODO : Move to parameter ?
 
     m_Bandwidth = 1e-2f;//TODO : Move to parameter ?    
     m_Alpha = m_Bandwidth;  

@@ -44,8 +44,10 @@ CAGC::CAGC(float initialLeveldB)
     m_EnergyPrime = 1.0f;
 
     // We do not target full scale to avoid stauration
-    m_targetEnergy = 32767.0f/2.0f;//TODO : Move to parameter ?
+    m_targetEnergy = 32767.0f * pow(10.0f, (initialLeveldB - 25.0)/20.0f);//25 dB below saturation as stated in docs
+                                                                        //we also substract our target gain
 
+    //this is the time constant of our AGC...
     m_Bandwidth = 1e-2f;//TODO : Move to parameter ?    
     m_Alpha = m_Bandwidth;  
 }

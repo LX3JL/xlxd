@@ -28,7 +28,7 @@
 
 #include "csampleprocessor.h"
 
-class CFIRFilter
+class CFIRFilter : CSampleProcessor
 {
 public :
     //Constructor

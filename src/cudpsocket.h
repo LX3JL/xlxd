@@ -68,12 +68,10 @@ public:
     int Send(const char *, const CIp &);
     int Send(const char *, const CIp &, uint16);
     
-    struct in_addr *GetLocalAddr(void)   { return &m_LocalAddr; }
 protected:
     // data
     int                 m_Socket;
     struct sockaddr_in  m_SocketAddr;
-    struct in_addr      m_LocalAddr;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

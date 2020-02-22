@@ -1,5 +1,5 @@
 //
-//  cvoicepacket.cpp
+//  cagc.cpp
 //  ambed
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 28/04/2017.
@@ -10,6 +10,7 @@
 //
 //    xlxd is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
+
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
@@ -21,51 +22,68 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
+// Geoffrey Merck F4FXL / KC3FRA AGC
 
 #include "main.h"
-#include <string.h>
-#include <math.h>
-#include "cvoicepacket.h"
+#include "csignalprocessor.h"
 
+#if USE_AGC == 1
+#include "cagc.h"
+#else
+#include "cfixedgain.h"
+#endif
+
+#if USE_BANDPASSFILTER == 1
+#include "cfirfilter.h"
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CVoicePacket::CVoicePacket()
+CSignalProcessor::CSignalProcessor(float gaindB)
 {
-    m_iSize = 0;
-    ::memset(m_uiVoice, 0, sizeof(m_uiVoice));
+#if USE_BANDPASSFILTER
+    m_sampleProcessors.push_back((CSampleProcessor*)new CFIRFilter(FILTER_TAPS, FILTER_TAPS_LENGTH));
+#endif
+#if USE_AGC == 1
+    m_sampleProcessors.push_back((CSampleProcessor*)new CAGC(gaindB));
+#else
+    m_sampleProcessors.push_back((CSampleProcessor*)new CFixedGain(gaindB));
+#endif
 }
-
-CVoicePacket::CVoicePacket(const uint8 *voice, int size)
-{
-    m_iSize = MIN(size, sizeof(m_uiVoice));
-    ::memset(m_uiVoice, 0, sizeof(m_uiVoice));
-    ::memcpy(m_uiVoice, voice, m_iSize);
-}
-
-CVoicePacket::CVoicePacket(const CVoicePacket &packet)
-    : CPacket(packet)
-{
-    m_iSize = packet.m_iSize;
-    ::memcpy(m_uiVoice, packet.m_uiVoice, sizeof(m_uiVoice));
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // destructor
 
-CVoicePacket::~CVoicePacket()
+CSignalProcessor::~CSignalProcessor()
 {
+    for(int i = 0; i < m_sampleProcessors.size(); i++)
+    {
+        delete m_sampleProcessors[i];
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Set
+// processing
 
-void CVoicePacket::SetVoice(const uint8 *voice, int size)
+void CSignalProcessor::Process(uint8* voice, int length)
 {
-    m_iSize = MIN(size, sizeof(m_uiVoice));
-    ::memset(m_uiVoice, 0, sizeof(m_uiVoice));
-    ::memcpy(m_uiVoice, voice, m_iSize);
-}
+    float sample;
+    int i;
+    auto processorsSize = m_sampleProcessors.size();
 
+    for(int i = 0; i < length; i += 2)
+    {
+        //Get the sample
+        sample = (float)(short)MAKEWORD(voice[i+1], voice[i]);
+
+        for(i = 0; i < processorsSize; i++)
+        {
+            sample = m_sampleProcessors[i]->ProcessSample(sample);
+        }
+
+        //write processed sample back
+        voice[i] = HIBYTE((short)sample);
+        voice[i+1] = LOBYTE((short)sample);
+    }
+}

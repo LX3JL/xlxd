@@ -152,15 +152,7 @@ void CUsb3xxxInterface::Task(void)
             {
                 Queue = Channel->GetVoiceQueue();
                 CVoicePacket *clone = new CVoicePacket(VoicePacket);
-#if USE_BANDPASSFILTER
-                //Aply band pass before AGC to avoidd amplifying signals we do not want
-                Channel->ApplyFilter(*clone);
-#endif
-#if USE_AGC == 1
-                Channel->ApplyAGC(*clone);
-#else
-                clone->ApplyGain(Channel->GetSpeechGain());
-#endif
+                Channel->ProcessSignal(*clone);
                 Queue->push(clone);
                 Channel->ReleaseVoiceQueue();
             }

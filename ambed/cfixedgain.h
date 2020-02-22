@@ -1,5 +1,5 @@
 //
-//  cfirfilter.h
+//  cfixedgain.h
 //  ambed
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 26/04/2017.
@@ -21,31 +21,25 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
-// FIRFilter by Geoffrey Merck F4FXL / KC3FRA
+// Geoffrey Merck F4FXL / KC3FRA
 
-#ifndef cfirfilter_h
-#define cfirfilter_h
+#ifndef cfixedgain_h
+#define cfixedgain_h
 
 #include "csampleprocessor.h"
 
-class CFIRFilter
+class CFixedGain : CSampleProcessor
 {
-public :
+public:
     //Constructor
-    CFIRFilter(const float* taps, int tapsLength);
+    CFixedGain(float gaindB);
 
-    // Destructor
-    ~CFIRFilter();
-
-    // Processing
-    float ProcessSample(float inputSample);
+    //processing
+    float ProcessSample(float input);
 
 private:
-    float* m_taps;
-    int m_tapsLength;
-    float* m_buffer;
-    int m_currentBufferPosition;
+    float m_gaindB; //gain in dB
+    float m_gainLinear; //linearized gain
 };
 
-#endif //cfirfilter_h
-
+#endif /* cfixedgain_h */

@@ -38,12 +38,7 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
     m_InterfaceOut = InterfaceOut;
     m_iChannelOut = iChOut;
     m_iSpeechGain = iSpeechGain;
-#if USE_AGC == 1
-    m_AGC = new CAGC((float)iSpeechGain);
-#endif
-#if USE_BANDPASSFILTER == 1
-    m_filter = new CFIRFilter(FILTER_TAPS, FILTER_TAPS_LENGTH);
-#endif
+    m_signalProcessor = new CSignalProcessor((float)m_iSpeechGain);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -52,12 +47,7 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
 CVocodecChannel::~CVocodecChannel()
 {
     PurgeAllQueues();
-#if USE_AGC == 1
-    delete m_AGC;
-#endif
-#if USE_BANDPASSFILTER == 1
-    delete m_filter;
-#endif
+    delete m_signalProcessor;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -103,20 +93,14 @@ uint8 CVocodecChannel::GetCodecOut(void) const
     return m_InterfaceOut->GetChannelCodec(m_iChannelOut);
 }
 
-#if USE_AGC == 1
-void CVocodecChannel::ApplyAGC(CVoicePacket& voicePacket)
-{
-    m_AGC->Apply(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
-    //std::cout << "Gain : " << m_AGC.GetGain() << "\n";
-}
-#endif
+////////////////////////////////////////////////////////////////////////////////////////
+// processing
 
-#if USE_BANDPASSFILTER == 1
-void CVocodecChannel::ApplyFilter(CVoicePacket& voicePacket)
+void CVocodecChannel::ProcessSignal(CVoicePacket& voicePacket)
 {
-    m_filter->Process(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
+    m_signalProcessor->Process(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
 }
-#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // queues helpers

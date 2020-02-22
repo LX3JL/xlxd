@@ -1,5 +1,5 @@
 //
-//  cvoicepacket.cpp
+//  cfixedgain.cpp
 //  ambed
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 28/04/2017.
@@ -21,51 +21,24 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
+// Geoffrey Merck F4FXL / KC3FRA AGC
 
-#include "main.h"
-#include <string.h>
+#include "cfixedgain.h"
 #include <math.h>
-#include "cvoicepacket.h"
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CVoicePacket::CVoicePacket()
+CFixedGain::CFixedGain(float gaindB)
 {
-    m_iSize = 0;
-    ::memset(m_uiVoice, 0, sizeof(m_uiVoice));
-}
-
-CVoicePacket::CVoicePacket(const uint8 *voice, int size)
-{
-    m_iSize = MIN(size, sizeof(m_uiVoice));
-    ::memset(m_uiVoice, 0, sizeof(m_uiVoice));
-    ::memcpy(m_uiVoice, voice, m_iSize);
-}
-
-CVoicePacket::CVoicePacket(const CVoicePacket &packet)
-    : CPacket(packet)
-{
-    m_iSize = packet.m_iSize;
-    ::memcpy(m_uiVoice, packet.m_uiVoice, sizeof(m_uiVoice));
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// destructor
-
-CVoicePacket::~CVoicePacket()
-{
+    m_gaindB = gaindB;
+    m_gainLinear = pow(10.0f, m_gaindB/20.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Set
-
-void CVoicePacket::SetVoice(const uint8 *voice, int size)
+// processing
+ 
+inline float CFixedGain::ProcessSample(float input)
 {
-    m_iSize = MIN(size, sizeof(m_uiVoice));
-    ::memset(m_uiVoice, 0, sizeof(m_uiVoice));
-    ::memcpy(m_uiVoice, voice, m_iSize);
+    return input * m_gainLinear;
 }
-

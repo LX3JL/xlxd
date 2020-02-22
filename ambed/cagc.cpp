@@ -25,10 +25,9 @@
 // Only took the parts we need qnd recoeded it to be close the XLX coding style
 // https://github.com/jgaeddert/liquid-dsp/blob/master/src/agc/src/agc.c
 
-#include "main.h"
 #include <math.h>
 #include "cagc.h"
-
+#include "main.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
@@ -63,35 +62,27 @@ float CAGC::GetGain()
 ////////////////////////////////////////////////////////////////////////////////////////
 // process
 
-void CAGC::Apply(uint8 * voice, int size)
+inline float CAGC::ProcessSample(float input)
 {
-    for (int i = 0; i < size; i+=2)
-    {
-        //Get the sample
-        float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
+    //apply AGC
+    // apply gain to input sample
+    float output = input * m_Gain;
 
-        //apply AGC
-        // apply gain to input sample
-        float output = input * m_Gain;
+    // compute output signal energy, scaled to 0 to 1
+    float instantEnergy = abs(output) / m_targetEnergy;
 
-        // compute output signal energy, scaled to 0 to 1
-        float instantEnergy = abs(output) / m_targetEnergy;
+    // smooth energy estimate using single-pole low-pass filter
+    m_EnergyPrime = (1.0f - m_Alpha) * m_EnergyPrime + m_Alpha * instantEnergy;
 
-        // smooth energy estimate using single-pole low-pass filter
-        m_EnergyPrime = (1.0f - m_Alpha) * m_EnergyPrime + m_Alpha * instantEnergy;
+    // update gain according to output energy
+    if (m_EnergyPrime > 1e-6f)
+        m_Gain *= exp( -0.5f * m_Alpha * log(m_EnergyPrime) ); 
 
-        // update gain according to output energy
-        if (m_EnergyPrime > 1e-6f)
-            m_Gain *= exp( -0.5f * m_Alpha * log(m_EnergyPrime) ); 
+    // clamp gain
+    if (m_Gain > m_GainMax)
+        m_Gain = m_GainMax;
+    else if(m_Gain < m_GainMin)
+        m_Gain = m_GainMin;
 
-        // clamp gain
-        if (m_Gain > m_GainMax)
-            m_Gain = m_GainMax;
-        else if(m_Gain < m_GainMin)
-            m_Gain = m_GainMin;
-
-        //write processed sample back
-        voice[i] = HIBYTE((short)output);
-        voice[i+1] = LOBYTE((short)output);
-    }    
+    return output;
 }

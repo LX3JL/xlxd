@@ -1,5 +1,5 @@
 //
-//  cfirfilter.h
+//  csignalprocessor.h
 //  ambed
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 26/04/2017.
@@ -21,31 +21,28 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
-// FIRFilter by Geoffrey Merck F4FXL / KC3FRA
+// Geoffrey Merck F4FXL / KC3FRA
 
-#ifndef cfirfilter_h
-#define cfirfilter_h
+#ifndef csignalprocessor_h
+#define csignalprocessor_h
 
+#include <vector>
 #include "csampleprocessor.h"
 
-class CFIRFilter
+class CSignalProcessor
 {
-public :
+public:
     //Constructor
-    CFIRFilter(const float* taps, int tapsLength);
+    CSignalProcessor(float gaindB);
 
-    // Destructor
-    ~CFIRFilter();
+    //Destructor
+    ~CSignalProcessor();
 
-    // Processing
-    float ProcessSample(float inputSample);
+    //Processing
+    void Process(uint8* voice, int length);
 
 private:
-    float* m_taps;
-    int m_tapsLength;
-    float* m_buffer;
-    int m_currentBufferPosition;
+    std::vector<CSampleProcessor *> m_sampleProcessors;
 };
 
-#endif //cfirfilter_h
-
+#endif /* csignalprocessor_h */

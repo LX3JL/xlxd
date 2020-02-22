@@ -43,7 +43,7 @@ CFIRFilter::~CFIRFilter()
     delete[] m_buffer;
 }
 
-inline float CFIRFilter::Process(float inputSample)
+inline float CFIRFilter::ProcessSample(float inputSample)
 {
     float output = 0.0f;
     int iTaps = 0;
@@ -66,17 +66,4 @@ inline float CFIRFilter::Process(float inputSample)
     return output;
 }
 
-void CFIRFilter::Process(uint8* voice, int length)
-{
-    for(int i = 0; i < length; i+=2)
-    {
-        //Get the sample
-        float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
-        
-        float output = Process(input);
 
-        //write processed sample back
-        voice[i] = HIBYTE((short)output);
-        voice[i+1] = LOBYTE((short)output);
-    }
-}

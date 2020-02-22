@@ -58,9 +58,6 @@ public:
     // set
     void   SetVoice(const uint8 *, int);
     
-    // gain
-    void  ApplyGain(int);
-    
 protected:
     // data
     int     m_iSize;

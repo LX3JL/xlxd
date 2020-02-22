@@ -69,7 +69,7 @@ bool CG3Protocol::Init(void)
         std::cout << "Error opening socket on port UDP" << G3_CONFIG_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
-    ok &= ((m_IcmpRawSocket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) >= 0);
+    ok &= m_IcmpRawSocket.Open(IPPROTO_ICMP);
     if ( !ok )
     {
         std::cout << "Error opening raw socket for ICMP" << std::endl;
@@ -136,14 +136,10 @@ void CG3Protocol::ConfigThread(CG3Protocol *This)
 
 void CG3Protocol::IcmpThread(CG3Protocol *This)
 {
-    fcntl(This->m_IcmpRawSocket, F_SETFL, O_NONBLOCK);
-
     while ( !This->m_bStopThread )
     {
         This->IcmpTask();
     }
-
-    close(This->m_IcmpRawSocket);
 }
 
 
@@ -354,49 +350,27 @@ void CG3Protocol::ConfigTask(void)
 
 void CG3Protocol::IcmpTask(void)
 {
-    unsigned char buffer[256];
+    CBuffer Buffer;
+    CIp Ip;
+    int iIcmpType;
 
-    struct sockaddr_in sa;
-    unsigned int sasize = sizeof(sa);
-
-    fd_set FdSet;
-    struct timeval tv;
-
-    if (m_IcmpRawSocket != -1)
+    if ((iIcmpType = m_IcmpRawSocket.IcmpReceive(&Buffer, &Ip, 20)) != -1)
     {
-        FD_ZERO(&FdSet);
-        FD_SET(m_IcmpRawSocket, &FdSet);
-        tv.tv_sec = 0;
-        tv.tv_usec = 100000;
-        select(m_IcmpRawSocket + 1, &FdSet, 0, 0, &tv);
-
-        int len = recvfrom(m_IcmpRawSocket, buffer, 255, 0, (struct sockaddr *)&sa, &sasize);
-
-        if (len > 28)
+        if (iIcmpType == ICMP_DEST_UNREACH)
         {
-            struct ip *iph = (struct ip *)buffer;
-            int iphdrlen = iph->ip_hl * 4;
-            struct icmp *icmph = (struct icmp *)(buffer + iphdrlen);
-
-            if (icmph->icmp_type == ICMP_DEST_UNREACH)
-            {
-                struct ip *remote_iph = (struct ip *)(buffer + iphdrlen + 8);
-
                 CClients *clients = g_Reflector.GetClients();
 
                 int index = -1;
                 CClient *client = NULL;
                 while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
                 {
-                    CIp Ip = client->GetIp();
-                    if (Ip.GetAddr() == remote_iph->ip_dst.s_addr)
+                    CIp ClientIp = client->GetIp();
+                    if (ClientIp.GetAddr() == Ip.GetAddr())
                     {
                         clients->RemoveClient(client);
                     }
                 }
                 g_Reflector.ReleaseClients();
-
-            }
         }
     }
 }
@@ -431,7 +405,8 @@ void CG3Protocol::Task(void)
             {
                 BaseIp = &ClIp;
                 client->Alive();
-                // supress host checks
+                // supress host checks - no ping needed to trigger potential ICMPs
+                // the regular data flow will do it
                 m_LastKeepaliveTime.Now();
                 break;
             }
@@ -466,7 +441,7 @@ void CG3Protocol::Task(void)
             else if ( (LastFrame = IsValidDvLastFramePacket(Buffer)) != NULL )
             {
                 //std::cout << "Terminal DV last frame" << std::endl;
-            
+
                 // handle it
                 OnDvLastFramePacketIn(LastFrame, BaseIp);
             }
@@ -484,20 +459,20 @@ void CG3Protocol::Task(void)
 
     // handle end of streaming timeout
     CheckStreamsTimeout();
-        
+
     // handle queue from reflector
     HandleQueue();
-        
-    // keep alive
+
+    // keep alive during idle if needed
     if ( m_LastKeepaliveTime.DurationSinceNow() > G3_KEEPALIVE_PERIOD )
     {
         // handle keep alives
         HandleKeepalives();
-        
+
         // update time
         m_LastKeepaliveTime.Now();
 
-        // reload option if needed
+        // reload option if needed - called once every G3_KEEPALIVE_PERIOD
         NeedReload();
     }
 }
@@ -807,22 +782,22 @@ void CG3Protocol::NeedReload(void)
         if (m_LastModTime != fileStat.st_mtime)
         {
             ReadOptions();
-        }
-    }
 
-    // iterate on clients
-    CClients *clients = g_Reflector.GetClients();
-    int index = -1;
-    CClient *client = NULL;
-    while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
-    {
-        char module = client->GetReflectorModule();
-        if (!strchr(m_Modules.c_str(), module) && !strchr(m_Modules.c_str(), '*'))
-        {
-            clients->RemoveClient(client);
+            // we have new options - iterate on clients for potential removal
+            CClients *clients = g_Reflector.GetClients();
+            int index = -1;
+            CClient *client = NULL;
+            while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
+            {
+                char module = client->GetReflectorModule();
+                if (!strchr(m_Modules.c_str(), module) && !strchr(m_Modules.c_str(), '*'))
+                {
+                    clients->RemoveClient(client);
+                }
+            }
+            g_Reflector.ReleaseClients();
         }
     }
-    g_Reflector.ReleaseClients();
 }
 
 void CG3Protocol::ReadOptions(void)

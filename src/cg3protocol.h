@@ -31,6 +31,8 @@
 #include "cdvheaderpacket.h"
 #include "cdvframepacket.h"
 #include "cdvlastframepacket.h"
+#include "crawsocket.h"
+#include "cudpmsgsocket.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -44,9 +46,11 @@
 // 2 - Destination request on port UDP 12345
 //      - Calls to specific callsigns will be accepted for a default module
 //      - Repeater calls will be accepted for local modules
-//      - All other calls are rehected
+//      - All other calls are rejected
 //
-// 3 - Actual D-star flow like in Dextra to/from port 40000 (2 distint sockets)
+// 3 - Actual D-star flow like in Dextra to/from port 40000
+//       2 distinct sockets where used in the initial protocol
+//       later firmwares implement a single bidirectional socket
 //
 // Alive monitoring is done via a "PING" to remote port 40000. We will get an
 // ICMP unreachable on terminal mode close or on station shut down if routing is done
@@ -122,8 +126,8 @@ protected:
     // sockets
     CUdpSocket          m_DvOutSocket;
     CUdpSocket          m_PresenceSocket;
-    CUdpSocket          m_ConfigSocket;
-    int                 m_IcmpRawSocket;
+    CUdpMsgSocket       m_ConfigSocket;
+    CRawSocket          m_IcmpRawSocket;
 
     // optional params
     uint32              m_GwAddress;

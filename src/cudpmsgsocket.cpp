@@ -27,6 +27,20 @@
 #include "cudpmsgsocket.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// open
+bool CUdpMsgSocket::Open(uint16 uiPort)
+{
+    bool ret;
+    int on = 1;
+
+    ret = CUdpSocket::Open(uiPort);
+    setsockopt(m_Socket, IPPROTO_IP, IP_PKTINFO, (char *)&on, sizeof(on));
+
+    return ret;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // read
 
 int CUdpMsgSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)

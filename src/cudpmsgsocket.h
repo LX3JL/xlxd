@@ -39,6 +39,9 @@
 class CUdpMsgSocket : public CUdpSocket
 {
 public:
+    // open
+    bool Open(uint16);
+
     // read
     int Receive(CBuffer *, CIp *, int);
 

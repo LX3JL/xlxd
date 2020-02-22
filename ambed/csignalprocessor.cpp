@@ -69,7 +69,7 @@ CSignalProcessor::~CSignalProcessor()
 void CSignalProcessor::Process(uint8* voice, int length)
 {
     float sample;
-    int i;
+    int j;
     auto processorsSize = m_sampleProcessors.size();
 
     for(int i = 0; i < length; i += 2)
@@ -77,9 +77,9 @@ void CSignalProcessor::Process(uint8* voice, int length)
         //Get the sample
         sample = (float)(short)MAKEWORD(voice[i+1], voice[i]);
 
-        for(i = 0; i < processorsSize; i++)
+        for(j = 0; j < processorsSize; j++)
         {
-            sample = m_sampleProcessors[i]->ProcessSample(sample);
+            sample = m_sampleProcessors[j]->ProcessSample(sample);
         }
 
         //write processed sample back

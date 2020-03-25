@@ -274,7 +274,7 @@ bool CWiresxCmdHandler::ReplyToWiresxDxReqPacket(const CIp &Ip, const CWiresxInf
         ::memcpy(data + 36U, item, 5U);
         // refl->name
         ::memset(item, ' ', 16U);
-        ::memcpy(item, "Module", 6U);
+        ::memcpy(item, "MODULE", 6U); // K2IE fix for U/C only radios
         item[7] = 'A' + RoomId;
         ::memcpy(data + 41U, item, 16U);
         // refl->count
@@ -368,7 +368,7 @@ bool CWiresxCmdHandler::ReplyToWiresxAllReqPacket(const CIp &Ip, const CWiresxIn
         ::memcpy(data + offset + 1U, item, 5U);
         // refl->name
         ::memset(item, ' ', 16U);
-        ::memcpy(item, "Module", 6U);
+        ::memcpy(item, "MODULE", 6U); // K2IE fix for U/C only radios
         item[7] = 'A' + RoomId;
         ::memcpy(data + offset + 6U, item, 16U);
         // refl->count
@@ -465,7 +465,7 @@ bool CWiresxCmdHandler::ReplyToWiresxConnReqPacket(const CIp &Ip, const CWiresxI
         ::memcpy(data + 36U, item, 5U);
         // refl->name
         ::memset(item, ' ', 16U);
-        ::memcpy(item, "Module", 6U);
+        ::memcpy(item, "MODULE", 6U); // K2IE fix for U/C only radios
         item[7] = 'A' + RoomId;
         ::memcpy(data + 41U, item, 16U);
         // refl->count

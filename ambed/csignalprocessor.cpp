@@ -43,12 +43,12 @@
 CSignalProcessor::CSignalProcessor(float gaindB)
 {
 #if USE_BANDPASSFILTER
-    m_sampleProcessors.push_back((CSampleProcessor*)new CFIRFilter(FILTER_TAPS, FILTER_TAPS_LENGTH));
+    m_sampleProcessors.push_back((CSampleBlockProcessor*)new CFIRFilter(FILTER_TAPS, FILTER_TAPS_LENGTH));
 #endif
 #if USE_AGC == 1
     m_sampleProcessors.push_back((CSampleProcessor*)new CAGC(gaindB));
 #else
-    m_sampleProcessors.push_back((CSampleProcessor*)new CFixedGain(gaindB));
+    m_sampleProcessors.push_back((CSampleBlockProcessor*)new CFixedGain(gaindB));
 #endif
 }
 
@@ -68,11 +68,16 @@ CSignalProcessor::~CSignalProcessor()
 
 void CSignalProcessor::Process(uint8* voice, int length)
 {
-    float sample;
-    int j;
+    /*float sample;
+    int j;*/
     auto processorsSize = m_sampleProcessors.size();
 
-    for(int i = 0; i < length; i += 2)
+    for(int j = 0; j < processorsSize; j++)
+    {
+        m_sampleProcessors[j]->ProcessSampleBlock(voice, length);
+    }
+
+    /*for(int i = 0; i < length; i += 2)
     {
         //Get the sample
         sample = (float)(short)MAKEWORD(voice[i+1], voice[i]);
@@ -85,5 +90,5 @@ void CSignalProcessor::Process(uint8* voice, int length)
         //write processed sample back
         voice[i] = HIBYTE((short)sample);
         voice[i+1] = LOBYTE((short)sample);
-    }
+    }*/
 }

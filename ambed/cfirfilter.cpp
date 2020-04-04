@@ -43,27 +43,33 @@ CFIRFilter::~CFIRFilter()
     delete[] m_buffer;
 }
 
-inline float CFIRFilter::ProcessSample(float inputSample)
+inline void CFIRFilter::ProcessSampleBlock(uint8* voice, int length)
 {
-    float output = 0.0f;
-    int iTaps = 0;
-
-    // Buffer latest sample into delay line
-    m_buffer[m_currentBufferPosition] = inputSample;
-
-    for(int i = m_currentBufferPosition; i >= 0; i--)
+    for(int i = 0; i < length; i++)
     {
-        output += m_taps[iTaps++] * m_buffer[i];
-    }
+        float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
+        float output = 0.0f;
+        int iTaps = 0;
 
-    for(int i = m_tapsLength - 1; i > m_currentBufferPosition; i--)
-    {
-        output += m_taps[iTaps++] * m_buffer[i];
-    }
-    
-    m_currentBufferPosition = (m_currentBufferPosition + 1) % m_tapsLength;
+        // Buffer latest sample into delay line
+        m_buffer[m_currentBufferPosition] = input;
 
-    return output;
+        for(int i = m_currentBufferPosition; i >= 0; i--)
+        {
+            output += m_taps[iTaps++] * m_buffer[i];
+        }
+
+        for(int i = m_tapsLength - 1; i > m_currentBufferPosition; i--)
+        {
+            output += m_taps[iTaps++] * m_buffer[i];
+        }
+        
+        m_currentBufferPosition = (m_currentBufferPosition + 1) % m_tapsLength;
+
+        //write processed sample back
+        voice[i] = HIBYTE((short)output);
+        voice[i+1] = LOBYTE((short)output);
+    }
 }
 
 

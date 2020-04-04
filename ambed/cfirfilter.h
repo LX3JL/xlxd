@@ -26,9 +26,9 @@
 #ifndef cfirfilter_h
 #define cfirfilter_h
 
-#include "csampleprocessor.h"
+#include "csampleblockprocessor.h"
 
-class CFIRFilter : CSampleProcessor
+class CFIRFilter : CSampleBlockProcessor
 {
 public :
     //Constructor
@@ -38,7 +38,7 @@ public :
     ~CFIRFilter();
 
     // Processing
-    float ProcessSample(float inputSample);
+    void ProcessSampleBlock(uint8* voice, int length);
 
 private:
     float* m_taps;

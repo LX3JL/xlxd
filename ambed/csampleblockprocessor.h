@@ -23,14 +23,16 @@
 // ----------------------------------------------------------------------------
 // Geoffrey Merck F4FXL / KC3FRA
 
-#ifndef csampleprocessor_h
-#define csampleprocessor_h
+#ifndef csamplebloclprocessor_h
+#define csamplebloclprocessor_h
 
-class CSampleProcessor
+#include "main.h"
+
+class CSampleBlockProcessor
 {
 public:
     //processing
-    virtual float ProcessSample(float input) = 0;
+    virtual void ProcessSampleBlock(uint8* voice, int length) = 0;
 };
 
 #endif /* csampleprocessor_h */

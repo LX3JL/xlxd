@@ -38,7 +38,16 @@ CFixedGain::CFixedGain(float gaindB)
 ////////////////////////////////////////////////////////////////////////////////////////
 // processing
  
-inline float CFixedGain::ProcessSample(float input)
+inline void CFixedGain::ProcessSampleBlock(uint8* voice, int length)
 {
-    return input * m_gainLinear;
+    for(int i = 0; i < length; i++)
+    {
+        float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
+        //apply gain
+        float output = input * m_gainLinear;
+
+        //write processed sample back
+        voice[i] = HIBYTE((short)output);
+        voice[i+1] = LOBYTE((short)output);
+    }
 }

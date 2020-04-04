@@ -26,16 +26,16 @@
 #ifndef cfixedgain_h
 #define cfixedgain_h
 
-#include "csampleprocessor.h"
+#include "csampleblockprocessor.h"
 
-class CFixedGain : CSampleProcessor
+class CFixedGain : CSampleBlockProcessor
 {
 public:
     //Constructor
     CFixedGain(float gaindB);
 
     //processing
-    float ProcessSample(float input);
+    void ProcessSampleBlock(uint8* voice, int length);
 
 private:
     float m_gaindB; //gain in dB

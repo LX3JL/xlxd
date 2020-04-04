@@ -28,16 +28,16 @@
 #ifndef cagc_h
 #define cagc_h
 
-#include "csampleprocessor.h"
+#include "csampleblockprocessor.h"
 
-class CAGC : CSampleProcessor
+class CAGC : CSampleBlockProcessor
 {
 public:
     //Constructor
     CAGC(float initialLeveldB);
 
     //methods
-    float ProcessSample(float input);
+    void ProcessSampleBlock(uint8* voice, int length) ;
     float GetGain();//gets current gain 
     
 private:

@@ -27,7 +27,7 @@
 #define csignalprocessor_h
 
 #include <vector>
-#include "csampleprocessor.h"
+#include "csampleblockprocessor.h"
 
 class CSignalProcessor
 {
@@ -42,7 +42,7 @@ public:
     void Process(uint8* voice, int length);
 
 private:
-    std::vector<CSampleProcessor *> m_sampleProcessors;
+    std::vector<CSampleBlockProcessor *> m_sampleProcessors;
 };
 
 #endif /* csignalprocessor_h */

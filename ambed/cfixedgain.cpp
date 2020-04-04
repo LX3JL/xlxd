@@ -40,7 +40,7 @@ CFixedGain::CFixedGain(float gaindB)
  
 inline void CFixedGain::ProcessSampleBlock(uint8* voice, int length)
 {
-    for(int i = 0; i < length; i++)
+    for(int i = 0; i < length; i += 2)
     {
         float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
         //apply gain

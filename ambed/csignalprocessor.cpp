@@ -46,7 +46,7 @@ CSignalProcessor::CSignalProcessor(float gaindB)
     m_sampleProcessors.push_back((CSampleBlockProcessor*)new CFIRFilter(FILTER_TAPS, FILTER_TAPS_LENGTH));
 #endif
 #if USE_AGC == 1
-    m_sampleProcessors.push_back((CSampleProcessor*)new CAGC(gaindB));
+    m_sampleProcessors.push_back((CSampleBlockProcessor*)new CAGC(gaindB));
 #else
     m_sampleProcessors.push_back((CSampleBlockProcessor*)new CFixedGain(gaindB));
 #endif

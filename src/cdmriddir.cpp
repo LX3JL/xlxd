@@ -152,7 +152,10 @@ bool CDmridDir::IsValidDmrid(const char *sz)
         ok = true;
         for ( size_t i = 0; (i < n) && ok; i++ )
         {
-            ok &= ::isdigit(sz[i]);
+            if ( !::isdigit(sz[i]) )
+            {
+                ok = false;
+            }
         }
     }
     return ok;

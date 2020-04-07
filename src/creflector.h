@@ -31,6 +31,7 @@
 #include "cprotocols.h"
 #include "cpacketstream.h"
 #include "cnotificationqueue.h"
+#include "cudpsocket.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -57,9 +58,10 @@ public:
     // settings
     void SetCallsign(const CCallsign &callsign)     { m_Callsign = callsign; }
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
-    void SetListenIp(const CIp &ip)                 { m_Ip = ip; }
+    void SetListenIp(int i, const CIp &ip)          { if (i < UDP_SOCKET_MAX) m_Ip[i] = ip; }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
-    const CIp &GetListenIp(void) const              { return m_Ip; }
+    const CIp &GetListenIp(void) const              { return m_Ip[0]; }
+    const CIp &GetListenIp(int i) const             { return m_Ip[i]; }
     const CIp &GetTranscoderIp(void) const          { return m_AmbedIp; }
     
     // operation
@@ -119,7 +121,7 @@ protected:
 protected:
     // identity
     CCallsign       m_Callsign;
-    CIp             m_Ip;
+    CIp             m_Ip[UDP_SOCKET_MAX];
     CIp             m_AmbedIp;
     
     // objects

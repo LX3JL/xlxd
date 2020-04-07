@@ -67,6 +67,11 @@ bool CYsfProtocol::Init(void)
     // update time
     m_LastKeepaliveTime.Now();
     
+    // random number generator
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    m_Random = mt;
+    
     // done
     return ok;
 }
@@ -450,7 +455,7 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
     if ( Fich.getFI() == YSF_FI_HEADER )
     {
         // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = CreateStreamId();
         
         // get header data
         CYSFPayload ysfPayload;
@@ -519,7 +524,7 @@ bool CYsfProtocol::IsValidDvFramePacket(const CIp &Ip, const CYSFFICH &Fich, con
     if ( Fich.getFI() == YSF_FI_COMMUNICATIONS )
     {
         // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = CreateStreamId();
         
         // get DV frames
         uint8   ambe0[AMBEPLUS_SIZE];
@@ -576,7 +581,7 @@ bool CYsfProtocol::IsValidDvLastFramePacket(const CIp &Ip, const CYSFFICH &Fich,
     if ( Fich.getFI() == YSF_FI_TERMINATOR )
     {
         // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = CreateStreamId();
         
         // get DV frames
         {
@@ -997,9 +1002,9 @@ uint32 CYsfProtocol::CalcHash(const uint8 *buffer, int len) const
 
 
 // uiStreamId helpers
-uint32 CYsfProtocol::IpToStreamId(const CIp &ip) const
+uint32 CYsfProtocol::CreateStreamId(void) const
 {
-    return ip.GetAddr() ^ (uint32)(MAKEDWORD(ip.GetPort(), ip.GetPort()));
+    return m_Random();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

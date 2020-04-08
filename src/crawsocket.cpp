@@ -113,7 +113,7 @@ int CRawSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
             Buffer->resize(iRecvLen);
 
             // get IP
-            Ip->SetSockAddr(&Sin);
+            Ip->SetSockAddr((struct sockaddr_storage *)&Sin, sizeof(Sin));
         }
     }
 
@@ -148,7 +148,7 @@ int CRawSocket::IcmpReceive(CBuffer *Buffer, CIp *Ip, int timeout)
             Sin.sin_family = AF_INET;
             Sin.sin_addr.s_addr = remote_iph->ip_dst.s_addr;
 
-            Ip->SetSockAddr(&Sin);
+            Ip->SetSockAddr((struct sockaddr_storage *)&Sin, sizeof(Sin));
 
         }
     }

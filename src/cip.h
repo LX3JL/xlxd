@@ -47,6 +47,9 @@ public:
     void SetSockAddr(struct sockaddr_storage *, socklen_t);
     struct sockaddr_storage *GetSockAddr(socklen_t &);
     
+    // converter (IPv6 not supported)
+    uint32 GetAddr(void) const { return ((struct sockaddr_in *)&m_Addr)->sin_addr.s_addr; }
+
     // operator
     bool operator ==(const CIp &) const;
     operator const char *() const;

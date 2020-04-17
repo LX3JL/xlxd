@@ -53,7 +53,7 @@ else {
    </script>
 </head>
 <body>
-   
+   <pre><a href="logout.php">logout</a></pre>
    <pre>
 
 <?php

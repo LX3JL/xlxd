@@ -28,6 +28,7 @@
 #include "cgatekeeper.h"
 #include "cdmriddirfile.h"
 #include "cdmriddirhttp.h"
+#include "cdmriddirspecial.h"
 #include "ctranscoder.h"
 #include "cysfnodedirfile.h"
 #include "cysfnodedirhttp.h"
@@ -106,6 +107,11 @@ bool CReflector::Start(void)
     
     // init dmrid directory
     g_DmridDir.Init();
+
+#if (EXTENDED_DMRID_CHECKS == 1)
+    // add special ids
+    g_DmridDirSpecial.Init();
+#endif
     
     // init wiresx node directory
     g_YsfNodeDir.Init();

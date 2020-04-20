@@ -28,6 +28,7 @@
 #include "cdmriddir.h"
 #include "cdmriddirfile.h"
 #include "cdmriddirhttp.h"
+#include "cdmriddirspecial.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor & destructor

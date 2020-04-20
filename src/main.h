@@ -155,8 +155,9 @@
 
 // Extended DMR ID checks ---------------------------------------
 
-//#define EXTENDED_DMRID_CHECKS                                             // Also allow extended "callsigns" like "IPSC_EU2" 
+//#define EXTENDED_DMRID_CHECKS         1                                   // Also allow extended "callsigns" like "IPSC_EU2" 
                                                                             // used for incoming DMR-DL master connections
+#define SPECIALIDDB_PATH                "/xlxd/specialid.dat"               // File to read special (DMR) IDs from
 
 // Wires-X node database ----------------------------------------
 
@@ -228,6 +229,11 @@ extern CGateKeeper g_GateKeeper;
 #else
     class CYsfNodeDirFile;
     extern CYsfNodeDirFile   g_YsfNodeDir;
+#endif
+
+#if (EXTENDED_DMRID_CHECKS == 1)
+    class CDmridDirSpecial;
+    extern CDmridDirSpecial  g_DmridDirSpecial;
 #endif
 
 class CTranscoder;

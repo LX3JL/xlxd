@@ -1,8 +1,8 @@
 //
-//  cdmriddir.h
+//  cdmrididirspecial.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 08/10/2016.
+//  Created by Jean-Luc Deltombe (LX3JL) on 29/12/2017.
 //  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
@@ -22,76 +22,45 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cdmriddir_h
-#define cdmriddir_h
+#ifndef cdmrididirspecial_h
+#define cdmrididirspecial_h
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include "cbuffer.h"
-#include "ccallsign.h"
-
-// compare function for std::map::find
-
-struct CDmridDirCallsignCompare
-{
-    bool operator() (const CCallsign &cs1, const CCallsign &cs2) const
-    { return cs1.HasLowerCallsign(cs2);}
-};
-
+#include "cdmriddir.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class CDmridDir
+class CDmridDirSpecial
 {
 public:
     // constructor
-    CDmridDir();
+    CDmridDirSpecial();
     
     // destructor
-    ~CDmridDir();
+    ~CDmridDirSpecial();
     
     // init & close
-    virtual bool Init(void);
-    virtual void Close(void);
-    
+    bool Init(void);
+
     // locks
     void Lock(void)                                 { m_Mutex.lock(); }
     void Unlock(void)                               { m_Mutex.unlock(); }
-    
-    // refresh
-    virtual bool LoadContent(CBuffer *)             { return false; }
-    virtual bool RefreshContent(const CBuffer &)    { return false; }
-    
-    // find
-    const CCallsign *FindCallsign(uint32);
-    uint32 FindDmrid(const CCallsign &);
 
-    // validation
-    bool IsValidDmrid(const char *);
-    
-    // data
-    std::map <uint32, CCallsign> m_CallsignMap;
-    std::map <CCallsign, uint32, CDmridDirCallsignCompare> m_DmridMap;
+    // refresh
+    bool LoadContent(CBuffer *);
+    bool RefreshContent(const CBuffer &);
     
 protected:
-    // thread
-    static void Thread(CDmridDir *);
-
     // reload helpers
     bool Reload(void);
-    virtual bool NeedReload(void)                    { return false; }
+    bool GetLastModTime(time_t *);
     
 protected:
+    // data
+    time_t      m_LastModTime;
+
     // Lock()
     std::mutex          m_Mutex;
-           
-    // thread
-    bool                m_bStopThread;
-    std::thread         *m_pThread;
-
-};
+ };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cdmriddir_h */
+#endif /* cdmrididirspecial_h */

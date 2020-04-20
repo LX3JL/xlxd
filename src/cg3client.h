@@ -1,12 +1,12 @@
 //
-//  cvoicepacket.h
-//  ambed
+//  cg3client.h
+//  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 28/04/2017.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created by Marius Petrescu (YO2LOJ) on 03/06/2019.
+//  Copyright © 2019 Marius Petrescu (YO2LOJ). All rights reserved.
 //
 // ----------------------------------------------------------------------------
-//    This file is part of ambed.
+//    This file is part of xlxd.
 //
 //    xlxd is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -19,50 +19,44 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
 // ----------------------------------------------------------------------------
 
-#ifndef cvoicepacket_h
-#define cvoicepacket_h
+#ifndef cg3client_h
+#define cg3client_h
 
-
-#include "cpacket.h"
+#include "cclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
-// frame sizes
-#define VOICE_SIZEMAX           512
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CVoicePacket : public CPacket
+class CG3Client : public CClient
 {
 public:
     // constructors
-    CVoicePacket();
-    CVoicePacket(const uint8 *, int);
-    CVoicePacket(const CVoicePacket &);
+    CG3Client();
+    CG3Client(const CCallsign &, const CIp &, char = ' ');
+    CG3Client(const CG3Client &);
     
     // destructor
-    virtual ~CVoicePacket();
-
+    virtual ~CG3Client() {};
+    
     // identity
-    bool IsVoice(void) const         { return true; }
+    int GetProtocol(void) const                 { return PROTOCOL_G3; }
+    const char *GetProtocolName(void) const     { return "Terminal/AP"; }
+    int GetCodec(void) const                    { return CODEC_AMBEPLUS; }
+    bool IsNode(void) const                     { return true; }
+    
+    // status
+    bool IsAlive(void) const;
 
-    // get
-    uint8 *GetVoice(void)            { return m_uiVoice; }
-    int   GetVoiceSize(void) const   { return m_iSize; }
-    
-    // set
-    void   SetVoice(const uint8 *, int);
-    
 protected:
     // data
-    int     m_iSize;
-    uint8   m_uiVoice[VOICE_SIZEMAX];
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cvoicepacket_h */
+#endif /* cg3client_h */

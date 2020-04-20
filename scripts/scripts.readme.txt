@@ -1,0 +1,20 @@
+*************************************************
+*copy xlxd into /etc.init.d/
+*copy ambed.service into /etc/systemd/system/
+*
+*************************************************
+* xlxd executable must be in /xlxd/ folder
+* ambed executable must be in /ambed/ folder
+*
+*************************************************
+* possible options:
+*
+* #systemctl start ambed        /starts ambed
+* #systemctl status ambed       /shows status of ambed
+* #systemctl stop ambed         /stops ambed
+* # systemctl restart ambed     /restarts ambed
+*
+* automatically get it to start on boot:
+* #systemctl enable ambed
+*
+*************************************************

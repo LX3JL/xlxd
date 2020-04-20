@@ -27,7 +27,6 @@
 #include "cvocodecchannel.h"
 #include "cvocodecinterface.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
@@ -39,6 +38,7 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
     m_InterfaceOut = InterfaceOut;
     m_iChannelOut = iChOut;
     m_iSpeechGain = iSpeechGain;
+    m_signalProcessor = new CSignalProcessor((float)m_iSpeechGain);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +47,7 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
 CVocodecChannel::~CVocodecChannel()
 {
     PurgeAllQueues();
+    delete m_signalProcessor;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +92,15 @@ uint8 CVocodecChannel::GetCodecOut(void) const
 {
     return m_InterfaceOut->GetChannelCodec(m_iChannelOut);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// processing
+
+void CVocodecChannel::ProcessSignal(CVoicePacket& voicePacket)
+{
+    m_signalProcessor->Process(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // queues helpers

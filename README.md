@@ -134,6 +134,7 @@ XLX Server requires the following ports to be open and forwarded properly for in
 
 Pay attention, the XLX Server acts as an YSF Master, which provides 26 wires-x rooms.
 It has nothing to do with the regular YSFReflector network, hence you don’t need to register your XLX at ysfreflector.de !
+Updated on V2.3.5 onwards: you can register at ysfreflector.de for XLX-YSF
 
 
 © 2016 Jean-Luc Deltombe (LX3JL) and Luc Engelmann (LX1IQ)

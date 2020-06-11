@@ -38,7 +38,8 @@ bool CUdpMsgSocket::Open(uint16 uiPort)
     struct sockaddr_storage *ss;
     socklen_t ss_len;
 
-    if ( !CUdpSocket::Open(uiPort) ) {
+    if ( !CUdpSocket::Open(uiPort) )
+    {
         return false;
     }
 

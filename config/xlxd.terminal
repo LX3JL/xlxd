@@ -1,0 +1,17 @@
+#########################################################################################
+#  XLXD terminal option file
+#
+#  one line per entry
+#  each entry specifies a terminal option
+#
+#  Valid option:
+#  address <ip>      - Ip address to be used by the terminal route responder
+#                      By default, the request destination address is used.
+#                      If the system is behind a router, set it to the public IP
+#                      If the system runs on the public IP, leave unset.
+#  modules <modules> - a string with all modules to accept a terminal connection
+#                      Default value is "*", meaning accept all
+#
+#########################################################################################
+#address 193.1.2.3
+#modules BCD

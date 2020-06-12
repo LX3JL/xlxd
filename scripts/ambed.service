@@ -7,8 +7,7 @@ Type=simple
 User=root
 Group=root
 ExecStartPre=-/sbin/rmmod ftdi_sio
-ExecStartPre=-/sbin/rmmod usb_serial
-# Note: adjust /xlxd/ if ambed is installed elsewhere
+ExecStartPre=-/sbin/rmmod usbserial
 ExecStart=/xlxd/ambed 127.0.0.1
 Restart=on-abnormal
 

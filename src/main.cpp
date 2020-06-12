@@ -122,7 +122,8 @@ int main(int argc, const char * argv[])
     // wait any key
     for (;;)
     {
-        std::cin.get();
+        // sleep 60 seconds
+        CTimePoint::TaskSleepFor(60000);
 #ifdef DEBUG_DUMPFILE
         g_Reflector.m_DebugFile.close();
 #endif

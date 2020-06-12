@@ -48,8 +48,8 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR                   2
-#define VERSION_MINOR                   3
-#define VERSION_REVISION                5
+#define VERSION_MINOR                   4
+#define VERSION_REVISION                0
 
 // global ------------------------------------------------------
 
@@ -57,17 +57,18 @@
 #define JSON_MONITOR
 
 // debug -------------------------------------------------------
+
 //#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
 //#define DEBUG_DUMPFILE
 
 // reflector ---------------------------------------------------
 
-#define NB_OF_MODULES                 10
+#define NB_OF_MODULES                   10
 //#define NB_OF_MODULES                   NB_MODULES_MAX
 
 // protocols ---------------------------------------------------
 
-#define NB_OF_PROTOCOLS                 7
+#define NB_OF_PROTOCOLS                 8
 
 #define PROTOCOL_ANY                    -1
 #define PROTOCOL_NONE                   0
@@ -78,6 +79,7 @@
 #define PROTOCOL_DMRPLUS                5
 #define PROTOCOL_DMRMMDVM               6
 #define PROTOCOL_YSF                    7
+#define PROTOCOL_G3                     8
 
 // DExtra
 #define DEXTRA_PORT                     30001                               // UDP port
@@ -123,6 +125,13 @@
 #define YSF_AUTOLINK_ENABLE             0                                   // 1 = enable, 0 = disable auto-link
 #define YSF_AUTOLINK_MODULE             'B'                                 // module for client to auto-link to
 
+// G3 Terminal
+#define G3_PRESENCE_PORT                12346                               // UDP port
+#define G3_CONFIG_PORT                  12345                               // UDP port
+#define G3_DV_PORT                      40000                               // UDP port
+#define G3_KEEPALIVE_PERIOD             10                                  // in seconds
+#define G3_KEEPALIVE_TIMEOUT            3600                                // in seconds, 1 hour
+
 
 // Transcoder server --------------------------------------------
 
@@ -163,6 +172,7 @@
 #define WHITELIST_PATH                  "/xlxd/xlxd.whitelist"
 #define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"
 #define INTERLINKLIST_PATH              "/xlxd/xlxd.interlink"
+#define TERMINALOPTIONS_PATH            "/xlxd/xlxd.terminal"
 #define DEBUGDUMP_PATH                  "/var/log/xlxd.debug"
 
 // system constants ---------------------------------------------

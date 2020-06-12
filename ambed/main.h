@@ -49,7 +49,7 @@
 
 #define VERSION_MAJOR                   1
 #define VERSION_MINOR                   3
-#define VERSION_REVISION                4
+#define VERSION_REVISION                5
 
 // global ------------------------------------------------------
 
@@ -68,8 +68,13 @@
 #define CODEC_AMBE2PLUS                 2
 
 // Transcoding speech gains
-#define CODECGAIN_AMBEPLUS              -10                                  // in dB
+#define CODECGAIN_AMBEPLUS              -10                                 // in dB
 #define CODECGAIN_AMBE2PLUS             +10                                 // in dB
+
+// Transcoding Tweaks
+#define USE_AGC                         0
+#define AGC_CLAMPING                    3                                   //clamps the AGC gain to +- this value
+#define USE_BANDPASSFILTER              1
 
 // Timeouts -----------------------------------------------------
 #define STREAM_ACTIVITY_TIMEOUT         3                                   // in seconds
@@ -95,6 +100,39 @@ typedef unsigned int            uint;
 #define HIBYTE(w)				((uint8)((((uint16)(w)) >> 8) & 0xFF))
 #define LOWORD(dw)				((uint16)(uint32)(dw & 0x0000FFFF))
 #define HIWORD(dw)				((uint16)((((uint32)(dw)) >> 16) & 0xFFFF))
+
+////////////////////////////////////////////////////////////////////////////////////////
+// FIR Filter coefficients computed to be the closest to the recommended filter in 
+// Documentation
+//
+// Following GNU Octave script was used
+/*
+pkg load signal;
+fsamp = 8000;
+fcuts = [300 400 3000 3400];
+mags = [0 1 0];
+devs = [0.2 1 0.2];
+
+[n,Wn,beta,ftype] = kaiserord(fcuts,mags,devs,fsamp);
+n = n + rem(n,2);
+hh = fir1(n,Wn,ftype,kaiser(n+1,beta),'noscale');
+
+freqz(hh);
+[H,f] = freqz(hh,1,1024,fsamp);
+plot(f,abs(H))
+disp(hh);
+grid
+*/
+
+#if USE_BANDPASSFILTER == 1
+
+const float FILTER_TAPS[] {
+-0.05063341f, -0.00060337f, -0.08892498f, -0.02026701f, -0.05940750f, -0.10977641f,  0.03244024f, -0.22304499f,
+0.11452865f,  0.72500000f,  0.11452865f, -0.22304499f,  0.03244024f, -0.10977641f, -0.05940750f, -0.02026701f,
+-0.08892498f, -0.00060337f, -0.05063341f };
+#define FILTER_TAPS_LENGTH          19
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // global objects

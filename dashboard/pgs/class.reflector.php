@@ -43,10 +43,11 @@ class xReflector {
          fclose($handle);
          
          $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
-         if (!is_numeric($this->ServiceName)) {
-            $this->ServiceName = null;
-            return false;
-         }
+# XLX alphanumeric naming... By commenting the following four lines, it is possible to use an alphanumeric name for the reflector (eg: XLXABC)
+#         if (!is_numeric($this->ServiceName)) {
+#            $this->ServiceName = null;
+#            return false;
+#         }
          
          $this->ReflectorName = "XLX".$this->ServiceName;
          

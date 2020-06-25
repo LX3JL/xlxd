@@ -48,7 +48,7 @@ class xReflector {
 #            $this->ServiceName = null;
 #            return false;
 #         }  
-         
+#         
          $this->ReflectorName = "XLX".$this->ServiceName;
          
          $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";

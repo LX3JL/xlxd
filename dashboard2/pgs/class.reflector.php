@@ -48,6 +48,7 @@ class xReflector {
 #            $this->ServiceName = null;
 #            return false;
 #         }  
+         
          $this->ReflectorName = "XLX".$this->ServiceName;
          
          $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";
@@ -60,7 +61,8 @@ class xReflector {
          $tmpNodes          = $XML->GetAllElements($AllNodesString, "NODE");
          
          for ($i=0;$i<count($tmpNodes);$i++) {
-             $Node = new Node($XML->GetElement($tmpNodes[$i], 'Callsign'), $XML->GetElement($tmpNodes[$i], 'IP'), $XML->GetElement($tmpNodes[$i], 'LinkedModule'), $XML->GetElement($tmpNodes[$i], 'Protocol'), $XML->GetElement($tmpNodes[$i], 'ConnectTime'), $XML->GetElement($tmpNodes[$i], 'LastHeardTime'), CreateCode(16));
+            
+           $Node = new Node($XML->GetElement($tmpNodes[$i], 'Callsign'), $XML->GetElement($tmpNodes[$i], 'IP'), $XML->GetElement($tmpNodes[$i], 'LinkedModule'), $XML->GetElement($tmpNodes[$i], 'Protocol'), $XML->GetElement($tmpNodes[$i], 'ConnectTime'), $XML->GetElement($tmpNodes[$i], 'LastHeardTime'), CreateCode(16));
              $this->AddNode($Node);
          }
          

@@ -206,7 +206,7 @@ bool CDplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         CCallsign via(Header->GetRpt1Callsign());
         
         // first, check module is valid
-        if ( g_Reflector.IsValidModule(Header->GetRpt1Module()) )
+        if ( g_Reflector.IsValidModule(Header->GetRpt2Module()) )
         {
             // find this client
             CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DPLUS);

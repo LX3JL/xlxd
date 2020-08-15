@@ -140,7 +140,7 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream == NULL )
 	{
-		std::cout << "Deleting oprhaned Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
+		std::cout << "Deleting orphaned Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
 		delete Frame;
 	}
 	else
@@ -159,7 +159,7 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream == NULL )
  	{
-		std::cout << "Deleting oprhaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
+		std::cout << "Deleting orphaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
 		delete Frame;
 	}
 	else

@@ -1,0 +1,4 @@
+# This is used by xlxd.service
+REFLECTOR="XLX000"
+BIND_IP="192.168.1.1"
+AMBED_IP="127.0.0.1"

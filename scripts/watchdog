@@ -1,0 +1,14 @@
+#!/bin/bash
+sleep 5
+PATTERN=timed
+FILE=/var/log/syslog
+if grep -q $PATTERN $FILE;
+  then
+      echo "ambed timeout error"
+      > /var/log/syslog
+      service ambed restart
+  else
+      echo "all ok"
+      echo "Exiting..."
+      exit 0
+fi

@@ -8,7 +8,8 @@ User=root
 Group=root
 ExecStartPre=-/sbin/rmmod ftdi_sio
 ExecStartPre=-/sbin/rmmod usbserial
-ExecStart=/xlxd/ambed 127.0.0.1
+ExecStartPre=-/sbin/rmmod usb_serial
+ExecStart=/ambed/ambed 127.0.0.1
 Restart=on-abnormal
 
 [Install]

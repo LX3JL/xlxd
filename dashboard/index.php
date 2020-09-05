@@ -139,7 +139,6 @@ else {
                <td><a href="./index.php?show=repeaters" class="menulink<?php if ($_GET['show'] == 'repeaters') { echo 'active'; } ?>">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td>
                <td><a href="./index.php?show=peers" class="menulink<?php if ($_GET['show'] == 'peers') { echo 'active'; } ?>">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td>
                <td><a href="./index.php?show=reflectors" class="menulink<?php if ($_GET['show'] == 'reflectors') { echo 'active'; } ?>">Reflectorlist</a></td>
-               <td><a href="./index.php?show=liveircddb" class="menulink<?php if ($_GET['show'] == 'liveircddb') { echo 'active'; } ?>">D-Star live</a></td>
                <?php
                
                if ($PageOptions['Traffic']['Show']) {
@@ -148,6 +147,12 @@ else {
                    if ($_GET['show'] == 'traffic') { echo 'active'; }
                    echo '">Traffic statistics</a></td>';
                }
+		     if ($PageOptions['IRCDDB']['Show']) {
+                   echo '
+               <td><a href="./index.php?show=liveircddb" class="menulink';
+                   if ($_GET['show'] == 'liveircddb') { echo 'active'; }
+                   echo '">D-Star live</a></td>';
+              }
                
                ?>
             </tr>

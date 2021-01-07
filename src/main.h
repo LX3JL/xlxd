@@ -52,7 +52,7 @@
 
 #define VERSION_MAJOR                   2
 #define VERSION_MINOR                   4
-#define VERSION_REVISION                0
+#define VERSION_REVISION                1
 
 // global ------------------------------------------------------
 
@@ -63,6 +63,7 @@
 
 //#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
 //#define DEBUG_DUMPFILE
+//#define DEBUG_NO_G3_ICMP_SOCKET
 
 // reflector ---------------------------------------------------
 

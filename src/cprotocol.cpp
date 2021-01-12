@@ -19,7 +19,7 @@
 //    GNU General Public License for more details.
 //
 //    You should have received a copy of the GNU General Public License
-//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+//    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
 #include "main.h"
@@ -52,7 +52,7 @@ CProtocol::~CProtocol()
         m_pThread->join();
         delete m_pThread;
     }
-    
+
     // empty queue
     m_Queue.Lock();
     while ( !m_Queue.empty() )
@@ -69,13 +69,13 @@ bool CProtocol::Init(void)
 {
     // init reflector apparent callsign
     m_ReflectorCallsign = g_Reflector.GetCallsign();
-    
+
     // reset stop flag
     m_bStopThread = false;
 
     // start  thread;
     m_pThread = new std::thread(CProtocol::Thread, this);
-    
+
     // done
     return true;
 }
@@ -138,7 +138,12 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
 {
     // find the stream
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
-    if ( stream != NULL )
+    if ( stream == NULL )
+	{
+		// std::cout << "Deleting oprhaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
+		delete Frame;
+	}
+	else
     {
         //std::cout << "DV frame" << "from "  << *Ip << std::endl;
         // and push
@@ -152,15 +157,23 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
 {
     // find the stream
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
-    if ( stream != NULL )
+    if ( stream == NULL )
+ 	{
+		// std::cout << "Deleting oprhaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
+		delete Frame;
+	}
+	else
     {
         // push
         stream->Lock();
         stream->Push(Frame);
         stream->Unlock();
         
-        // and close the stream
-        g_Reflector.CloseStream(stream);
+        // and don't close the stream yet but rely on CheckStreamsTimeout
+        // mechanism, so the stream will be closed after the queues have
+        // been sinked out. This avoid last packets to be send back
+        // to transmitting client (master)
+        // g_Reflector.CloseStream(stream);
     }
 }
 
@@ -170,7 +183,7 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
 CPacketStream *CProtocol::GetStream(uint16 uiStreamId, const CIp *Ip)
 {
     CPacketStream *stream = NULL;
-    
+
     // find if we have a stream with same streamid in our cache
     for ( int i = 0; (i < m_Streams.size()) && (stream == NULL); i++ )
     {
@@ -256,5 +269,4 @@ uint32 CProtocol::ModuleToDmrDestId(char m) const
 {
     return (uint32)(m - 'A')+1;
 }
-
 

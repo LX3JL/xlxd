@@ -1,11 +1,10 @@
 *************************************************
-*copy xlxd into /etc.init.d/
-*copy ambed.service into /etc/systemd/system/
-*
+*copy xlxd to /etc.init.d/
+*copy ambed.service to /etc/systemd/system/
+*copy watchdog to /ambed/
 *************************************************
 * xlxd executable must be in /xlxd/ folder
 * ambed executable must be in /ambed/ folder
-*
 *************************************************
 * possible options:
 *
@@ -18,3 +17,10 @@
 * #systemctl enable ambed
 *
 *************************************************
+* If your usb port gets unresponsive and you get some persistent timeouts,
+* the watchdog script restarts the ambed service.
+* You can run it every 5 minutes by a cronjob.
+* 
+* */5 * * * * /ambed/./watchdog >> /ambed/watchdog.log
+*
+***************************************************

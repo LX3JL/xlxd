@@ -92,7 +92,7 @@ int CRawSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
     if ( m_Socket != -1 )
     {
         // allocate buffer
-        Buffer->resize(UDP_BUFFER_LENMAX);
+        Buffer->resize(RAW_BUFFER_LENMAX);
 
         // control socket
         FD_ZERO(&FdSet);

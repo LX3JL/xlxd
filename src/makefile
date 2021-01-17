@@ -28,3 +28,6 @@ install:
 	[ -f /xlxd/xlxd.interlink ] && \
 		cp ../config/xlxd.interlink /xlxd/xlxd.interlink.sample || \
 		cp ../config/xlxd.interlink /xlxd/xlxd.interlink
+	[ -f /xlxd/xlxd.terminal ] && \
+		cp ../config/xlxd.terminal /xlxd/xlxd.terminal.sample || \
+		cp ../config/xlxd.terminal /xlxd/xlxd.terminal

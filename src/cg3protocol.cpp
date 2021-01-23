@@ -69,6 +69,7 @@ bool CG3Protocol::Init(void)
         std::cout << "Error opening socket on port UDP" << G3_CONFIG_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
+#ifndef DEBUG_NO_G3_ICMP_SOCKET
     ok &= m_IcmpRawSocket.Open(IPPROTO_ICMP);
     if ( !ok )
     {
@@ -82,7 +83,8 @@ bool CG3Protocol::Init(void)
         m_pPresenceThread = new std::thread(ConfigThread, this);
         m_pPresenceThread = new std::thread(IcmpThread, this);
     }
-
+#endif
+    
     // update time
     m_LastKeepaliveTime.Now();
 

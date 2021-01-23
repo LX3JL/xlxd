@@ -140,7 +140,7 @@ void CProtocol::OnDvFramePacketIn(CDvFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream == NULL )
 	{
-		std::cout << "Deleting oprhaned Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
+		// std::cout << "Deleting oprhaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
 		delete Frame;
 	}
 	else
@@ -159,7 +159,7 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
     CPacketStream *stream = GetStream(Frame->GetStreamId(), Ip);
     if ( stream == NULL )
  	{
-		std::cout << "Deleting oprhaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
+		// std::cout << "Deleting oprhaned Last Frame Packet with StreamId " << Frame->GetStreamId() << " from " << *Ip << std::endl;
 		delete Frame;
 	}
 	else
@@ -168,9 +168,12 @@ void CProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *Frame, const CIp *Ip)
         stream->Lock();
         stream->Push(Frame);
         stream->Unlock();
-
-        // and close the stream
-        g_Reflector.CloseStream(stream);
+        
+        // and don't close the stream yet but rely on CheckStreamsTimeout
+        // mechanism, so the stream will be closed after the queues have
+        // been sinked out. This avoid last packets to be send back
+        // to transmitting client (master)
+        // g_Reflector.CloseStream(stream);
     }
 }
 
@@ -266,3 +269,4 @@ uint32 CProtocol::ModuleToDmrDestId(char m) const
 {
     return (uint32)(m - 'A')+1;
 }
+

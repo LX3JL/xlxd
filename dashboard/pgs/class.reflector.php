@@ -41,13 +41,14 @@ class xReflector {
          $handle = fopen($this->XMLFile, 'r');
          $this->XMLContent = fread($handle, filesize($this->XMLFile));
          fclose($handle);
-         
+
+ # XLX alphanumeric naming...
          $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
-         if (!is_numeric($this->ServiceName)) {
+         if (preg_match('/[^a-zA-Z0-9]/', $this->ServiceName) == 1) {
             $this->ServiceName = null;
             return false;
          }
-         
+
          $this->ReflectorName = "XLX".$this->ServiceName;
          
          $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";

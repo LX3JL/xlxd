@@ -56,7 +56,6 @@ public:
     
     // open & close
     bool Open(uint16);
-    bool Open(const CIp &, uint16);
     void Close(void);
     int  GetSocket(void)        { return m_Socket; }
     

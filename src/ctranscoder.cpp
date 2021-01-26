@@ -97,7 +97,7 @@ bool CTranscoder::Init(void)
     m_Ip = g_Reflector.GetTranscoderIp();
     
     // create our socket
-    ok = m_Socket.Open(CIp("0.0.0.0"), TRANSCODER_PORT);
+    ok = m_Socket.Open(TRANSCODER_PORT);
     if ( ok )
     {
         // start  thread;

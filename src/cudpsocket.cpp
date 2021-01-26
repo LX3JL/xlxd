@@ -52,11 +52,6 @@ CUdpSocket::~CUdpSocket()
 
 bool CUdpSocket::Open(uint16 uiPort)
 {
-    return Open(g_Reflector.GetListenIp(), uiPort);
-}
-
-bool CUdpSocket::Open(const CIp & listenIp, uint16 uiPort)
-{
     bool open = false;
     
     // create socket
@@ -67,7 +62,7 @@ bool CUdpSocket::Open(const CIp & listenIp, uint16 uiPort)
         ::memset(&m_SocketAddr, 0, sizeof(struct sockaddr_in));
         m_SocketAddr.sin_family = AF_INET;
         m_SocketAddr.sin_port = htons(uiPort);
-        m_SocketAddr.sin_addr.s_addr = inet_addr(listenIp);
+        m_SocketAddr.sin_addr.s_addr = inet_addr(g_Reflector.GetListenIp());
         
         if ( bind(m_Socket, (struct sockaddr *)&m_SocketAddr, sizeof(struct sockaddr_in)) == 0 )
         {

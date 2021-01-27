@@ -1,0 +1,10 @@
+# This is used by xlxd.service. Note this is shellcode sourced by xlxd.service
+
+# Enter XLX name/number here
+REFLECTOR="XLXnnn"
+
+# Enter IP for binding here
+BIND_IP="0.0.0.0"
+
+# Change this is ambed is running on a different host
+AMBED_IP="127.0.0.1"

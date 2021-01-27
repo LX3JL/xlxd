@@ -1,4 +1,7 @@
 <?php
+if(file_exists('pgs/users-banner.php')){
+	        include('pgs/users-banner.php');
+}
 
 if (!isset($_SESSION['FilterCallSign'])) {
    $_SESSION['FilterCallSign'] = null;

@@ -93,7 +93,7 @@ if ($PageOptions['UserPage']['ShowFilter']) {
    <th>Suffix</th>
    <th>DPRS</th>
    <th>Via / Peer</th>
-   <th>Last heard</th>
+   <th>Last heard<?php echo $PageOptions['LastHeardTZ'];?></th>
    <th align="center" valign="middle"><img src="./img/ear.png" alt="Listening on" /></th>
  </tr><?php
 
@@ -148,7 +148,7 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
          echo ' / '.$Reflector->Stations[$i]->GetPeer();
       }
       echo '</td>
-   <td width="150">'.@date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()).'</td>
+   <td width="150">'.@date($PageOptions['DateFormat'], $Reflector->Stations[$i]->GetLastHeardTime()).'</td>
    <td align="center" width="30">'.$Reflector->Stations[$i]->GetModule().'</td>
  </tr>';
    }

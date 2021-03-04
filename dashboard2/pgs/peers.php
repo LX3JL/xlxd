@@ -64,13 +64,42 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    <td>'.$Reflector->Peers[$i]->GetLinkedModule().'</td>';
    if ($PageOptions['PeerPage']['IPModus'] != 'HideIP') {
       echo '<td>';
-      $Bytes = explode(".", $Reflector->Peers[$i]->GetIP());
-      if ($Bytes !== false && count($Bytes) == 4) {
-         switch ($PageOptions['PeerPage']['IPModus']) {
-            case 'ShowLast1ByteOfIP'      : echo $PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[3]; break;
-            case 'ShowLast2ByteOfIP'      : echo $PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[2].'.'.$Bytes[3]; break;
-            case 'ShowLast3ByteOfIP'      : echo $PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[1].'.'.$Bytes[2].'.'.$Bytes[3]; break;
-            default                       : echo '<a href="http://'.$Reflector->Peers[$i]->GetIP().'" target="_blank" style="text-decoration:none;color:#000000;">'.$Reflector->Peers[$i]->GetIP().'</a>';
+      $IPBinary = inet_pton($Reflector->Peers[$i]->GetIP());
+      $IPLength = strlen($IPBinary);
+      $Bytes = str_split($IPBinary, 1);
+      switch ($PageOptions['PeerPage']['IPModus']) {
+         case 'ShowLast1ByteOfIP' : $MasqByte = 3; break;
+         case 'ShowLast2ByteOfIP' : $MasqByte = 2; break;
+         case 'ShowLast3ByteOfIP' : $MasqByte = 1; break;
+         default                  : $MasqByte = 0; break;
+      }
+      if ($MasqByte == 0) {
+         switch ($IPLength) {
+            case 16: $IPAddrBracketL = '['; $IPAddrBracketR = ']'; break;
+            default: $IPAddrBracketL = ''; $IPAddrBracketR = ''; break;
+         }
+         echo '<a href="http://'.$IPAddrBracketL.$Reflector->Peers[$i]->GetIP().$IPAddrBracketR.'" target="_blank" style="text-decoration:none;color:#000000;">'.$Reflector->Peers[$i]->GetIP().'</a>';
+      } else {
+         switch ($IPLength) {
+            case 4:
+               for ($pos = 0; $pos < $IPLength; $pos++) {
+                  if ($pos) echo '.';
+                  if ($pos < $MasqByte) echo $PageOptions['PeerPage']['MasqueradeCharacter'];
+                  else echo ord($Bytes[$pos]);
+               }
+               break;
+            case 16:
+               for ($pos = 0; $pos < $IPLength; $pos += 2) {
+                  if ($pos) echo ':';
+                  if ($pos < ($MasqByte * 4)) echo $PageOptions['PeerPage']['MasqueradeCharacter'];
+                  else {
+                     echo bin2hex($Bytes[$pos]);
+                     echo bin2hex($Bytes[$pos + 1]);
+                  }
+               }
+               break;
+            default:
+               break;
          }
       }
       echo '</td>';

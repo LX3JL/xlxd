@@ -1,4 +1,4 @@
-CC=g++
+CC=c++
 CFLAGS=-c -std=c++11 -pthread
 LDFLAGS=-std=c++11 -pthread
 SOURCES=$(wildcard *.cpp)

@@ -35,20 +35,20 @@ public:
     // constructors
     CIp();
     //CIp(uint8, uint8, uint8, uint8);
-    CIp(const struct sockaddr_in *);
+    CIp(const struct sockaddr_storage *, socklen_t);
     CIp(const char *);
     CIp(const CIp &);
+    CIp(const CIp &, uint16);
     
     // destructor
     virtual ~CIp() {};
     
     // sockaddr
-    void SetSockAddr(struct sockaddr_in *);
-    struct sockaddr_in *GetSockAddr(void)     { return &m_Addr; }
+    void SetSockAddr(struct sockaddr_storage *, socklen_t);
+    struct sockaddr_storage *GetSockAddr(socklen_t &);
     
-    // convertor
-    uint32 GetAddr(void) const                { return m_Addr.sin_addr.s_addr; }
-    uint16 GetPort(void) const                { return m_Addr.sin_port; }
+    // converter (IPv6 not supported)
+    uint32 GetAddr(void) const { return ((struct sockaddr_in *)&m_Addr)->sin_addr.s_addr; }
     
     // operator
     bool operator ==(const CIp &) const;
@@ -56,7 +56,9 @@ public:
     
 protected:
     // data
-    struct sockaddr_in  m_Addr;
+    struct sockaddr_storage m_Addr;
+    socklen_t m_AddrLen;
+    mutable char m_AddrStr[INET6_ADDRSTRLEN];
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

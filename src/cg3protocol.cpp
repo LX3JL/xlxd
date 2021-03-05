@@ -33,6 +33,9 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
+#if !defined(ICMP_DEST_UNREACH) && defined(ICMP_UNREACH)
+#define ICMP_DEST_UNREACH ICMP_UNREACH
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation
@@ -161,7 +164,9 @@ void CG3Protocol::PresenceTask(void)
     {
 
         CIp Ip(ReqIp);
-        Ip.GetSockAddr()->sin_port = htons(G3_DV_PORT);
+        socklen_t len;
+        struct sockaddr_in *sin = (struct sockaddr_in *)Ip.GetSockAddr(len);
+        sin->sin_port = htons(G3_DV_PORT);
 
         if (Buffer.size() == 32)
         {

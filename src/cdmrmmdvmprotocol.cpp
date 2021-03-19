@@ -739,7 +739,7 @@ bool CDmrmmdvmProtocol::IsValidDvFramePacket(const CBuffer &Buffer, CDvFramePack
             memcpy(dmr3ambe, dmrframe, 14);
             dmr3ambe[13] &= 0xF0;
             dmr3ambe[13] |= (dmrframe[19] & 0x0F);
-            memcpy(&dmr3ambe[14], &dmrframe[20], 14);
+            memcpy(&dmr3ambe[14], &dmrframe[20], 13);
             // extract sync
             dmrsync[0] = dmrframe[13] & 0x0F;
             ::memcpy(&dmrsync[1], &dmrframe[14], 5);

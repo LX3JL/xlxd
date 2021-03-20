@@ -20,6 +20,8 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 NAME="xlxd"
 DAEMON="/xlxd/xlxd"
 ARGUMENTS="XLX999 192.168.1.240 127.0.0.1"
+#Case where ambed runs on another host and you want to use another IP to talk to it. Here ambed is on 10.9.0.100 and 10.9.0.1 is used to talk to it
+#ARGUMENTS="XLX999 192.168.1.240 10.9.0.100 10.9.0.1
 PIDFILE="/var/log/xlxd.pid"
 USER=root
 GROUP=root

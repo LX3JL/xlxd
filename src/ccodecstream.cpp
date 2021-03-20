@@ -97,9 +97,10 @@ bool CCodecStream::Init(uint16 uiPort)
     // create server's IP
     m_Ip = g_Reflector.GetTranscoderIp();
     m_uiPort = uiPort;
+    CIp interfaceIp = g_Reflector.GetTranscoderInterfaceIp();
     
     // create our socket
-    ok = m_Socket.Open(CIp("0.0.0.0"), uiPort);
+    ok = m_Socket.Open(interfaceIp, uiPort);
     if ( ok )
     {
         // start  thread;

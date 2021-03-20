@@ -87,10 +87,11 @@ int main(int argc, const char * argv[])
 #endif
 
     // check arguments
-    if ( argc != 4 )
+    if ( argc < 4 || argc > 5)
     {
-        std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
-        std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
+        std::cout << "Usage: xlxd callsign xlxdip ambedip [interface_to_reach_ambed] " << std::endl;
+        std::cout << "example (ambed running locally): xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
+        std::cout << "example (ambed running on another host): xlxd XLX999 192.168.178.212 10.9.0.100 10.9.0.1" << std::endl;
         return 1;
     }
 
@@ -101,6 +102,7 @@ int main(int argc, const char * argv[])
     g_Reflector.SetCallsign(argv[1]);
     g_Reflector.SetListenIp(CIp(argv[2]));
     g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
+    g_Reflector.SetTranscoderInterfaceIp(CIp(argv[argc == 5 ? 4 : 2]));
   
     // and let it run
     if ( !g_Reflector.Start() )

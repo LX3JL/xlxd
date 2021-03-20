@@ -59,8 +59,10 @@ public:
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
     void SetListenIp(const CIp &ip)                 { m_Ip = ip; }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
+    void SetTranscoderInterfaceIp(const CIp &ip)    { m_AmbedInterfaceIp = ip; }
     const CIp &GetListenIp(void) const              { return m_Ip; }
     const CIp &GetTranscoderIp(void) const          { return m_AmbedIp; }
+    const CIp &GetTranscoderInterfaceIp(void) const { return m_AmbedInterfaceIp; }
     
     // operation
     bool Start(void);
@@ -121,6 +123,7 @@ protected:
     CCallsign       m_Callsign;
     CIp             m_Ip;
     CIp             m_AmbedIp;
+    CIp             m_AmbedInterfaceIp;//Ip used ot talk to ambed IP
     
     // objects
     CUsers          m_Users;            // sorted list of lastheard stations

@@ -99,8 +99,19 @@ int main(int argc, const char * argv[])
 
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);
-    g_Reflector.SetListenIp(CIp(argv[2]));
-    g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
+
+    CIp listenIp = CIp(argv[2]);
+    CIp localTranscoderIp = CIp(listenIp);
+    CIp transcoderIp = CIp(argv[3]);
+
+    if(transcoderIp.GetAddr() != CIp("127.0.0.1").GetAddr())
+    {
+        CIp::GetLocalIp(transcoderIp, listenIp, localTranscoderIp);
+    }
+
+    g_Reflector.SetListenIp(listenIp);
+    g_Reflector.SetTranscoderIp(transcoderIp);
+    g_Reflector.SetTranscoderLocalIp(localTranscoderIp);
   
     // and let it run
     if ( !g_Reflector.Start() )
@@ -109,7 +120,9 @@ int main(int argc, const char * argv[])
         exit(EXIT_FAILURE);
     }
     std::cout << "Reflector " << g_Reflector.GetCallsign()
-              << "started and listening on " << g_Reflector.GetListenIp() << std::endl;
+              << "started and listening on " << g_Reflector.GetListenIp() << std::endl
+              << "Listening for ambed " << g_Reflector.GetTranscoderIp()
+              << " on " << g_Reflector.GetTranscoderLocalIp() << std::endl;
     
 #ifdef RUN_AS_DAEMON
 	// run forever

@@ -3,7 +3,7 @@
 //  xlxd
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 31/10/2015.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reremoteed.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include <string.h>
+#include <unistd.h>
 #include "cip.h"
 
 #include <netdb.h>
@@ -88,4 +89,49 @@ CIp::operator const char *() const
     return ::inet_ntoa(m_Addr.sin_addr);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// operator
+void CIp::GetLocalIp(const CIp & remoteIp, const CIp & defaultLocalIp, CIp & localIp)
+{
+    localIp = CIp(defaultLocalIp);
+    int remotePort = 10100;
 
+    struct sockaddr_in remote;
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    //Socket could not be created
+    if(sock < 0)
+    {
+        std::cout << "Socket error" << std::endl;
+    }
+
+    memset(&remote, 0, sizeof(remote));
+    remote.sin_family = AF_INET;
+    remote.sin_addr.s_addr = remoteIp.m_Addr.sin_addr.s_addr;
+    remote.sin_port = htons(remotePort);
+
+    int err = connect(sock, (const struct sockaddr*)&remote, sizeof(remote));
+    if (err < 0)
+    {
+        std::cout << "Error number: " << errno
+            << ". Error message: " << strerror(errno) << std::endl;
+    }
+
+    struct sockaddr_in name;
+    socklen_t namelen = sizeof(name);
+    err = ::getsockname(sock, (struct sockaddr*)&name, &namelen);
+
+    char buffer[80];
+    const char* p = inet_ntop(AF_INET, &name.sin_addr, buffer, 80);
+    if(p != NULL)
+    {
+        localIp = CIp(&name);
+        //std::cout << "Local IP address for " <<  remoteIp << " is: " << buffer << std::endl;
+    }
+    else
+    {
+        //std::cout << "Error number: " << errno << ". Error message: " << strerror(errno) << std::endl;
+    }
+
+    ::close(sock);
+}

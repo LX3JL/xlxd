@@ -99,7 +99,7 @@ bool CCodecStream::Init(uint16 uiPort)
     m_uiPort = uiPort;
     
     // create our socket
-    ok = m_Socket.Open(CIp("0.0.0.0"), uiPort);
+    ok = m_Socket.Open(g_Reflector.GetTranscoderLocalIp(), uiPort);
     if ( ok )
     {
         // start  thread;

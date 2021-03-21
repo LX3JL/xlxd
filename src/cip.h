@@ -53,6 +53,9 @@ public:
     // operator
     bool operator ==(const CIp &) const;
     operator const char *() const;
+
+    // Factory
+    static void GetLocalIp(const CIp & remoteIp, const CIp & defaultLocalIp, CIp & localIp);
     
 protected:
     // data

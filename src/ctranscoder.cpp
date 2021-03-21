@@ -95,11 +95,9 @@ bool CTranscoder::Init(void)
 
     // create server's IP
     m_Ip = g_Reflector.GetTranscoderIp();
-    CIp interfaceIp = g_Reflector.GetTranscoderInterfaceIp();
-
     
     // create our socket
-    ok = m_Socket.Open(interfaceIp, TRANSCODER_PORT);
+    ok = m_Socket.Open(CIp("0.0.0.0"), TRANSCODER_PORT);
     if ( ok )
     {
         // start  thread;
@@ -107,7 +105,7 @@ bool CTranscoder::Init(void)
     }
     else
     {
-        std::cout << "Transcoder Error opening socket on port UDP" << TRANSCODER_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << TRANSCODER_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
     // done

@@ -64,6 +64,7 @@
 //#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
 //#define DEBUG_DUMPFILE
 //#define DEBUG_NO_G3_ICMP_SOCKET
+//#define DEBUG_NO_G3_SUPPORT
 
 // reflector ---------------------------------------------------
 

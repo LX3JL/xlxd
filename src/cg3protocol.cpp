@@ -49,6 +49,12 @@ bool CG3Protocol::Init(void)
     // base class
     ok = CProtocol::Init();
 
+#ifdef DEBUG_NO_G3_SUPPORT
+    // G3 support can be killed (currently for test purpose)
+    m_bStopThread = true;
+    return true;
+#endif
+
     // update reflector callsign
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);
 

@@ -63,7 +63,7 @@ bool CUdpSocket::Open(uint16 uiPort)
         
         // create socket
         // (avoid INADDR_ANY on secondary and later IP address)
-        m_Socket[i] = ( i != 0 && m_Ip[i] == CIp() ) ?
+        m_Socket[i] = ( i != 0 && g_Reflector.GetListenIp(i) == CIp() ) ?
             -1 : socket(ss->ss_family, SOCK_DGRAM, 0);
         if ( m_Socket[i] != -1 )
         {

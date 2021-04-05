@@ -59,14 +59,14 @@ bool CG3Protocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);
 
     // create our DV socket
-    ok &= m_Socket.Open(G3_DV_PORT);
+    ok &= m_Socket.Open(G3_DV_PORT, AF_INET);
     if ( !ok )
     {
         std::cout << "Error opening socket on port UDP" << G3_DV_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
     //create helper sockets
-    ok &= m_PresenceSocket.Open(G3_PRESENCE_PORT);
+    ok &= m_PresenceSocket.Open(G3_PRESENCE_PORT, AF_INET);
     if ( !ok )
     {
         std::cout << "Error opening socket on port UDP" << G3_PRESENCE_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;

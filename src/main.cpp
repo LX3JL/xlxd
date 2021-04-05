@@ -89,7 +89,12 @@ int main(int argc, const char * argv[])
     // check arguments
     if ( argc < 4 )
     {
-        std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
+        std::cout << "Usage: xlxd callsign xlxdip ambedip";
+        for ( int i = 1; i < UDP_SOCKET_MAX; i++ )
+        {
+            std::cout << " (xlxdip" << i + 1 << ")";
+        }
+        std::cout << std::endl;
         std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
         return 1;
     }
@@ -101,7 +106,10 @@ int main(int argc, const char * argv[])
     g_Reflector.SetCallsign(argv[1]);
     g_Reflector.SetListenIp(0, CIp(argv[2]));
     g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
-    g_Reflector.SetListenIp(1, ( argc >= 5 ) ? CIp(argv[4]) : CIp());
+    for ( int i = 1, ac = 4; i < UDP_SOCKET_MAX; i++, ac++ )
+    {
+        g_Reflector.SetListenIp(i, ( ac < argc ) ? CIp(argv[ac]) : CIp());
+    }
   
     // and let it run
     if ( !g_Reflector.Start() )

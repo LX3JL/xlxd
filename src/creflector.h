@@ -58,7 +58,7 @@ public:
     // settings
     void SetCallsign(const CCallsign &callsign)     { m_Callsign = callsign; }
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
-    void SetListenIp(int i, const CIp &ip)          { if (i < UDP_SOCKET_MAX) m_Ip[i] = ip; }
+    void SetListenIp(int i, const CIp &ip)          { m_Ip[i] = ip; }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
     const CIp &GetListenIp(void) const              { return m_Ip[0]; }
     const CIp &GetListenIp(int i) const             { return m_Ip[i]; }

@@ -50,7 +50,7 @@ CUdpSocket::~CUdpSocket()
 ////////////////////////////////////////////////////////////////////////////////////////
 // open & close
 
-bool CUdpSocket::Open(uint16 uiPort)
+bool CUdpSocket::Open(uint16 uiPort, int af)
 {
     bool open = false;
     struct sockaddr_storage *ss;
@@ -61,9 +61,11 @@ bool CUdpSocket::Open(uint16 uiPort)
         m_Ip[i] = CIp(g_Reflector.GetListenIp(i), uiPort);
         ss = m_Ip[i].GetSockAddr(ss_len);
         
-        // create socket
-        // (avoid INADDR_ANY on secondary and later IP address)
-        m_Socket[i] = ( i != 0 && g_Reflector.GetListenIp(i) == CIp() ) ?
+        // create socket, avoid two cases:
+        // 1. address family is specified and not matched
+        // 2. INADDR_ANY (0.0.0.0) on secondary and later IP address
+        m_Socket[i] = ( ( af != AF_UNSPEC && af != ss->ss_family ) || 
+            ( i != 0 && g_Reflector.GetListenIp(i) == CIp() ) ) ?
             -1 : socket(ss->ss_family, SOCK_DGRAM, 0);
         if ( m_Socket[i] != -1 )
         {

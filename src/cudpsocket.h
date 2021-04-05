@@ -57,7 +57,7 @@ public:
     ~CUdpSocket();
     
     // open & close
-    bool Open(uint16);
+    bool Open(uint16, int = AF_UNSPEC);
     void Close(void);
     int  GetSocket(const CIp &);
     

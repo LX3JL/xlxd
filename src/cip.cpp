@@ -31,10 +31,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructors
 
-CIp::CIp()
+CIp::CIp(const int af)
 {
     ::memset(&m_Addr, 0, m_AddrLen = sizeof(struct sockaddr_in));
-    m_Addr.ss_family = AF_INET;
+    m_Addr.ss_family = af;
 }
 
 CIp::CIp(const char *sz)

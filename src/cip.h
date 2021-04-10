@@ -33,7 +33,7 @@ class CIp
 {
 public:
     // constructors
-    CIp();
+    CIp(const int af = AF_INET);
     //CIp(uint8, uint8, uint8, uint8);
     CIp(const struct sockaddr_storage *, socklen_t);
     CIp(const char *);

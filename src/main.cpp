@@ -27,6 +27,7 @@
 
 #include "syslog.h"
 #include <sys/stat.h>
+#include <string.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +40,7 @@ CReflector  g_Reflector;
 
 #include "cusers.h"
 
-int main(int argc, const char * argv[])
+int main(int argc, char * argv[])
 {
 #ifdef RUN_AS_DAEMON
     
@@ -89,12 +90,7 @@ int main(int argc, const char * argv[])
     // check arguments
     if ( argc < 4 )
     {
-        std::cout << "Usage: xlxd callsign xlxdip ambedip";
-        for ( int i = 1; i < UDP_SOCKET_MAX; i++ )
-        {
-            std::cout << " (xlxdip" << i + 1 << ")";
-        }
-        std::cout << std::endl;
+        std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
         std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
         return 1;
     }
@@ -104,13 +100,21 @@ int main(int argc, const char * argv[])
 
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);
-    g_Reflector.SetListenIp(0, CIp(argv[2]));
     g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
-    for ( int i = 1, ac = 4; i < UDP_SOCKET_MAX; i++, ac++ )
+    
+    int ip;
+    char *p, *last;
+    for ( ip = 0, (p = strtok_r(argv[2], ",", &last));
+	  ip < UDP_SOCKET_MAX && p != NULL;
+	  ip++, (p = strtok_r(NULL, ",", &last)) )
     {
-        g_Reflector.SetListenIp(i, ( ac < argc ) ? CIp(argv[ac]) : CIp());
+        g_Reflector.SetListenIp(ip, CIp(p));
     }
-  
+    for ( ; ip < UDP_SOCKET_MAX; ip++ )
+    {
+        g_Reflector.SetListenIp(ip, CIp(AF_UNSPEC));
+    }
+    
     // and let it run
     if ( !g_Reflector.Start() )
     {

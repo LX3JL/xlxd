@@ -315,7 +315,7 @@ void CDplusProtocol::HandleQueue(void)
                          m_Socket.Send(buffer, client->GetIp());
 
                         // is it time to insert a DVheader copy ?
-                        if ( (m_StreamsCache[iModId].m_iSeqCounter++ % 21) == 20 )
+                        if ( (m_StreamsCache[iModId].m_iSeqCounter % 21) == 20 )
                         {
                             // yes, clone it
                             CDvHeaderPacket packet2(m_StreamsCache[iModId].m_dvHeader);
@@ -333,6 +333,10 @@ void CDplusProtocol::HandleQueue(void)
             g_Reflector.ReleaseClients();
         }
         
+        if ( packet->IsDvFrame() )
+        {
+            m_StreamsCache[iModId].m_iSeqCounter++;
+        }
         
         // done
         delete packet;

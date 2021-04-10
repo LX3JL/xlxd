@@ -58,15 +58,17 @@ bool CUdpSocket::Open(uint16 uiPort, int af)
     
     for ( int i = 0; i < UDP_SOCKET_MAX; i++ )
     {
-        m_Ip[i] = CIp(g_Reflector.GetListenIp(i), uiPort);
-        ss = m_Ip[i].GetSockAddr(ss_len);
+        m_Ip[i] = CIp(AF_UNSPEC);
+        m_Socket[i] = -1;
         
-        // create socket, avoid two cases:
-        // 1. address family is specified and not matched
-        // 2. INADDR_ANY (0.0.0.0) on secondary and later IP address
-        m_Socket[i] = ( ( af != AF_UNSPEC && af != ss->ss_family ) || 
-            ( i != 0 && g_Reflector.GetListenIp(i) == CIp() ) ) ?
-            -1 : socket(ss->ss_family, SOCK_DGRAM, 0);
+        if ( g_Reflector.GetListenIp(i) != CIp(AF_UNSPEC) )
+        {
+            m_Ip[i] = CIp(g_Reflector.GetListenIp(i), uiPort);
+            ss = m_Ip[i].GetSockAddr(ss_len);
+            m_Socket[i] = ( af != AF_UNSPEC && af != ss->ss_family ) ?
+                -1 : socket(ss->ss_family, SOCK_DGRAM, 0);
+        }
+        
         if ( m_Socket[i] != -1 )
         {
             if ( bind(m_Socket[i], (struct sockaddr *)ss, ss_len) == 0 )
@@ -110,6 +112,7 @@ int CUdpSocket::GetSocket(const CIp &Ip)
         ss = m_Ip[i].GetSockAddr(ss_len);
         if ( ss_family == ss->ss_family )
         {
+            // if ss->ss_family == AF_UNSPEC, m_Socket[i] = -1
             return m_Socket[i];
         }
     }

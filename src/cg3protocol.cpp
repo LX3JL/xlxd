@@ -49,11 +49,21 @@ bool CG3Protocol::Init(void)
     // base class
     ok = CProtocol::Init();
 
-#ifdef DEBUG_NO_G3_SUPPORT
-    // G3 support can be killed (currently for test purpose)
-    m_bStopThread = true;
-    return true;
+    // G3 needs IPv4 address
+    bool ipv4 = false;
+#if !defined(DEBUG_NO_G3_SUPPORT)
+    for ( int i = 0; i < UDP_SOCKET_MAX; i++ )
+    {
+        CIp ip = g_Reflector.GetListenIp(i);
+        socklen_t ss_len;
+        ipv4 |= ( ip.GetSockAddr(ss_len)->ss_family == AF_INET );
+    }
 #endif
+    if ( !ipv4 ) {
+        std::cout << "No IPv4 address, G3 support is disabled" << std::endl;
+        m_bStopThread = true;
+        return true;
+    }
 
     // update reflector callsign
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);

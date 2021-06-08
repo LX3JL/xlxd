@@ -1,0 +1,18 @@
+[Unit]
+Description=XLX999
+After=syslog.target network.target
+
+[Service]
+User=root
+Group=root
+Type=forking
+StandardOutput=journal
+StandardError=journal
+ExecStart=/bin/bash -c "/xlxd/xlxd XLX999 192.168.1.240 127.0.0.1"
+ExecStartPost=/bin/bash -c "pgrep xlxd > /var/log/xlxd.pid"
+ExecStopPost=/bin/bash -c "rm -rf /var/log/xlxd.pid"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

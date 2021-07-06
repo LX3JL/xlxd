@@ -17,7 +17,7 @@ $VNStat      = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';	// Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.4.1';		// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.4.2';		// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;		// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';		// Page refresh time in miliseconds

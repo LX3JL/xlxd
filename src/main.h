@@ -86,6 +86,7 @@
 #define DEXTRA_PORT                     30001                               // UDP port
 #define DEXTRA_KEEPALIVE_PERIOD         3                                   // in seconds
 #define DEXTRA_KEEPALIVE_TIMEOUT        (DEXTRA_KEEPALIVE_PERIOD*10)        // in seconds
+#define DEXTRA_RECONNECT_PERIOD         5                                   // in seconds
 
 // DPlus
 #define DPLUS_PORT                      20001                               // UDP port

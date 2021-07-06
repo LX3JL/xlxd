@@ -106,7 +106,7 @@ void CPeers::RemovePeer(CPeer *peer)
     bool found = false;
     for ( int i = 0; (i < m_Peers.size()) && !found; i++ )
     {
-        // compare objetc pointers
+        // compare object pointers
         if ( (m_Peers[i]) ==  peer )
         {
             // found it !

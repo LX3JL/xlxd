@@ -41,7 +41,7 @@ class CBmPeer : public CPeer
 public:
     // constructors
     CBmPeer();
-    CBmPeer(const CCallsign &, const CIp &, char *, const CVersion &);
+    CBmPeer(const CCallsign &, const CIp &, const char *, const CVersion &);
     CBmPeer(const CBmPeer &);
     
     // destructor

@@ -138,7 +138,8 @@ else {
                <td><a href="./index.php" class="menulink<?php if ($_GET['show'] == '') { echo 'active'; } ?>">Users / Modules</a></td>
                <td><a href="./index.php?show=repeaters" class="menulink<?php if ($_GET['show'] == 'repeaters') { echo 'active'; } ?>">Repeaters / Nodes (<?php echo $Reflector->NodeCount(); ?>)</a></td>
                <td><a href="./index.php?show=peers" class="menulink<?php if ($_GET['show'] == 'peers') { echo 'active'; } ?>">Peers (<?php echo $Reflector->PeerCount(); ?>)</a></td>
-               <td><a href="./index.php?show=reflectors" class="menulink<?php if ($_GET['show'] == 'reflectors') { echo 'active'; } ?>">Reflectorlist</a></td>
+               <td><a href="./index.php?show=modules" class="menulink<?php if ($_GET['show'] == 'modules') { echo 'active'; } ?>">Modules list</a></td>
+               <td><a href="./index.php?show=reflectors" class="menulink<?php if ($_GET['show'] == 'reflectors') { echo 'active'; } ?>">Reflectors list</a></td>
                <?php
                
                if ($PageOptions['Traffic']['Show']) {
@@ -176,6 +177,7 @@ else {
       case 'repeaters'  : require_once("./pgs/repeaters.php"); break;
       case 'liveircddb' : require_once("./pgs/liveircddb.php"); break;
       case 'peers'      : require_once("./pgs/peers.php"); break;
+      case 'modules'    : require_once("./pgs/modules.php"); break;
       case 'reflectors' : require_once("./pgs/reflectors.php"); break;
       case 'traffic'		: require_once("./pgs/traffic.php"); break;
       default           : require_once("./pgs/users.php");

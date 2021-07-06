@@ -55,6 +55,15 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
+class CDextraStreamCacheItem
+{
+public:
+    CDextraStreamCacheItem()     {}
+    ~CDextraStreamCacheItem()    {}
+    
+    CDvHeaderPacket m_dvHeader;
+};
+
 class CDextraProtocol : public CProtocol
 {
 public:
@@ -101,6 +110,9 @@ protected:
 protected:
     // time
     CTimePoint          m_LastKeepaliveTime;
+    
+    // for queue header caches
+    std::array<CDextraStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

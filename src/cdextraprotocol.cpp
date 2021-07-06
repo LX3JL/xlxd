@@ -118,6 +118,27 @@ void CDextraProtocol::Task(void)
                     // acknowledge the request
                     EncodeConnectAckPacket(&Buffer, ProtRev);
                     m_Socket.Send(Buffer, Ip);
+
+                    // check if any client currently streaming on the module
+                    CClients *clients = g_Reflector.GetClients();
+                    for ( int i = 0; i < clients->GetSize(); i++ )
+                    {
+                        if ( clients->GetClient(i)->IsAMaster() && (clients->GetClient(i)->GetReflectorModule() == ToLinkModule) )
+                        {
+                            // found a client streaming on the module, encode a copy of the cached header packet
+                            CBuffer buffer2;
+                            if ( EncodeDvPacket(m_StreamsCache[g_Reflector.GetModuleIndex(ToLinkModule)].m_dvHeader, &buffer2) )
+                            {
+                                // and send it to the connecting client, so it can listen the already streaming client
+                                for ( int j = 0; j < 5; j++ )
+                                {
+                                    m_Socket.Send(buffer2, Ip);
+                                }
+                            }
+                            break; // done, stop here
+                        }
+                    }
+                    g_Reflector.ReleaseClients();
                     
                     // create the client
                     CDextraClient *client = new CDextraClient(Callsign, Ip, ToLinkModule, ProtRev);
@@ -216,6 +237,16 @@ void CDextraProtocol::HandleQueue(void)
         CPacket *packet = m_Queue.front();
         m_Queue.pop();
         
+        // get our sender's id
+        int iModId = g_Reflector.GetModuleIndex(packet->GetModuleId());
+        
+        // check if it's header and update cache
+        if ( packet->IsDvHeader() )
+        {
+            // this relies on queue feeder setting valid module id
+            m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
+        }
+
         // encode it
         CBuffer buffer;
         if ( EncodeDvPacket(*packet, &buffer) )

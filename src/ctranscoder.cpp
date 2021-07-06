@@ -223,7 +223,7 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
             {
                 if ( m_bStreamOpened )
                 {
-                    std::cout << "ambed openstream ok" << std::endl;
+                    std::cout << "ambed stream open on port " << m_PortOpenStream << std::endl;
                 
                     // create stream object
                     stream = new CCodecStream(PacketStream, m_StreamidOpenStream, uiCodecIn, (uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS);
@@ -281,7 +281,7 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
                     m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
                     
                     // display stats
-                    if ( m_Streams[i]->GetPingMin() >= 0.0 )
+                    //if ( m_Streams[i]->GetPingMin() >= 0.0 )
                     {
                         char sz[256];
                         sprintf(sz, "ambed stats (ms) : %.1f/%.1f/%.1f",
@@ -290,7 +290,7 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
                                 m_Streams[i]->GetPingMax() * 1000.0);
                         std::cout << sz << std::endl;
                     }
-                    if ( m_Streams[i]->GetTimeoutPackets() > 0 )
+                    //if ( m_Streams[i]->GetTimeoutPackets() > 0 )
                     {
                         char sz[256];
                         sprintf(sz, "ambed %d of %d packets timed out",

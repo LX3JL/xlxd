@@ -102,6 +102,9 @@ bool CCodecStream::Init(uint16 uiPort)
     ok = m_Socket.Open(uiPort);
     if ( ok )
     {
+        // init timers
+        m_TimeoutTimer.Now();
+        
         // start  thread;
         m_pThread = new std::thread(CCodecStream::Thread, this);
         m_bConnected = true;

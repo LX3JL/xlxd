@@ -132,6 +132,19 @@ void CYsfProtocol::Task(void)
                 //std::cout << "YSF DV header:"  << std::endl << *Header << std::endl;
                 //std::cout << "YSF DV header:"  << std::endl;
                 
+                // handle changing linked module by DG-ID
+                if ( (Fich.getSQ() >= 1) && (Fich.getSQ() <= NB_OF_MODULES) ) {
+                    char cModule = 'A' + (char)(Fich.getSQ() - 1);
+                    CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_YSF);
+                    if ( client != NULL ) {
+                        if ( client->GetReflectorModule() != cModule ) {
+                            std::cout << "YSF client " << client->GetCallsign() << " linking by DG-ID on module " << cModule << std::endl;
+                            client->SetReflectorModule(cModule);
+                        }
+                    }
+                    g_Reflector.ReleaseClients();
+                }
+                
                 // node linked and callsign muted?
                 if ( g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_YSF, Header->GetRpt2Module())  )
                 {

@@ -63,13 +63,16 @@ CDvFramePacket::CDvFramePacket(const uint8 *ambe, const uint8 *sync, uint16 sid,
 
 // ysf constructor
 
-CDvFramePacket::CDvFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint8 fid)
+CDvFramePacket::CDvFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint8 fid, CCallsign cs)
 : CPacket(sid, pid, spid, fid)
 {
     ::memcpy(m_uiAmbePlus, ambe, sizeof(m_uiAmbePlus));
     ::memset(m_uiDvSync, 0, sizeof(m_uiDvSync));
     ::memset(m_uiAmbe, 0, sizeof(m_uiAmbe));
     ::memset(m_uiDvData, 0, sizeof(m_uiDvData));
+    uint8_t c[12];
+    cs.GetCallsign(c);
+    m_Callsign.SetCallsign((char *)c);
 }
 
 // xlx constructor
@@ -95,6 +98,9 @@ CDvFramePacket::CDvFramePacket(const CDvFramePacket &DvFrame)
     ::memcpy(m_uiDvData, DvFrame.m_uiDvData, sizeof(m_uiDvData));
     ::memcpy(m_uiAmbePlus, DvFrame.m_uiAmbePlus, sizeof(m_uiAmbePlus));
     ::memcpy(m_uiDvSync, DvFrame.m_uiDvSync, sizeof(m_uiDvSync));
+    uint8_t c[12];
+    DvFrame.GetMyCallsign().GetCallsign(c);
+    m_Callsign.SetCallsign((char *)c);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

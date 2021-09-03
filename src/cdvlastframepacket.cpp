@@ -59,8 +59,8 @@ CDvLastFramePacket::CDvLastFramePacket
 
 // ysf constructor
 
-CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint8 fid)
-    : CDvFramePacket(ambe, sid, pid, spid, fid)
+CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint8 fid, CCallsign cs)
+    : CDvFramePacket(ambe, sid, pid, spid, fid, cs)
 {
 }
 

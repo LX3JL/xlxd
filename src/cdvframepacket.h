@@ -26,6 +26,7 @@
 #define cdvframepacket_h
 
 #include "cpacket.h"
+#include "ccallsign.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // defines
@@ -55,7 +56,7 @@ public:
     CDvFramePacket();
     CDvFramePacket(const struct dstar_dvframe *, uint16, uint8);
     CDvFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
-    CDvFramePacket(const uint8 *, uint16, uint8, uint8, uint8);
+    CDvFramePacket(const uint8 *, uint16, uint8, uint8, uint8, CCallsign);
     CDvFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
     CDvFramePacket(const CDvFramePacket &);
     
@@ -75,6 +76,7 @@ public:
     const uint8 *GetAmbePlus(void) const    { return m_uiAmbePlus; }
     const uint8 *GetDvData(void) const      { return m_uiDvData; }
     const uint8 *GetDvSync(void) const      { return m_uiDvSync; }
+    const CCallsign &GetMyCallsign(void) const      { return m_Callsign; }
     
     // set
     void SetDvData(uint8 *);
@@ -95,6 +97,7 @@ protected:
     // data (dmr)
     uint8       m_uiAmbePlus[AMBEPLUS_SIZE];
     uint8       m_uiDvSync[DVSYNC_SIZE];
+    CCallsign	m_Callsign;
 };
 
 

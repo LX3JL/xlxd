@@ -117,7 +117,7 @@
 #define DMRMMDVM_KEEPALIVE_TIMEOUT      (DMRMMDVM_KEEPALIVE_PERIOD*10)      // in seconds
 #define DMRMMDVM_REFLECTOR_SLOT         DMR_SLOT2
 #define DMRMMDVM_REFLECTOR_COLOUR       1
-#define DMRMMDVM_DEFAULTID				3161894								// Default DMRID used for unrecognized callsigns from other modes.  0 = unused
+#define DMRMMDVM_DEFAULTID				0									// Default DMRID used for unrecognized callsigns from other modes.  0 = unused
 
 // YSF
 #define YSF_PORT                        42000                               // UDP port

@@ -253,8 +253,17 @@ bool CYsfProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         {
             // get client callsign
             via = client->GetCallsign();
-            // get module it's linked to
-            Header->SetRpt2Module(client->GetReflectorModule());
+
+            if ( Header->GetRpt2Module() == ' ' ) {
+                // module not filled, get module it's linked to
+                Header->SetRpt2Module(client->GetReflectorModule());
+            } else {
+                // handle changing linked module to the one set on rpt2
+                if ( client->GetReflectorModule() != Header->GetRpt2Module() ) {
+                    std::cout << "YSF client " << client->GetCallsign() << " linking on module " << Header->GetRpt2Module() << std::endl;
+                    client->SetReflectorModule(Header->GetRpt2Module());
+                }
+            }
 
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
@@ -466,10 +475,16 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
             CCallsign rpt1 = CCallsign((const char *)sz);
             rpt1.SetModule(YSF_MODULE_ID);
             CCallsign rpt2 = m_ReflectorCallsign;
-            // as YSF protocol does not provide a module-tranlatable
-            // destid, set module to none and rely on OnDvHeaderPacketIn()
-            // to later fill it with proper value
-            rpt2.SetModule(' ');
+
+            if ( (Fich.getSQ() >= 10) && (Fich.getSQ() < 10+NB_OF_MODULES) ) {
+                // set module based on DG-ID value
+                rpt2.SetModule( 'A' + (char)(Fich.getSQ() - 10) );
+            } else {
+                // as YSF protocol does not provide a module-tranlatable
+                // destid, set module to none and rely on OnDvHeaderPacketIn()
+                // to later fill it with proper value
+                rpt2.SetModule(' ');
+            }
             
             // and packet
             *header = new CDvHeaderPacket(csMY, CCallsign("CQCQCQ"), rpt1, rpt2, uiStreamId, Fich.getFN());

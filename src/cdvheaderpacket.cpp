@@ -48,7 +48,17 @@ CDvHeaderPacket::CDvHeaderPacket(const struct dstar_header *buffer, uint16 sid, 
     m_uiFlag2 = buffer->Flag2;
     m_uiFlag3 = buffer->Flag3;
     m_csUR.SetCallsign(buffer->UR, CALLSIGN_LEN);
-    m_csRPT1.SetCallsign(buffer->RPT1, CALLSIGN_LEN);
+
+    if((buffer->RPT1)[7] == 0x20){
+		char rptr1[8];
+		memcpy(rptr1, buffer->RPT1, 8);
+		rptr1[7] = DPLUS_DEFAULT_RPTR1_SUFFIX;
+		m_csRPT1.SetCallsign(rptr1, CALLSIGN_LEN);
+	}
+	else{
+		m_csRPT1.SetCallsign(buffer->RPT1, CALLSIGN_LEN);
+	}
+	
     m_csRPT2.SetCallsign(buffer->RPT2, CALLSIGN_LEN);
     m_csMY.SetCallsign(buffer->MY, CALLSIGN_LEN);
     m_csMY.SetSuffix(buffer->SUFFIX, CALLSUFFIX_LEN);

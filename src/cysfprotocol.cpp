@@ -450,6 +450,7 @@ bool CYsfProtocol::IsValidDvPacket(const CBuffer &Buffer, CYSFFICH *Fich)
 
 bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, const CBuffer &Buffer, CDvHeaderPacket **header, CDvFramePacket **frames)
 {
+	CCallsign csMY;
     bool valid = false;
     *header = NULL;
     frames[0] = NULL;
@@ -469,7 +470,7 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
              char sz[YSF_CALLSIGN_LENGTH+1];
             ::memcpy(sz, &(Buffer.data()[14]), YSF_CALLSIGN_LENGTH);
             sz[YSF_CALLSIGN_LENGTH] = 0;
-            CCallsign csMY = CCallsign((const char *)sz);
+            csMY = CCallsign((const char *)sz);
             ::memcpy(sz, &(Buffer.data()[4]), YSF_CALLSIGN_LENGTH);
             sz[YSF_CALLSIGN_LENGTH] = 0;
             CCallsign rpt1 = CCallsign((const char *)sz);
@@ -493,12 +494,12 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
         {
             uint8  uiAmbe[AMBE_SIZE];
             ::memset(uiAmbe, 0x00, sizeof(uiAmbe));
-            frames[0] = new CDvFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 0, 0);
-            frames[1] = new CDvFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 1, 0);
+            frames[0] = new CDvFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 0, 0, csMY);
+            frames[1] = new CDvFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 1, 0, csMY);
         }
         
         // check validity of packets
-        if ( ((*header) == NULL) || !(*header)->IsValid() ||
+        if ( ((*header) == NULL) || //!(*header)->IsValid() ||
              (frames[0] == NULL) || !(frames[0]->IsValid()) ||
              (frames[1] == NULL) || !(frames[1]->IsValid()) )
 
@@ -509,6 +510,7 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
             delete frames[1];
             frames[0] = NULL;
             frames[1] = NULL;
+            valid = false;
         }
         else
         {
@@ -546,12 +548,23 @@ bool CYsfProtocol::IsValidDvFramePacket(const CIp &Ip, const CYSFFICH &Fich, con
         CYsfUtils::DecodeVD2Vchs((unsigned char *)&(Buffer.data()[35]), ambes);
 
         // get DV frames
+        char sz[YSF_CALLSIGN_LENGTH+1];
+        ::memcpy(sz, &(Buffer.data()[14]), YSF_CALLSIGN_LENGTH);
+        sz[YSF_CALLSIGN_LENGTH] = 0;
+        
+        for(int i = 0; i < YSF_CALLSIGN_LENGTH; ++i){
+			if( (sz[i] == '/') || (sz[i] == '\\') || (sz[i] == '-') || (sz[i] == ' ') ){
+				sz[i] = 0;
+			}
+		}
+		
+        CCallsign csMY = CCallsign((const char *)sz);
         uint8 fid = Buffer.data()[34];
-        frames[0] = new CDvFramePacket(ambe0, uiStreamId, Fich.getFN(), 0, fid);
-        frames[1] = new CDvFramePacket(ambe1, uiStreamId, Fich.getFN(), 1, fid);
-        frames[2] = new CDvFramePacket(ambe2, uiStreamId, Fich.getFN(), 2, fid);
-        frames[3] = new CDvFramePacket(ambe3, uiStreamId, Fich.getFN(), 3, fid);
-        frames[4] = new CDvFramePacket(ambe4, uiStreamId, Fich.getFN(), 4, fid);
+        frames[0] = new CDvFramePacket(ambe0, uiStreamId, Fich.getFN(), 0, fid, csMY);
+        frames[1] = new CDvFramePacket(ambe1, uiStreamId, Fich.getFN(), 1, fid, csMY);
+        frames[2] = new CDvFramePacket(ambe2, uiStreamId, Fich.getFN(), 2, fid, csMY);
+        frames[3] = new CDvFramePacket(ambe3, uiStreamId, Fich.getFN(), 3, fid, csMY);
+        frames[4] = new CDvFramePacket(ambe4, uiStreamId, Fich.getFN(), 4, fid, csMY);
         
         // check validity of packets
         if ( (frames[0] == NULL) || !(frames[0]->IsValid()) ||
@@ -597,8 +610,19 @@ bool CYsfProtocol::IsValidDvLastFramePacket(const CIp &Ip, const CYSFFICH &Fich,
         {
             uint8  uiAmbe[AMBE_SIZE];
             ::memset(uiAmbe, 0x00, sizeof(uiAmbe));
-            frames[0] = new CDvFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 0, 0);
-            frames[1] = new CDvLastFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 1, 0);
+            char sz[YSF_CALLSIGN_LENGTH+1];
+			::memcpy(sz, &(Buffer.data()[14]), YSF_CALLSIGN_LENGTH);
+			sz[YSF_CALLSIGN_LENGTH] = 0;
+        
+			for(int i = 0; i < YSF_CALLSIGN_LENGTH; ++i){
+				if( (sz[i] == '/') || (sz[i] == '\\') || (sz[i] == '-') || (sz[i] == ' ') ){
+					sz[i] = 0;
+				}
+			}
+		
+			CCallsign csMY = CCallsign((const char *)sz);
+            frames[0] = new CDvFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 0, 0, csMY);
+            frames[1] = new CDvLastFramePacket(uiAmbe, uiStreamId, Fich.getFN(), 1, 0, csMY);
         }
         
         // check validity of packets

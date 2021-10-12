@@ -85,6 +85,8 @@ protected:
     bool IsNumber(char) const;
     bool IsLetter(char) const;
     bool IsSpace(char) const;
+    bool IsLetterLC(char) const;
+    bool IsSpecialChar(char) const;
     
 protected:
     // data

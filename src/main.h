@@ -91,6 +91,7 @@
 #define DPLUS_PORT                      20001                               // UDP port
 #define DPLUS_KEEPALIVE_PERIOD          1                                   // in seconds
 #define DPLUS_KEEPALIVE_TIMEOUT         (DPLUS_KEEPALIVE_PERIOD*10)         // in seconds
+#define DPLUS_DEFAULT_RPTR1_SUFFIX		' '									// RPTR1 suffix to append when missing, use ' ' to leave unchanged
 
 // DCS
 #define DCS_PORT                        30051                               // UDP port
@@ -116,6 +117,7 @@
 #define DMRMMDVM_KEEPALIVE_TIMEOUT      (DMRMMDVM_KEEPALIVE_PERIOD*10)      // in seconds
 #define DMRMMDVM_REFLECTOR_SLOT         DMR_SLOT2
 #define DMRMMDVM_REFLECTOR_COLOUR       1
+#define DMRMMDVM_DEFAULTID				0									// Default DMRID used for unrecognized callsigns from other modes.  0 = unused
 
 // YSF
 #define YSF_PORT                        42000                               // UDP port

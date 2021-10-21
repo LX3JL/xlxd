@@ -6,6 +6,13 @@ The XLX Multiprotocol Gateway Reflector Server is part of the software system
 for the D-Star Network.
 The sources are published under GPL Licenses.
 
+# Supported Protocols since XLX v 2.5.x
+
+- In D-Star, Icom-G3Terminal, DExtra, DPLus and DCS
+- In DMR, DMRPlus (dongle) and DMRMmdvm
+- In C4FM, YSF, Wires-X and IRMS
+- XLX Interlink protocol
+
 # Usage
 
 The packages which are described in this document are designed to install server
@@ -129,6 +136,7 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 10101 - 10199 (AMBE transcoding port)
  - UDP port 12345 - 12346 (Icom Terminal presence and request port)
  - UDP port 40000         (Icom Terminal dv port)
+ - UDP port 21110         (Yaesu IRMS protocol)
 
 # YSF Master Server
 

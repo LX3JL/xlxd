@@ -32,28 +32,30 @@ class CBuffer : public std::vector<uint8>
 public:
     // constructor
     CBuffer() {};
-    CBuffer(uint8 *, int);
+    CBuffer(const uint8 *, int);
     
     // destructor
     virtual ~CBuffer() {};
     
     // set
-    void Set(uint8 *, int);
+    void Set(const uint8 *, int);
     void Set(const char *);
-    void Append(uint8 *, int);
+    void SetFromAsciiHex(const char *, int);
+    void Append(const uint8 *, int);
     void Append(uint8, int);
     void Append(uint8);
     void Append(uint16);
     void Append(uint32);
     void Append(const char *);
+    void AppendAsAsciiHex(uint8 *, int);
     void ReplaceAt(int, uint8);
     void ReplaceAt(int, uint16);
     void ReplaceAt(int, uint32);
     void ReplaceAt(int, const uint8 *, int);
     
     // operation
-    int Compare(uint8 *, int) const;
-    int Compare(uint8 *, int, int) const;
+    int Compare(const uint8 *, int) const;
+    int Compare(const uint8 *, int, int) const;
     
     // operator
     bool operator ==(const CBuffer &) const;

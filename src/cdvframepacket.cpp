@@ -72,13 +72,24 @@ CDvFramePacket::CDvFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 s
     ::memset(m_uiDvData, 0, sizeof(m_uiDvData));
 }
 
+// imrs constructor
+
+CDvFramePacket::CDvFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint16 fid)
+: CPacket(sid, pid, spid, fid)
+{
+    ::memcpy(m_uiAmbePlus, ambe, sizeof(m_uiAmbePlus));
+    ::memset(m_uiDvSync, 0, sizeof(m_uiDvSync));
+    ::memset(m_uiAmbe, 0, sizeof(m_uiAmbe));
+    ::memset(m_uiDvData, 0, sizeof(m_uiDvData));
+}
+
 // xlx constructor
 
 CDvFramePacket::CDvFramePacket
     (uint16 sid,
      uint8 dstarpid, const uint8 *dstarambe, const uint8 *dstardvdata,
      uint8 dmrpid, uint8 dprspid, const uint8 *dmrambe, const uint8 *dmrsync)
-: CPacket(sid, dstarpid, dmrpid, dprspid, 0xFF, 0xFF, 0xFF)
+: CPacket(sid, dstarpid, dmrpid, dprspid, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFFFF)
 {
     ::memcpy(m_uiAmbe, dstarambe, sizeof(m_uiAmbe));
     ::memcpy(m_uiDvData, dstardvdata, sizeof(m_uiDvData));

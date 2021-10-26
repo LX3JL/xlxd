@@ -70,10 +70,10 @@ CDvHeaderPacket::CDvHeaderPacket(uint32 my, const CCallsign &ur, const CCallsign
     m_csMY = CCallsign("", my);
 }
 
-// YSF constructor
+// YSF + IMRS constructor
 
 CDvHeaderPacket::CDvHeaderPacket(const CCallsign &my, const CCallsign &ur, const CCallsign &rpt1, const CCallsign &rpt2, uint16 sid, uint8 pid)
-: CPacket(sid, pid, 0, 0)
+: CPacket(sid, pid, 0, (uint8)0)
 {
     m_uiFlag1 = 0;
     m_uiFlag2 = 0;

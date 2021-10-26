@@ -56,6 +56,7 @@ public:
     CDvFramePacket(const struct dstar_dvframe *, uint16, uint8);
     CDvFramePacket(const uint8 *, const uint8 *, uint16, uint8, uint8);
     CDvFramePacket(const uint8 *, uint16, uint8, uint8, uint8);
+    CDvFramePacket(const uint8 *, uint16, uint8, uint8, uint16);
     CDvFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
     CDvFramePacket(const CDvFramePacket &);
     

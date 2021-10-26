@@ -64,7 +64,7 @@ public:
     CDvHeaderPacket(const struct dstar_header *, uint16, uint8);
     CDvHeaderPacket(uint32, const CCallsign &, const CCallsign &, const CCallsign &, uint16, uint8, uint8);
     CDvHeaderPacket(const CCallsign &, const CCallsign &, const CCallsign &, const CCallsign &, uint16, uint8);
-   CDvHeaderPacket(const CDvHeaderPacket &);
+    CDvHeaderPacket(const CDvHeaderPacket &);
     
     // destructor
     virtual ~CDvHeaderPacket(){};

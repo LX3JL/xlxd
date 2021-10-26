@@ -29,7 +29,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CBuffer::CBuffer(uint8 *buffer, int len)
+CBuffer::CBuffer(const uint8 *buffer, int len)
 {
     resize(len);
     ::memcpy(data(), buffer, len);
@@ -38,7 +38,7 @@ CBuffer::CBuffer(uint8 *buffer, int len)
 ////////////////////////////////////////////////////////////////////////////////////////
 // set
 
-void CBuffer::Set(uint8 *buffer, int len)
+void CBuffer::Set(const uint8 *buffer, int len)
 {
     resize(len);
     ::memcpy(data(), buffer, len);
@@ -50,7 +50,21 @@ void CBuffer::Set(const char *sz)
     ::strcpy((char *)data(), sz);
 }
 
-void CBuffer::Append(uint8 *buffer, int len)
+void CBuffer::SetFromAsciiHex(const char *sz, int len)
+{
+    char ascii[3];
+    
+    resize(len/2);
+    ascii[2] = 0x00;
+    for ( int i = 0; i < len/2; i++ )
+    {
+        ::memcpy(ascii, sz+(i*2), 2);
+        data()[i] = ::strtol(ascii, NULL, 16);
+    }
+}
+
+
+void CBuffer::Append(const uint8 *buffer, int len)
 {
     int n = (int)size();
     resize(n+len);
@@ -91,6 +105,17 @@ void CBuffer::Append(const char *sz)
     Append((uint8)0x00);
 }
 
+void CBuffer::AppendAsAsciiHex(uint8 *buffer, int len)
+{
+    char sz[3];
+    for ( int i = 0; i < len; i++ )
+    {
+        ::sprintf(sz, "%02X", buffer[i]);
+        Append((uint8 *)sz, 2);
+    }
+}
+
+
 void CBuffer::ReplaceAt(int i, uint8 ui)
 {
     if ( size() < (i+sizeof(uint8)) )
@@ -130,7 +155,7 @@ void CBuffer::ReplaceAt(int i, const uint8 *ptr, int len)
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation
 
-int CBuffer::Compare(uint8 *buffer, int len) const
+int CBuffer::Compare(const uint8 *buffer, int len) const
 {
     int result = -1;
     if ( size() >= len )
@@ -140,7 +165,7 @@ int CBuffer::Compare(uint8 *buffer, int len) const
     return result;
 }
 
-int CBuffer::Compare(uint8 *buffer, int off, int len) const
+int CBuffer::Compare(const uint8 *buffer, int off, int len) const
 {
     int result = -1;
     if ( size() >= (off+len) )

@@ -221,6 +221,12 @@ void CCallsign::SetYsfCallsign(const char *sz)
             m_Suffix[j++] = sz[i];
         }
     }
+    // and update dmrid
+    g_DmridDir.Lock();
+    {
+        m_uiDmrid = g_DmridDir.FindDmrid(*this);
+    }
+    g_DmridDir.Unlock();
 }
 
 void CCallsign::SetDmrid(uint32 dmrid, bool UpdateCallsign)

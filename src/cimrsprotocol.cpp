@@ -658,18 +658,29 @@ void CImrsProtocol::EncodePongPacket(CBuffer *Buffer) const
     Buffer->Append(radioid, sizeof(radioid));
     // list of authorised dg-id
     // enable dg-id 2 & 10 -> 10+NBmodules
-    uint32 dgids = 0x00000004;
-    uint32 mask  = 0x00000400;
-    for ( int i = 0; i < NB_OF_MODULES; i++ )
+    uint32 dgids32 = 0x00000004;
+    uint32 mask32  = 0x00000400;
+    // modules 10->31 
+    for ( int i = 0; i < MIN(NB_OF_MODULES,22); i++ )
     {
-        dgids |= mask;
-        mask = mask << 1;
+        dgids32 |= mask32;
+        mask32 = mask32 << 1;
     }
-    Buffer->Append(LOBYTE(LOWORD(dgids)));
-    Buffer->Append(HIBYTE(LOWORD(dgids)));
-    Buffer->Append(LOBYTE(HIWORD(dgids)));
-    Buffer->Append(HIBYTE(HIWORD(dgids)));
-    Buffer->Append((uint8)0x00, 13);
+    Buffer->Append(LOBYTE(LOWORD(dgids32)));
+    Buffer->Append(HIBYTE(LOWORD(dgids32)));
+    Buffer->Append(LOBYTE(HIWORD(dgids32)));
+    Buffer->Append(HIBYTE(HIWORD(dgids32)));
+    // module 32->35
+    uint8 dgids8 = 0x00;
+    uint8 mask8 = 0x01;
+    for ( int i = 23; i < NB_OF_MODULES; i++ )
+    {
+        dgids8 |= mask8;
+        mask8 = mask8 << 1;
+
+    }
+    Buffer->Append(dgids8);
+    Buffer->Append((uint8)0x00, 12);
     // and dg-id
     Buffer->Append((uint8)2);
     Buffer->Append((uint8)2);
@@ -907,7 +918,7 @@ uint8 CImrsProtocol::ModuleToDgid(char cModule) const
 {
     uint8 uiDgid = 0x00;
     
-    if ( (cModule >+ 'A') && (cModule < ('A'+NB_OF_MODULES)) )
+    if ( (cModule >= 'A') && (cModule < ('A'+NB_OF_MODULES)) )
     {
         uiDgid = 10 + (cModule - 'A');
     }

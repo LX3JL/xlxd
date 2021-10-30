@@ -660,8 +660,8 @@ void CImrsProtocol::EncodePongPacket(CBuffer *Buffer) const
     // enable dg-id 2 & 10 -> 10+NBmodules
     uint32 dgids32 = 0x00000004;
     uint32 mask32  = 0x00000400;
-    // modules 10->31 
-    for ( int i = 0; i < MIN(NB_OF_MODULES,22); i++ )
+    // modules 10->31
+    for ( int i = 0; i < (int)(MIN(NB_OF_MODULES,22)); i++ )
     {
         dgids32 |= mask32;
         mask32 = mask32 << 1;
@@ -673,11 +673,10 @@ void CImrsProtocol::EncodePongPacket(CBuffer *Buffer) const
     // module 32->35
     uint8 dgids8 = 0x00;
     uint8 mask8 = 0x01;
-    for ( int i = 23; i < NB_OF_MODULES; i++ )
+    for ( int i = 22; i < NB_OF_MODULES; i++ )
     {
         dgids8 |= mask8;
         mask8 = mask8 << 1;
-
     }
     Buffer->Append(dgids8);
     Buffer->Append((uint8)0x00, 12);

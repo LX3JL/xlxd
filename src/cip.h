@@ -46,9 +46,12 @@ public:
     void SetSockAddr(struct sockaddr_in *);
     struct sockaddr_in *GetSockAddr(void)     { return &m_Addr; }
     
-    // convertor
+    // get
     uint32 GetAddr(void) const                { return m_Addr.sin_addr.s_addr; }
     uint16 GetPort(void) const                { return m_Addr.sin_port; }
+    
+    // set
+    void SetPort(uint16 port)                 { m_Addr.sin_port = port; }
     
     // operator
     bool operator ==(const CIp &) const;

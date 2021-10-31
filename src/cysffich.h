@@ -57,6 +57,7 @@ public:
     void setSQ(unsigned char sq);
     
     void load(const unsigned char* fich);
+    void data(unsigned char* fich);
     
 private:
     unsigned char* m_fich;

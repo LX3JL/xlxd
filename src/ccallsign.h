@@ -54,6 +54,7 @@ public:
     // set
     void SetCallsign(const char *, bool = true);
     void SetCallsign(const uint8 *, int, bool = true);
+    void SetYsfCallsign(const char *);
     void SetDmrid(uint32, bool = true);
     void SetDmrid(const uint8 *, bool = true);
     void SetModule(char);

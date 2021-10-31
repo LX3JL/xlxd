@@ -306,3 +306,9 @@ void CYSFFICH::load(const unsigned char* fich)
     ::memcpy(m_fich, fich, 4U);
 }
 
+void CYSFFICH::data(unsigned char* fich)
+{
+    assert(fich != NULL);
+    
+    ::memcpy(fich, m_fich, 4U);
+}

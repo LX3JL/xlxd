@@ -44,8 +44,9 @@ CReflector::CReflector()
     {
         m_RouterThreads[i] = NULL;
     }
+    ::memset(m_Mac, 0, sizeof(m_Mac));
 #ifdef DEBUG_DUMPFILE
-    m_DebugFile.open("/Users/jeanluc/Desktop/xlxdebug.txt");
+    m_DebugFile.open("/Users/jean-luc/Desktop/xlxdebug.txt");
 #endif
 }
 
@@ -62,6 +63,7 @@ CReflector::CReflector(const CCallsign &callsign)
         m_RouterThreads[i] = NULL;
     }
     m_Callsign = callsign;
+    ::memset(m_Mac, 0, sizeof(m_Mac));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +102,7 @@ bool CReflector::Start(void)
 
     // reset stop flag
     m_bStopThreads = false;
-
+    
     // init gate keeper
     ok &= g_GateKeeper.Init();
     
@@ -768,3 +770,152 @@ void CReflector::SendJsonOffairObject(CUdpSocket &Socket, CIp &Ip, const CCallsi
     //std::cout << Buffer << std::endl;
     Socket.Send(Buffer, Ip);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// MAC address helpers
+
+#ifdef __linux__
+#include <netpacket/packet.h>
+bool CReflector::UpdateListenMac(void)
+{
+    struct ifaddrs *ifap, *ifaptr;
+    char host[NI_MAXHOST];
+    char *ifname = NULL;
+    bool found = false;
+    
+    // iterate through all our AF_INET interface to find the one
+    // of our listening ip
+    if ( getifaddrs(&ifap) == 0 )
+    {
+        for ( ifaptr = ifap; (ifaptr != NULL) && !found; ifaptr = (ifaptr)->ifa_next )
+        {
+            // is it an AF_INET?
+            if ( ifaptr->ifa_addr->sa_family == AF_INET )
+            {
+                if (ifaptr->ifa_addr == NULL)
+                    continue;
+                
+                // get the IP
+                if ( getnameinfo(ifaptr->ifa_addr,
+                        sizeof(struct sockaddr_in),
+                        host, NI_MAXHOST,
+                        NULL, 0, NI_NUMERICHOST) == 0 )
+                {
+                    if ( CIp(host) == m_Ip )
+                    {
+                        // yes, found it
+                        found = true;
+                        ifname = new char[strlen(ifaptr->ifa_name)+1];
+                        strcpy(ifname, ifaptr->ifa_name);
+                    }
+                }
+            }
+           
+        }
+        freeifaddrs(ifap);
+    }
+    
+    // if listening interface name found, iterate again
+    // to find the corresponding AF_PACKET interface
+    if ( found )
+    {
+        found = false;
+        if ( getifaddrs(&ifap) == 0 )
+        {
+            for ( ifaptr = ifap; (ifaptr != NULL) && !found; ifaptr = (ifaptr)->ifa_next )
+            {
+                if ( !strcmp((ifaptr)->ifa_name, ifname) && (ifaptr->ifa_addr->sa_family == AF_PACKET) )
+                {
+                    found = true;
+                    struct sockaddr_ll *s = (struct sockaddr_ll *)(ifaptr->ifa_addr);
+                    for ( int i = 0; i < 6; i++ )
+                    {
+                        m_Mac[i] = s->sll_addr[i];
+                    }
+                }
+            }
+        }
+        freeifaddrs(ifap);
+    }
+    
+    // done
+    return found;
+}
+#endif
+
+#if defined(__APPLE__)  && defined(__MACH__)
+#include <net/if_dl.h>
+bool CReflector::UpdateListenMac(void)
+{
+    struct ifaddrs *ifaddr;
+    int  s;
+    char host[NI_MAXHOST];
+    char *ifname = NULL;
+    bool found = false;
+    bool ok = false;
+
+    if ( getifaddrs(&ifaddr) != -1)
+    {
+        // Walk through linked list, maintaining head pointer so we can free list later.
+        // until finding our listening AF_INET interface
+        for (struct ifaddrs *ifa = ifaddr; (ifa != NULL) && !found; ifa = ifa->ifa_next)
+        {
+            if (ifa->ifa_addr == NULL)
+                continue;
+
+            // is it an AF_INET?
+            if (ifa->ifa_addr->sa_family == AF_INET)
+            {
+                // get IP
+                s = getnameinfo(ifa->ifa_addr,
+                        sizeof(struct sockaddr_in),
+                        host, NI_MAXHOST,
+                        NULL, 0, NI_NUMERICHOST);
+                if (s != 0)
+                {
+                   return false;
+                }
+                // is it our listening ip ?
+                if ( CIp(host) == m_Ip )
+                {
+                    // yes, found it
+                    found = true;
+                    ifname = new char[strlen(ifa->ifa_name)+1];
+                    strcpy(ifname, ifa->ifa_name);
+                }
+            }
+        }
+        freeifaddrs(ifaddr);
+
+        // found our interface ?
+        if ( found )
+        {
+            // yes
+            //std::cout << ifname << " : " << host << std::endl;
+            
+            // Walk again through linked list
+            // until finding our listening AF_LINK interface
+            if ( getifaddrs(&ifaddr) != -1 )
+            {
+                found = false;
+                for (struct ifaddrs *ifa = ifaddr; (ifa != NULL) && !found; ifa = ifa->ifa_next)
+                {
+                    if (ifa->ifa_addr == NULL)
+                        continue;
+                    
+                    if ( !strcmp(ifa->ifa_name, ifname) && (ifa->ifa_addr->sa_family == AF_LINK))
+                    {
+                        ::memcpy((void *)m_Mac, (void *)LLADDR((struct sockaddr_dl *)(ifa)->ifa_addr), sizeof(m_Mac));
+                        ok = true;
+                        found = true;
+                    }
+                }
+                freeifaddrs(ifaddr);
+            }
+        }
+
+        delete [] ifname;
+    }
+    return ok;
+}
+#endif

@@ -64,6 +64,14 @@ CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid,
 {
 }
 
+// imrs constructor
+
+CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint16 fid)
+    : CDvFramePacket(ambe, sid, pid, spid, fid)
+{
+}
+
+
 
 // copy constructor
     

@@ -1,12 +1,9 @@
 //
-//  cysfutils.h
+//  cimrsclient.cpp
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 14/04/2019.
-//  Copyright © 2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
-//  Copyright (C) 2016,2017 by Jonathan Naylor G4KLX
-//  Copyright (C) 2018 by Andy Uribe CA6JAU
-//  Copyright (C) 2018 by Manuel Sanchez EA7EE
+//  Created by Jean-Luc Deltombe (LX3JL) on 29/10/2019.
+//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -25,29 +22,31 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cysfutils_h
-#define cysfutils_h
+#include "main.h"
+#include "cimrsclient.h"
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// class
+// constructors
 
-class CYsfUtils
+CImrsClient::CImrsClient()
 {
-public:
-    // constructor
-    CYsfUtils() {};
-    
-    // destructor
-    virtual ~CYsfUtils() {};
-    
-    // code / decode
-    static void DecodeVD2Vchs(uint8 *, uint8 **);
-    static void DecodeVD2Vch(uint8 *, uint8 *);
-    static void EncodeVD2Vch(uint8 *, uint8 *);
-    
-protected:
-    // data
-};
+}
+
+CImrsClient::CImrsClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
+    : CClient(callsign, ip, reflectorModule)
+{
+}
+
+CImrsClient::CImrsClient(const CImrsClient &client)
+    : CClient(client)
+{
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cysfutils_h */
+// status
+
+bool CImrsClient::IsAlive(void) const
+{
+    return (m_LastKeepaliveTime.DurationSinceNow() < IMRS_KEEPALIVE_TIMEOUT);
+}

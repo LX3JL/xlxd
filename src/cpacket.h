@@ -42,8 +42,9 @@ public:
     CPacket();
     CPacket(uint16 sid, uint8 dstarpid);
     CPacket(uint16 sid, uint8 dmrpid, uint8 dmrsubpid);
-    CPacket(uint16 sid, uint8 ysfpid, uint8 ysfsubpid, uint8 ysfsubpidmax);
-    CPacket(uint16 sid, uint8 dstarpid, uint8 dmrpid, uint8 dmrsubpid, uint8 ysfpid, uint8 ysfsubpid, uint8 ysfsubpidmax);
+    CPacket(uint16 sid, uint8 ysfpid, uint8 ysfsubpid, uint8 ysffrid);
+    CPacket(uint16 sid, uint8 imrspid, uint8 imrssubid, uint16 imrsfrid);
+    CPacket(uint16 sid, uint8 dstarpid, uint8 dmrpid, uint8 dmrsubpid, uint8 ysfpid, uint8 ysfsubpid, uint8 ysffrid, uint8 imrspid, uint8 imrssubid, uint16 imrsfrid);
     
     // destructor
     virtual ~CPacket() {};
@@ -67,6 +68,9 @@ public:
     uint8  GetYsfPacketId(void) const               { return m_uiYsfPacketId; }
     uint8  GetYsfPacketSubId(void) const            { return m_uiYsfPacketSubId; }
     uint8  GetYsfPacketFrameId(void) const          { return m_uiYsfPacketFrameId; }
+    uint8  GetImrsPacketId(void) const              { return m_uiImrsPacketId; }
+    uint16 GetImrsPacketFrameId(void) const         { return m_uiImrsPacketFrameId; }
+    uint8  GetImrsPacketSubId(void) const           { return m_uiImrsPacketSubId; }
     uint8  GetModuleId(void) const                  { return m_uiModuleId; }
     bool   IsLocalOrigin(void) const                { return (m_uiOriginId == ORIGIN_LOCAL); }
     
@@ -77,16 +81,23 @@ public:
     void SetRemotePeerOrigin(void)                  { m_uiOriginId = ORIGIN_PEER; }
     
 protected:
-    // data
+    // common
     uint16  m_uiStreamId;
+    uint8   m_uiModuleId;
+    uint8   m_uiOriginId;
+    // dstar
     uint8   m_uiDstarPacketId;
+    // dmr
     uint8   m_uiDmrPacketId;
     uint8   m_uiDmrPacketSubid;
+    // ysf
     uint8   m_uiYsfPacketId;
     uint8   m_uiYsfPacketSubId;
     uint8   m_uiYsfPacketFrameId;
-    uint8   m_uiModuleId;
-    uint8   m_uiOriginId;
+    // imrs
+    uint8   m_uiImrsPacketId;
+    uint16  m_uiImrsPacketFrameId;
+    uint8   m_uiImrsPacketSubId;
 };
 
 

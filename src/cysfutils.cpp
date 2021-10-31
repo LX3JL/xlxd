@@ -472,7 +472,7 @@ const unsigned char WHITENING_DATA[] = {0x93U, 0xD7U, 0x51U, 0x21U, 0x9CU, 0x2FU
 #define READ_BIT(p,i)    (p[(i)>>3] & BIT_MASK_TABLE[(i)&7])
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//
+// decode
 
 void CYsfUtils::DecodeVD2Vchs(uint8 *data, uint8 **ambe)
 {
@@ -554,6 +554,80 @@ void CYsfUtils::DecodeVD2Vchs(uint8 *data, uint8 **ambe)
         ::memcpy(ambe[frame++], v_dmr, 9);
     }
 }
+
+void CYsfUtils::DecodeVD2Vch(uint8 *data, uint8 *ambe)
+{
+    unsigned char vch[13U];
+    unsigned int dat_a = 0U;
+    unsigned int dat_b = 0U;
+    unsigned int dat_c = 0U;
+        
+    // Deinterleave
+    for (unsigned int i = 0U; i < 104U; i++) {
+        unsigned int n = INTERLEAVE_TABLE_26_4[i];
+        bool s = READ_BIT(data, n);
+        WRITE_BIT(vch, i, s);
+    }
+
+    // "Un-whiten" (descramble)
+    for (unsigned int i = 0U; i < 13U; i++)
+        vch[i] ^= WHITENING_DATA[i];
+    
+    for (unsigned int i = 0U; i < 12U; i++) {
+        dat_a <<= 1U;
+        if (READ_BIT(vch, 3U*i + 1U))
+            dat_a |= 0x01U;;
+    }
+    
+    for (unsigned int i = 0U; i < 12U; i++) {
+        dat_b <<= 1U;
+        if (READ_BIT(vch, 3U*(i + 12U) + 1U))
+            dat_b |= 0x01U;;
+    }
+    
+    for (unsigned int i = 0U; i < 3U; i++) {
+        dat_c <<= 1U;
+        if (READ_BIT(vch, 3U*(i + 24U) + 1U))
+            dat_c |= 0x01U;;
+    }
+    
+    for (unsigned int i = 0U; i < 22U; i++) {
+        dat_c <<= 1U;
+        if (READ_BIT(vch, i + 81U))
+            dat_c |= 0x01U;;
+    }
+    
+    // convert to ambe2plus
+    unsigned char v_dmr[9U];
+    
+    unsigned int a = CGolay24128::encode24128(dat_a);
+    unsigned int p = PRNG_TABLE[dat_a] >> 1;
+    unsigned int b = CGolay24128::encode23127(dat_b) >> 1;
+    b ^= p;
+    
+    unsigned int MASK = 0x800000U;
+    for (unsigned int i = 0U; i < 24U; i++, MASK >>= 1) {
+        unsigned int aPos = DMR_A_TABLE[i];
+        WRITE_BIT(v_dmr, aPos, a & MASK);
+    }
+    
+    MASK = 0x400000U;
+    for (unsigned int i = 0U; i < 23U; i++, MASK >>= 1) {
+        unsigned int bPos = DMR_B_TABLE[i];
+        WRITE_BIT(v_dmr, bPos, b & MASK);
+    }
+    
+    MASK = 0x1000000U;
+    for (unsigned int i = 0U; i < 25U; i++, MASK >>= 1) {
+        unsigned int cPos = DMR_C_TABLE[i];
+        WRITE_BIT(v_dmr, cPos, dat_c & MASK);
+    }
+    
+    ::memcpy(ambe, v_dmr, 9);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// encode
 
 void CYsfUtils::EncodeVD2Vch(uint8 *ambe, uint8 *data)
 {

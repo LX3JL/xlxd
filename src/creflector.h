@@ -31,6 +31,7 @@
 #include "cprotocols.h"
 #include "cpacketstream.h"
 #include "cnotificationqueue.h"
+#include "cudpsocket.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

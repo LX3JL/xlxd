@@ -33,6 +33,9 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
+#if !defined(ICMP_DEST_UNREACH) && defined(ICMP_UNREACH)
+#define ICMP_DEST_UNREACH ICMP_UNREACH
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation
@@ -46,18 +49,34 @@ bool CG3Protocol::Init(void)
     // base class
     ok = CProtocol::Init();
 
+    // G3 needs IPv4 address
+    bool ipv4 = false;
+#if !defined(DEBUG_NO_G3_SUPPORT)
+    for ( int i = 0; i < UDP_SOCKET_MAX; i++ )
+    {
+        CIp ip = g_Reflector.GetListenIp(i);
+        socklen_t ss_len;
+        ipv4 |= ( ip.GetSockAddr(ss_len)->ss_family == AF_INET );
+    }
+#endif
+    if ( !ipv4 ) {
+        std::cout << "No IPv4 address, G3 support is disabled" << std::endl;
+        m_bStopThread = true;
+        return true;
+    }
+
     // update reflector callsign
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);
 
     // create our DV socket
-    ok &= m_Socket.Open(G3_DV_PORT);
+    ok &= m_Socket.Open(G3_DV_PORT, AF_INET);
     if ( !ok )
     {
         std::cout << "Error opening socket on port UDP" << G3_DV_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
     //create helper sockets
-    ok &= m_PresenceSocket.Open(G3_PRESENCE_PORT);
+    ok &= m_PresenceSocket.Open(G3_PRESENCE_PORT, AF_INET);
     if ( !ok )
     {
         std::cout << "Error opening socket on port UDP" << G3_PRESENCE_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
@@ -161,7 +180,9 @@ void CG3Protocol::PresenceTask(void)
     {
 
         CIp Ip(ReqIp);
-        Ip.GetSockAddr()->sin_port = htons(G3_DV_PORT);
+        socklen_t len;
+        struct sockaddr_in *sin = (struct sockaddr_in *)Ip.GetSockAddr(len);
+        sin->sin_port = htons(G3_DV_PORT);
 
         if (Buffer.size() == 32)
         {

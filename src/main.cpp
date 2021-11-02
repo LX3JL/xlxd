@@ -27,6 +27,7 @@
 
 #include "syslog.h"
 #include <sys/stat.h>
+#include <string.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +40,7 @@ CReflector  g_Reflector;
 
 #include "cusers.h"
 
-int main(int argc, const char * argv[])
+int main(int argc, char * argv[])
 {
 #ifdef RUN_AS_DAEMON
     
@@ -87,7 +88,7 @@ int main(int argc, const char * argv[])
 #endif
 
     // check arguments
-    if ( argc != 4 )
+    if ( argc < 4 )
     {
         std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
         std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
@@ -99,9 +100,21 @@ int main(int argc, const char * argv[])
 
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);
-    g_Reflector.SetListenIp(CIp(argv[2]));
     g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
-  
+    
+    int ip;
+    char *p, *last;
+    for ( ip = 0, (p = strtok_r(argv[2], ",", &last));
+	  ip < UDP_SOCKET_MAX && p != NULL;
+	  ip++, (p = strtok_r(NULL, ",", &last)) )
+    {
+        g_Reflector.SetListenIp(ip, CIp(p));
+    }
+    for ( ; ip < UDP_SOCKET_MAX; ip++ )
+    {
+        g_Reflector.SetListenIp(ip, CIp(AF_UNSPEC));
+    }
+    
     // and let it run
     if ( !g_Reflector.Start() )
     {

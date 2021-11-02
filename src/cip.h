@@ -59,7 +59,9 @@ public:
     
 protected:
     // data
-    struct sockaddr_in  m_Addr;
+    struct sockaddr_storage m_Addr;
+    socklen_t m_AddrLen;
+    mutable char m_AddrStr[INET6_ADDRSTRLEN];
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

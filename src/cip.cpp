@@ -94,6 +94,49 @@ struct sockaddr_storage *CIp::GetSockAddr(socklen_t &len)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// get and set
+
+uint32 CIp::GetAddr(void) const
+{
+    switch (m_Addr.ss_family)
+    {
+        case AF_INET:
+            return ((struct sockaddr_in *)&m_Addr)->sin_addr.s_addr;
+        default:
+            return 0; /* not supported */
+    }
+}
+
+uint16 CIp::GetPort(void) const
+{
+    switch (m_Addr.ss_family)
+    {
+        case AF_INET:
+            return ((struct sockaddr_in *)&m_Addr)->sin_port;
+        case AF_INET6:
+            return ((struct sockaddr_in6 *)&m_Addr)->sin6_port;
+        default:
+            return 0; /* not supported */
+    }
+}
+
+void CIp::SetPort(uint16 port)
+{
+    switch (m_Addr.ss_family)
+    {
+        case AF_INET:
+            ((struct sockaddr_in *)&m_Addr)->sin_port = port;
+            break;
+        case AF_INET6:
+            ((struct sockaddr_in6 *)&m_Addr)->sin6_port = port;
+            break;
+        default:
+            /* not supported, do nothing */
+            break;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // operator
 
 bool CIp::operator ==(const CIp &ip) const

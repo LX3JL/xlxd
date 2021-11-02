@@ -621,7 +621,7 @@ bool CG3Protocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
                         // drop if invalid module
                         delete Header;
                         g_Reflector.ReleaseClients();
-                        return NULL;
+                        return false;
                     }
                 }
 

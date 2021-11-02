@@ -33,25 +33,26 @@ class CIp
 {
 public:
     // constructors
-    CIp();
+    CIp(const int af = AF_INET);
     //CIp(uint8, uint8, uint8, uint8);
-    CIp(const struct sockaddr_in *);
+    CIp(const struct sockaddr_storage *, socklen_t);
     CIp(const char *);
     CIp(const CIp &);
+    CIp(const CIp &, uint16);
     
     // destructor
     virtual ~CIp() {};
     
     // sockaddr
-    void SetSockAddr(struct sockaddr_in *);
-    struct sockaddr_in *GetSockAddr(void)     { return &m_Addr; }
+    void SetSockAddr(struct sockaddr_storage *, socklen_t);
+    struct sockaddr_storage *GetSockAddr(socklen_t &);
     
     // get
-    uint32 GetAddr(void) const                { return m_Addr.sin_addr.s_addr; }
-    uint16 GetPort(void) const                { return m_Addr.sin_port; }
+    uint32 GetAddr(void) const;
+    uint16 GetPort(void) const;
     
     // set
-    void SetPort(uint16 port)                 { m_Addr.sin_port = port; }
+    void SetPort(uint16 port);
     
     // operator
     bool operator ==(const CIp &) const;

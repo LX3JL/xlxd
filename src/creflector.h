@@ -58,9 +58,9 @@ public:
     // settings
     void SetCallsign(const CCallsign &callsign)     { m_Callsign = callsign; }
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
-    void SetListenIp(const CIp &ip)                 { m_Ip = ip; UpdateListenMac(); }
+    void SetListenIp(int i, const CIp &ip)          { m_Ip[i] = ip; UpdateListenMac(); }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
-    const CIp &GetListenIp(void) const              { return m_Ip; }
+    const CIp &GetListenIp(int i = 0) const         { return m_Ip[i]; }
     const uint8 *GetListenMac(void) const           { return (const uint8 *)m_Mac; }
     const CIp &GetTranscoderIp(void) const          { return m_AmbedIp; }
     
@@ -124,7 +124,7 @@ protected:
 protected:
     // identity
     CCallsign       m_Callsign;
-    CIp             m_Ip;
+    CIp             m_Ip[UDP_SOCKET_MAX];
     uint8           m_Mac[6];
     CIp             m_AmbedIp;
     

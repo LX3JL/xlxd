@@ -812,7 +812,7 @@ bool CReflector::UpdateListenMac(int i)
                 continue;
 #if defined(AF_PACKET)
             found = ( ifa->ifa_addr->sa_family == AF_PACKET );
-            p = ifa->ifa_addr;
+            p = ((struct sockaddr_ll *)ifa->ifa_addr)->sll_addr;
 #elif defined(AF_LINK)
             found = ( ifa->ifa_addr->sa_family == AF_LINK );
             p = LLADDR((struct sockaddr_dl *)ifa->ifa_addr);

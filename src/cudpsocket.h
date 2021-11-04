@@ -62,7 +62,7 @@ public:
     int  GetSocket(const CIp &);
     
     // read
-    int Receive(CBuffer *, CIp *, int);
+    int Receive(CBuffer *, CIp *, int, int * = NULL);
     
     // write
     int Send(const CBuffer &, const CIp &);

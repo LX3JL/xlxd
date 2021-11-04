@@ -123,12 +123,13 @@ int CUdpSocket::GetSocket(const CIp &Ip)
 ////////////////////////////////////////////////////////////////////////////////////////
 // read
 
-int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
+int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout, int *sno)
 {
     struct sockaddr_storage Sin;
     struct pollfd pfd[UDP_SOCKET_MAX];
     socklen_t uiFromLen = sizeof(Sin);
     int i, socks, index, iRecvLen = -1;
+    int index2sno[UDP_SOCKET_MAX];
     
     // socket valid ?
     for ( i = socks = 0; i < UDP_SOCKET_MAX; i++ )
@@ -137,6 +138,7 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
         {
             pfd[socks].fd = m_Socket[i];
             pfd[socks].events = POLLIN;
+            index2sno[socks] = i;
             socks++;
         }
     }
@@ -170,6 +172,12 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
                     // get IP
                     Ip->SetSockAddr(&Sin, uiFromLen);
                     
+                    // record the number of incoming socket
+                    if ( sno != NULL )
+                    {                    
+                        *sno = index2sno[index];
+                    }
+
                     m_Counter++;
                     break;
                 }

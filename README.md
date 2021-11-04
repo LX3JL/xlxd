@@ -10,7 +10,7 @@ The sources are published under GPL Licenses.
 
 - In D-Star, Icom-G3Terminal, DExtra, DPLus and DCS
 - In DMR, DMRPlus (dongle) and DMRMmdvm
-- In C4FM, YSF, Wires-X and IRMS
+- In C4FM, YSF, Wires-X and IMRS
 - XLX Interlink protocol
 
 # Usage
@@ -136,7 +136,7 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 10101 - 10199 (AMBE transcoding port)
  - UDP port 12345 - 12346 (Icom Terminal presence and request port)
  - UDP port 40000         (Icom Terminal dv port)
- - UDP port 21110         (Yaesu IRMS protocol)
+ - UDP port 21110         (Yaesu IMRS protocol)
 
 # YSF Master Server
 

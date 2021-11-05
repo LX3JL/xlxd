@@ -790,7 +790,7 @@ bool CReflector::UpdateListenMac(void)
         for ( ifaptr = ifap; (ifaptr != NULL) && !found; ifaptr = (ifaptr)->ifa_next )
         {
             // is it an AF_INET?
-            if ( ifaptr->ifa_addr->sa_family == AF_INET )
+            if ( ifaptr->ifa_addr && ifaptr->ifa_addr->sa_family == AF_INET )
             {
                 if (ifaptr->ifa_addr == NULL)
                     continue;

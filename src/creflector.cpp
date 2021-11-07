@@ -794,7 +794,8 @@ bool CReflector::UpdateListenMac(int i)
     // get interface name associated with IP address
     for ( ifa = ifa_top; ifa != NULL; ifa = ifa->ifa_next )
     {
-        if ( CIp((struct sockaddr_storage *)ifa->ifa_addr, ss_len) == m_Ip[i] ) {
+        if ( ifa->ifa_addr != NULL &&
+             CIp((struct sockaddr_storage *)ifa->ifa_addr, ss_len) == m_Ip[i] ) {
             found = true;
             ifname = new char[strlen(ifa->ifa_name) + 1];
             strcpy(ifname, ifa->ifa_name);
@@ -808,7 +809,7 @@ bool CReflector::UpdateListenMac(int i)
         found = false;
         for ( ifa = ifa_top; ifa != NULL; ifa = ifa->ifa_next )
         {
-            if ( strcmp(ifa->ifa_name, ifname ) )
+            if ( ifa->ifa_addr == NULL || strcmp(ifa->ifa_name, ifname ) )
                 continue;
 #if defined(AF_PACKET)
             found = ( ifa->ifa_addr->sa_family == AF_PACKET );

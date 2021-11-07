@@ -126,10 +126,9 @@ void CImrsProtocol::Task(void)
             EncodePongPacket(&Buffer);
             m_Socket.Send(Buffer, Ip, IMRS_PORT);
 
-            // and our turn
+            // our turn
             EncodePingPacket(&Buffer);
             m_Socket.Send(Buffer, Ip, IMRS_PORT);
-
         }
         else if ( IsValidConnectPacket(Buffer, &Callsign) )
         {
@@ -327,6 +326,9 @@ void CImrsProtocol::HandleQueue(void)
                     m_Socket.Send(buffer, client->GetIp(), IMRS_PORT);
                     //std::cout << "sending " << buffer.size() << " bytes to " << client->GetIp() << std::endl;
                 }
+                // as DR-2X doesn't seems to respond to keepalives when receiving a stream
+                // tickle the keepalive timer here
+                client->Alive();
             }
             g_Reflector.ReleaseClients();
         }

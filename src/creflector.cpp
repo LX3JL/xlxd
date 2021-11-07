@@ -786,7 +786,7 @@ bool CReflector::UpdateListenMac(int i)
     bool found = false;
     socklen_t ss_len;
     
-    if ( getifaddrs(&ifa_top) < 0 )
+    if ( getifaddrs(&ifa_top) < 0 || ifa_top == NULL )
         return false;
     
     m_Ip[i].GetSockAddr(ss_len);

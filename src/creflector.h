@@ -61,7 +61,7 @@ public:
     void SetListenIp(int i, const CIp &ip)          { m_Ip[i] = ip; UpdateListenMac(i); }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
     const CIp &GetListenIp(int i = 0) const         { return m_Ip[i]; }
-    const uint8 *GetListenMac(int i = 0) const      { return (const uint8 *)m_Mac[i]; }
+    const uint8 *GetListenMac(int i) const          { return (const uint8 *)m_Mac[i]; }
     const CIp &GetTranscoderIp(void) const          { return m_AmbedIp; }
     
     // operation

@@ -93,13 +93,13 @@ protected:
     
     // DV packet encoding helpers
     void EncodePingPacket(CBuffer *) const;
-    void EncodePongPacket(CBuffer *) const;
+    void EncodePongPacket(CBuffer *, int) const;
     bool EncodeDvHeaderPacket(const CDvHeaderPacket &, CBuffer *) const;
     bool EncodeDvPacket(const CDvHeaderPacket &, const CDvFramePacket *, CBuffer *) const;
     bool EncodeDvLastPacket(const CDvHeaderPacket &, const CDvLastFramePacket &, CBuffer *) const;
 
     // uiStreamId helpers
-    uint32 IpToStreamId(const CIp &) const;
+    uint32 CreateStreamId(void) const;
     
     // DG-ID helper
     char DgidToModule(uint8 uiDgid) const;
@@ -111,6 +111,9 @@ protected:
     
     // for queue header caches
     std::array<CImrsStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
+
+    // random number generator
+    mutable std::mt19937        m_Random;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

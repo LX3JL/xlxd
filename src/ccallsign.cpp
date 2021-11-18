@@ -207,7 +207,7 @@ void CCallsign::SetYsfCallsign(const char *sz)
     m_uiDmrid = 0;
 
     // set callsign
-    for ( i = 0; (i < sizeof(m_Callsign)) && (sz[i] != '/') && (sz[i] != '-'); i++ )
+    for ( i = 0; (i < sizeof(m_Callsign)) && (sz[i] != '/') && (sz[i] != '-') && (sz[i] != 0x00); i++ )
     {
         m_Callsign[i] = sz[i];
     }

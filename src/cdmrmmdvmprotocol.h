@@ -59,6 +59,7 @@ public:
     CDvFramePacket  m_dvFrame0;
     CDvFramePacket  m_dvFrame1;
     
+    uint8  m_embeddedLC[16];
     uint8  m_uiSeqId;
 };
 
@@ -117,7 +118,8 @@ protected:
     // Buffer & LC helpers
     void AppendVoiceLCToBuffer(CBuffer *, uint32) const;
     void AppendTerminatorLCToBuffer(CBuffer *, uint32) const;
-    void ReplaceEMBInBuffer(CBuffer *, uint8) const;
+    void ReplaceEMBInBuffer(CBuffer *, uint8, const uint8 *) const;
+    void EncodeEmbeddedLC(uint8 *, uint32);
     void AppendDmrIdToBuffer(CBuffer *, uint32) const;
     void AppendDmrRptrIdToBuffer(CBuffer *, uint32) const;
 

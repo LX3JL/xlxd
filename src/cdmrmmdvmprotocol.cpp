@@ -32,6 +32,9 @@
 #include "crs129.h"
 #include "cgolay2087.h"
 #include "cqr1676.h"
+#include "chamming.h"
+#include "cutils.h"
+#include "ccrc.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -397,6 +400,7 @@ void CDmrmmdvmProtocol::HandleQueue(void)
             // this relies on queue feeder setting valid module id
             m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
             m_StreamsCache[iModId].m_uiSeqId = 0;
+            EncodeEmbeddedLC(m_StreamsCache[iModId].m_embeddedLC, m_StreamsCache[iModId].m_dvHeader.GetMyCallsign().GetDmrid());
             
             // encode it
             EncodeDvHeaderPacket((const CDvHeaderPacket &)*packet, m_StreamsCache[iModId].m_uiSeqId, &buffer);
@@ -962,8 +966,10 @@ void CDmrmmdvmProtocol::EncodeDvPacket(
     // frame2
     Buffer->ReplaceAt(44, DvFrame2.GetAmbePlus(), 9);
     
+    int iModId = g_Reflector.GetModuleIndex(Header.GetModuleId());
+    
     // sync or embedded signaling
-    ReplaceEMBInBuffer(Buffer, DvFrame0.GetDmrPacketId());
+    ReplaceEMBInBuffer(Buffer, DvFrame0.GetDmrPacketId(), m_StreamsCache[iModId].m_embeddedLC);
 
     // debug
     //CBuffer dump;
@@ -1131,7 +1137,7 @@ void CDmrmmdvmProtocol::AppendTerminatorLCToBuffer(CBuffer *buffer, uint32 uiSrc
     buffer->Append(payload, sizeof(payload));
 }
 
-void CDmrmmdvmProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId) const
+void CDmrmmdvmProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId, const uint8 *embeddedLC) const
 {
     // voice packet A ?
     if ( uiDmrPacketId == 0 )
@@ -1145,23 +1151,32 @@ void CDmrmmdvmProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId)
     else if ( (uiDmrPacketId >= 1) && (uiDmrPacketId <= 4 ) )
     {
         // EMB LC
+        uint8 lcss;
+        if (uiDmrPacketId == 1) {
+          lcss = 1;
+        } else if (uiDmrPacketId == 4) {
+          lcss = 2;
+        } else {
+          lcss = 3;
+        }
+
+        const uint8 *eLC = embeddedLC + (uiDmrPacketId-1)*4; // point to the fragment to be sent
+
         uint8 emb[2];
         emb[0]  = (DMRMMDVM_REFLECTOR_COLOUR << 4) & 0xF0;
         //emb[0] |= PI ? 0x08U : 0x00;
-        //emb[0] |= (LCSS << 1) & 0x06;
+        emb[0] |= (lcss << 1) & 0x06;
         emb[1]  = 0x00;
         // encode
         CQR1676::encode(emb);
         // and append
-        buffer->ReplaceAt(33, (uint8)((buffer->at(33) & 0xF0) | ((emb[0U] >> 4) & 0x0F)));
-        buffer->ReplaceAt(34, (uint8)((buffer->at(34) & 0x0F) | ((emb[0U] << 4) & 0xF0)));
-        buffer->ReplaceAt(34, (uint8)(buffer->at(34) & 0xF0));
-        buffer->ReplaceAt(35, (uint8)0);
-        buffer->ReplaceAt(36, (uint8)0);
-        buffer->ReplaceAt(37, (uint8)0);
-        buffer->ReplaceAt(38, (uint8)(buffer->at(38) & 0x0F));
-        buffer->ReplaceAt(38, (uint8)((buffer->at(38) & 0xF0) | ((emb[1U] >> 4) & 0x0F)));
-        buffer->ReplaceAt(39, (uint8)((buffer->at(39) & 0x0F) | ((emb[1U] << 4) & 0xF0)));
+        buffer->ReplaceAt(33, (uint8)( (buffer->at(33) & 0xF0) | ((emb[0U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(34, (uint8)( ((emb[0U] << 4) & 0xF0) | ((eLC[0U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(35, (uint8)( ((eLC[0U] << 4) & 0xF0) | ((eLC[1U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(36, (uint8)( ((eLC[1U] << 4) & 0xF0) | ((eLC[2U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(37, (uint8)( ((eLC[2U] << 4) & 0xF0) | ((eLC[3U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(38, (uint8)( ((eLC[3U] << 4) & 0xF0) | ((emb[1U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(39, (uint8)( ((emb[1U] << 4) & 0xF0) | (buffer->at(39) & 0x0F) ));
     }
     // voice packet F
     else
@@ -1175,16 +1190,77 @@ void CDmrmmdvmProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId)
         // encode
         CQR1676::encode(emb);
         // and append
-        buffer->ReplaceAt(33, (uint8)((buffer->at(33) & 0xF0) | ((emb[0U] >> 4) & 0x0F)));
-        buffer->ReplaceAt(34, (uint8)((buffer->at(34) & 0x0F) | ((emb[0U] << 4) & 0xF0)));
-        buffer->ReplaceAt(34, (uint8)(buffer->at(34) & 0xF0));
+        buffer->ReplaceAt(33, (uint8)( (buffer->at(33) & 0xF0) | ((emb[0U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(34, (uint8)( ((emb[0U] << 4) & 0xF0) ));
         buffer->ReplaceAt(35, (uint8)0);
         buffer->ReplaceAt(36, (uint8)0);
         buffer->ReplaceAt(37, (uint8)0);
-        buffer->ReplaceAt(38, (uint8)(buffer->at(38) & 0x0F));
-        buffer->ReplaceAt(38, (uint8)((buffer->at(38) & 0xF0) | ((emb[1U] >> 4) & 0x0F)));
-        buffer->ReplaceAt(39, (uint8)((buffer->at(39) & 0x0F) | ((emb[1U] << 4) & 0xF0)));
+        buffer->ReplaceAt(38, (uint8)( ((emb[1U] >> 4) & 0x0F) ));
+        buffer->ReplaceAt(39, (uint8)( ((emb[1U] << 4) & 0xF0) | (buffer->at(39) & 0x0F) ));
     }
+}
+
+void CDmrmmdvmProtocol::EncodeEmbeddedLC(uint8 *embeddedLC, uint32 uiSrcId)
+{
+    uint8 lc[9];
+    ::memset(lc, 0, sizeof(lc));
+    // uiDstId = TG9
+    lc[5] = 9;
+    // uiSrcId
+    lc[6] = (uint8)LOBYTE(HIWORD(uiSrcId));
+    lc[7] = (uint8)HIBYTE(LOWORD(uiSrcId));
+    lc[8] = (uint8)LOBYTE(LOWORD(uiSrcId));
+    
+    bool lc_b[72];
+    for (uint32 a = 0; a < 9; a++)
+        CUtils::byteToBitsBE(lc[a], lc_b + a*8);
+    
+    uint32 crc;
+    CCRC::encodeFiveBit(lc_b, crc);
+    
+    bool data[128];
+    ::memset(data, 0, 128 * sizeof(bool));
+    
+    data[106U] = (crc & 0x01U) == 0x01U;
+    data[90U]  = (crc & 0x02U) == 0x02U;
+    data[74U]  = (crc & 0x04U) == 0x04U;
+    data[58U]  = (crc & 0x08U) == 0x08U;
+    data[42U]  = (crc & 0x10U) == 0x10U;
+    
+    uint32 b = 0U;
+    for (uint32 a = 0U; a < 11U; a++, b++)
+        data[a] = lc_b[b];
+    for (uint32 a = 16U; a < 27U; a++, b++)
+        data[a] = lc_b[b];
+    for (uint32 a = 32U; a < 42U; a++, b++)
+        data[a] = lc_b[b];
+    for (uint32 a = 48U; a < 58U; a++, b++)
+        data[a] = lc_b[b];
+    for (uint32 a = 64U; a < 74U; a++, b++)
+        data[a] = lc_b[b];
+    for (uint32 a = 80U; a < 90U; a++, b++)
+        data[a] = lc_b[b];
+    for (uint32 a = 96U; a < 106U; a++, b++)
+        data[a] = lc_b[b];
+    
+    for (uint32 a = 0U; a < 112U; a += 16U)
+        CHamming::encode16114(data + a);
+    
+    for (uint32 a = 0U; a < 16U; a++)
+        data[a + 112U] = data[a + 0U] ^ data[a + 16U] ^ data[a + 32U] ^ data[a + 48U] ^ data[a + 64U] ^ data[a + 80U] ^ data[a + 96U];
+    
+    bool raw[128];
+    
+    b = 0U;
+    for (uint32 a = 0U; a < 128U; a++) {
+        raw[a] = data[b];
+        b += 16U;
+        if (b > 127U)
+            b -= 127U;
+    }
+    
+    for (uint32 a = 0; a < 16; a++)
+        CUtils::bitsToByteBE(raw + a*8, embeddedLC[a]);
 }
 
 void CDmrmmdvmProtocol::AppendDmrIdToBuffer(CBuffer *buffer, uint32 id) const

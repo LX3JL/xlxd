@@ -174,7 +174,7 @@ void CStream::Thread(CStream *This)
 void CStream::Task(void)
 {
     CBuffer     Buffer;
-    static CIp  Ip;
+    CIp         Ip;
     uint8       uiPid;
     uint8       Ambe[AMBE_FRAME_SIZE];
     CAmbePacket *packet;
@@ -207,7 +207,7 @@ void CStream::Task(void)
         queue->pop();
         // send it to client
         EncodeDvFramePacket(&Buffer, packet->GetPid(), packet->GetAmbe());
-        m_Socket.Send(Buffer, Ip, m_uiPort);
+        m_Socket.Send(Buffer, m_Ip, m_uiPort);
         // and done
         delete packet;
     }

@@ -2,7 +2,7 @@
 # checkreg.sh -- check XLX registration server for active registration and correct IP
 # Author: K2IE
 #
-# Run as you wish from /etc/cron.daily or /etc/crontab as you wish
+# Run as you wish from /etc/cron.daily or /etc/crontab
 # Dependencies: libxml2-utils
 
 # Set the MY variables as appropriate for your reflector

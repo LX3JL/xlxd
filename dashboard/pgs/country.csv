@@ -82,7 +82,7 @@ Djibouti;DJ;J2
 Dodecanese;GR;SV5-J45
 Dominica;DM;J7
 Dominican Republic;DO;HI
-East Malaysia;MY;9M6-9M8
+East Malaysia;MY;9M6-9M8-9W6-9W8
 Easter Island;CL;CE0
 Eastern Kiribati (Line Island);KI;T32
 Ecuador;EC;HC-HD
@@ -117,7 +117,7 @@ Guadeloupe;GP;FG
 Guam;GU;KH2
 Guantanamo Bay;US;KG4
 Guatemala;GT;TG-TD
-Guernsey;GG;GU-GP
+Guernsey;GG;2U-MU-MP-GU-GP
 Guinea;GN;3X
 Guinea-Bissau;GW;J5
 Guyana;GY;8R
@@ -134,13 +134,13 @@ Indonesia;ID;YB-YC-YD-YE-YF-YG-YH
 Iran Islamic Republic of;IR;EP-EQ
 Iraq;IQ;YI
 Ireland;IE;EI-EJ
-Isle of Man;IM;GD-GT
+Isle of Man;IM;2D-MD-MT-GD-GT
 Israel;IL;4X-4Z
 Italy;IT;I0-I1-I2-I3-I4-I5-I6-I7-I8-I9-IK-IN-IQ-IR-IS-IT-IU-IV-IW-IZ
 Jamaica;JM;6Y
 Jan Mayen;NO;JX
 Japan;JP;JA-JB-JC-JD-JE-JF-JG-JH-JI-JJ-JK-JL-JM-JN-JO-JP-JQ-JR-JS-7J-7K-7L-7M-7N-8J-8N
-Jersey;JE;GJ-GH
+Jersey;JE;2J-MJ-MH-GJ-GH
 Johnston Island;US;KH3
 Jordan;JO;JY
 Kaliningrad;RU;UA2-RA2
@@ -203,7 +203,7 @@ Niger;NE;5U
 Nigeria;NG;5N
 Niue;NU;ZK2
 Norfolk Island;NF;VK9N
-Northern Ireland;NIE;MI-GI-GN-2I
+Northern Ireland;NIE;2I-MI-MN-GI-GN
 Northern Mariana Islands;MP;KH0
 Norway;NO;LA-LB-LC-LD-LE-LF-LG-LH-LI-LJ-LK-LL-LM-LN
 Oman;OM;A4-YP-YQ-YR
@@ -242,7 +242,7 @@ Sao Tome and Principe;ST;S9
 Sardinia;IT;IS0-IM0
 Saudi Arabia;SA;HZ
 Scarborough Reef;;BS7
-Scotland;SH;GM-GS-MM-2M0
+Scotland;SH;2M-MM-MS-GM-GS
 Senegal;SN;6V-6W
 Serbia;RS;YT-YU
 Seychelles;SC;S7
@@ -297,9 +297,9 @@ Viet Nam;VN;3W-XV
 Virgin Islands British;VG;VP2V
 Virgin Islands U.S.;VI;KP2
 Wake Island;US;KH9
-Wales;WL;2W-GC-GW-MW
+Wales;WL;2W-MW-MC-GW-GC
 Wallis and Futuna;WF;FW
-West Malaysia;MY;9M2-9M4-9W2
+West Malaysia;MY;9M2-9M4-9W2-9W4
 Western Kiribati (Gilbert Island);KI;T30
 Western Sahara;EH;S0
 Willis Island;AU;VK9W

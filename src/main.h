@@ -181,6 +181,7 @@
 #define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"
 #define INTERLINKLIST_PATH              "/xlxd/xlxd.interlink"
 #define TERMINALOPTIONS_PATH            "/xlxd/xlxd.terminal"
+#define TRANSCODEROPTIONS_PATH          "/xlxd/xlxd.transcoder"
 #define DEBUGDUMP_PATH                  "/var/log/xlxd.debug"
 
 // system constants ---------------------------------------------

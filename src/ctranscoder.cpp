@@ -22,6 +22,8 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
+#include <string.h>
+#include <sys/stat.h>
 #include "main.h"
 #include "creflector.h"
 #include "ctranscoder.h"
@@ -55,6 +57,10 @@ CTranscoder::CTranscoder()
     m_bStreamOpened = false;
     m_StreamidOpenStream = 0;
     m_PortOpenStream = 0;
+    m_ModulesOn = "*"; // default if xlxd.transcoder does not exist
+    m_ModulesAuto = "";
+    m_LastNeedReloadTime.Now();
+    m_LastModTime = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -89,6 +95,8 @@ CTranscoder::~CTranscoder()
 bool CTranscoder::Init(void)
 {
     bool ok;
+
+    ReadOptions();
     
     // reset stop flag
     m_bStopThread = false;
@@ -196,6 +204,16 @@ void CTranscoder::Task(void)
         
         // update time
         m_LastKeepaliveTime.Now();
+    }
+
+    // check if options need reload every 30 seconds
+    if ( m_LastNeedReloadTime.DurationSinceNow() > 30 )
+    {
+        // reload options if needed
+        NeedReload();
+
+        // update time
+        m_LastNeedReloadTime.Now();
     }
  }
 
@@ -399,3 +417,105 @@ void CTranscoder::EncodeClosestreamPacket(CBuffer *Buffer, uint16 uiStreamId)
     Buffer->Append((uint16)uiStreamId);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// options helpers
+
+char *CTranscoder::TrimWhiteSpaces(char *str)
+{
+    char *end;
+    while ((*str == ' ') || (*str == '\t')) str++;
+    if (*str == 0)
+        return str;
+    end = str + strlen(str) - 1;
+    while ((end > str) && ((*end == ' ') || (*end == '\t') || (*end == '\r'))) end --;
+    *(end + 1) = 0;
+    return str;
+}
+
+void CTranscoder::NeedReload(void)
+{
+    struct stat fileStat;
+
+    if (::stat(TRANSCODEROPTIONS_PATH, &fileStat) != -1)
+    {
+        if (m_LastModTime != fileStat.st_mtime)
+        {
+            ReadOptions();
+        }
+    }
+}
+
+void CTranscoder::ReadOptions(void)
+{
+    char sz[256];
+    int opts = 0;
+
+    std::ifstream file(TRANSCODEROPTIONS_PATH);
+    if (file.is_open())
+    {
+        m_ModulesOn = "";
+        m_ModulesAuto = "";
+
+        while (file.getline(sz, sizeof(sz)).good())
+        {
+            char *szt = TrimWhiteSpaces(sz);
+            char *szval;
+
+            if ((::strlen(szt) > 0) && szt[0] != '#')
+            {
+                if ((szt = ::strtok(szt, " ,\t")) != NULL)
+                {
+                    if ((szval = ::strtok(NULL, " ,\t")) != NULL)
+                    {
+                        if (::strncmp(szt, "Address", 7) == 0)
+                        {
+                            CIp Ip = CIp(szval);
+                            if (Ip.GetAddr())
+                            {
+                                std::cout << "Transcoder Address set to " << Ip << std::endl;
+                                g_Reflector.SetTranscoderIp(Ip);
+                                m_Ip = Ip;
+                                opts++;
+                            }
+                        }
+                        else if (strncmp(szt, "ModulesOn", 9) == 0)
+                        {
+                            std::cout << "Transcoder ModulesOn set to " << szval << std::endl;
+                            m_ModulesOn = szval;
+                            opts++;
+                        }
+                        else if (strncmp(szt, "ModulesAuto", 11) == 0)
+                        {
+                            std::cout << "Transcoder ModulesAuto set to " << szval << std::endl;
+                            m_ModulesAuto = szval;
+                            opts++;
+                        }
+                        else
+                        {
+                            // unknown option - ignore
+                        }
+                    }
+                }
+            }
+        }
+        std::cout << "Transcoder loaded " << opts << " options from file " << TRANSCODEROPTIONS_PATH << std::endl;
+        file.close();
+
+        struct stat fileStat;
+
+        if (::stat(TRANSCODEROPTIONS_PATH, &fileStat) != -1)
+        {
+            m_LastModTime = fileStat.st_mtime;
+        }
+    }
+}
+
+bool CTranscoder::IsModuleOn(char module)
+{
+    return ( strchr(m_ModulesOn.c_str(), '*') || strchr(m_ModulesOn.c_str(), module) );
+}
+
+bool CTranscoder::IsModuleAuto(char module)
+{
+    return ( strchr(m_ModulesAuto.c_str(), '*') || strchr(m_ModulesAuto.c_str(), module) );
+}

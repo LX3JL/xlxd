@@ -176,6 +176,9 @@
 
 // system paths -------------------------------------------------
 
+#ifndef CONFIG_PATH
+#define CONFIG_PATH                     "/xlxd/xlxd.config"
+#endif
 #define XML_PATH                        "/var/log/xlxd.xml"
 #define WHITELIST_PATH                  "/xlxd/xlxd.whitelist"
 #define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"

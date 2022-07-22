@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include "creflector.h"
+#include "cconfig.h"
 
 #include "syslog.h"
 #include <sys/stat.h>
@@ -86,21 +87,34 @@ int main(int argc, const char * argv[])
     
 #endif
 
+    CConfig conf = CConfig();
+
     // check arguments
-    if ( argc != 4 )
+    if ( argc == 4 )
+    {
+        conf.SetCallsign(CCallsign(argv[1]));
+        conf.SetListenIp(CIp(argv[2]));
+        conf.SetTranscoderIp(CIp(argv[3]));
+    }
+    else if ( argc != 1 )
     {
         std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
         std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
+
+        std::cout << "Startup parameters can also be defined in " << CONFIG_PATH << std::endl;
+
         return 1;
     }
 
     // splash
     std::cout << "Starting xlxd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << std::endl << std::endl;
 
+    conf.DumpConfig();
+
     // initialize reflector
-    g_Reflector.SetCallsign(argv[1]);
-    g_Reflector.SetListenIp(CIp(argv[2]));
-    g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
+    g_Reflector.SetCallsign(conf.GetCallsign());
+    g_Reflector.SetListenIp(conf.GetListenIp());
+    g_Reflector.SetTranscoderIp(conf.GetTranscoderIp());
   
     // and let it run
     if ( !g_Reflector.Start() )

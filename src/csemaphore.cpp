@@ -32,6 +32,7 @@ CSemaphore::CSemaphore()
 {
     // Initialized as locked.
     m_Count = 0;
+    m_WaitingCount = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -66,7 +67,21 @@ bool CSemaphore::WaitFor(uint ms)
     {
         m_Count--;
     }
+    if ( m_WaitingCount > 0 )
+    {
+        m_WaitingCount--;
+    }
     return ok;
-    
 }
 
+void CSemaphore::PreWaitFor(void)
+{
+    std::unique_lock<decltype(m_Mutex)> lock(m_Mutex);
+    // discard timedout notify(s) count
+    if ( m_Count > m_WaitingCount )
+    {
+        m_Count = m_WaitingCount;
+    }
+    // pre flag waiting notify
+    m_WaitingCount++;
+}

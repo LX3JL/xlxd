@@ -33,6 +33,9 @@
 #define QUEUE_CHANNEL       0
 #define QUEUE_SPEECH        1
 
+// timeout
+#define DEVICE_TIMEOUT      600     // in ms
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
@@ -273,16 +276,49 @@ void CUsb3xxxInterface::Task(void)
     do
     {
         done = true;
-        // if device fifo level is zero (device idle)
-        // wait that at least 3 packets are in incoming
-        // queue before restarting
-        if ( ((m_iSpeechFifolLevel+m_iChannelFifolLevel) > 0) || (m_DeviceQueue.size() >= (fifoSize+1)) )
+        // any packet to send ?
+        if ( m_DeviceQueue.size() > 0 )
         {
-            // any packet to send ?
-            if ( m_DeviceQueue.size() > 0 )
+            // yes, get it
+            CPacket *Packet = m_DeviceQueue.front();
+            
+            Channel = NULL;
+            if ( Packet->IsVoice() )
+                Channel = GetChannelWithChannelOut(Packet->GetChannel());
+            else if ( Packet->IsAmbe() )
+                Channel = GetChannelWithChannelIn(Packet->GetChannel());
+            // if channel no longer open, drop packet, don't waste time with lagged packets
+            if ( (Channel != NULL) && !Channel->IsOpen() )
             {
-                // yes, get it
-                CPacket *Packet = m_DeviceQueue.front();
+                m_DeviceQueue.pop();
+                delete Packet;
+                done = false;
+                continue;
+            }
+            
+            // if device fifo level is zero (device idle)
+            // wait that at least 3 packets are in incoming
+            // queue before restarting
+            if ( ((m_iSpeechFifolLevel+m_iChannelFifolLevel) > 0) || (m_DeviceQueue.size() >= (fifoSize+1)) )
+            {
+                
+                // if too much time elapsed since last packet was sent to device and fifo level is not zero
+                // then we failed to get reply(s) from device, reset device fifo level to restart communication
+                if ( (m_iSpeechFifolLevel > 0) && (m_SpeechFifoLevelTimeout.DurationSinceNow() >= (DEVICE_TIMEOUT/1000.0f)) )
+                {
+                    std::cout << "Reseting " << m_szDeviceName << ":" << m_szDeviceSerial << " device fifo level due to timeout" << std::endl;
+                    m_iSpeechFifolLevel = 0;
+                    if ( CheckIfDeviceNeedsReOpen() )
+                        m_iChannelFifolLevel = 0;
+                }
+                if ( (m_iChannelFifolLevel > 0) && (m_ChannelFifoLevelTimeout.DurationSinceNow() >= (DEVICE_TIMEOUT/1000.0f)) )
+                {
+                    std::cout << "Reseting " << m_szDeviceName << ":" << m_szDeviceSerial << " device fifo level due to timeout" << std::endl;
+                    m_iChannelFifolLevel = 0;
+                    if ( CheckIfDeviceNeedsReOpen() )
+                        m_iSpeechFifolLevel = 0;
+                }
+                
                 if ( Packet->IsVoice() && (m_iSpeechFifolLevel < fifoSize) )
                 {
                     // encode & post
@@ -294,6 +330,7 @@ void CUsb3xxxInterface::Task(void)
                     delete Packet;
                     // update fifo level
                     m_iSpeechFifolLevel++;
+                    m_SpeechFifoLevelTimeout.Now();
                     // next
                     done = false;
 #ifdef DEBUG_DUMPFILE
@@ -311,6 +348,7 @@ void CUsb3xxxInterface::Task(void)
                     delete Packet;
                     // update fifo level
                     m_iChannelFifolLevel++;
+                    m_ChannelFifoLevelTimeout.Now();
                     // next
                     done = false;
 #ifdef DEBUG_DUMPFILE
@@ -352,7 +390,7 @@ bool CUsb3xxxInterface::ReadDeviceVersion(void)
     {
         // read reply
         len = FTDI_read_packet( m_FtdiHandle, rxpacket, sizeof(rxpacket) ) - 4;
-        ok = (len != 0);
+        ok = (len > 0);
         //we succeed in reading a packet, print it out
         std::cout << "ReadDeviceVersion : ";
         for ( i = 4; i < len+4 ; i++ )
@@ -429,6 +467,46 @@ bool CUsb3xxxInterface::ConfigureChannel(uint8 pkt_ch, const uint8 *pkt_ratep, i
     
 }
 
+bool CUsb3xxxInterface::CheckIfDeviceNeedsReOpen(void)
+{
+    bool ok = false;
+    int len;
+    char rxpacket[64];
+    char txpacket[5] =
+    {
+        PKT_HEADER,
+        0,
+        1,
+        PKT_CONTROL,
+        PKT_PRODID
+    };
+
+    // write packet
+    if ( FTDI_write_packet(m_FtdiHandle, txpacket, sizeof(txpacket)) )
+    {
+        // read reply
+        len = FTDI_read_packet( m_FtdiHandle, rxpacket, sizeof(rxpacket) ) - 4;
+        ok = ((len > 0) && (rxpacket[3] == PKT_CONTROL) && (rxpacket[4] == PKT_PRODID));
+    }
+
+    if ( !ok )
+    {
+        std::cout << "Device " << m_szDeviceName << ":" << m_szDeviceSerial << " is unresponsive, trying to re-open it..." << std::endl;
+        FT_Close(m_FtdiHandle);
+        CTimePoint::TaskSleepFor(100);
+        if ( OpenDevice() )
+        {
+            if ( ResetDevice() )
+            {
+                DisableParity();
+                ConfigureDevice();
+            }
+        }
+    }
+
+    return !ok;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // io level
@@ -466,6 +544,13 @@ int CUsb3xxxInterface::FTDI_read_packet(FT_HANDLE ftHandle, char *pkt, int maxle
     // first read 4 bytes header
     if ( FTDI_read_bytes(ftHandle, pkt, 4) )
     {
+        // ensure we got a valid packet header
+        if ( (pkt[0] != PKT_HEADER) || ((pkt[3] != PKT_CONTROL) && (pkt[3] != PKT_CHANNEL) && (pkt[3] != PKT_SPEECH)) )
+        {
+            std::cout << "FTDI_read_packet invalid packet header" << std::endl;
+            FT_Purge(ftHandle, FT_PURGE_RX);
+            return 0;
+        }
         // get payload length
         plen = (pkt[1] & 0x00ff);
         plen <<= 8;

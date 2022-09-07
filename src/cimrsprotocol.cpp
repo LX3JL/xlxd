@@ -908,9 +908,9 @@ char CImrsProtocol::DgidToModule(uint8 uiDgid) const
 {
     char cModule = ' ';
     
-    if ( (uiDgid >= 10) && (uiDgid < (10+NB_OF_MODULES)) )
+    if ( (uiDgid >= FIRST_DG_ID) && (uiDgid < (FIRST_DG_ID+NB_OF_MODULES)) )
     {
-        cModule = 'A' + (uiDgid-10);
+        cModule = 'A' + (uiDgid-FIRST_DG_ID);
     }
     return cModule;
     
@@ -921,7 +921,7 @@ uint8 CImrsProtocol::ModuleToDgid(char cModule) const
     
     if ( (cModule >= 'A') && (cModule < ('A'+NB_OF_MODULES)) )
     {
-        uiDgid = 10 + (cModule - 'A');
+        uiDgid = FIRST_DG_ID + (cModule - 'A');
     }
     return uiDgid;
 }

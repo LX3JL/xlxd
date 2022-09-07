@@ -477,10 +477,10 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
             rpt1.SetModule(YSF_MODULE_ID);
             CCallsign rpt2 = m_ReflectorCallsign;
 
-            if ( (Fich.getSQ() >= 10) && (Fich.getSQ() < 10+NB_OF_MODULES) )
+            if ( (Fich.getSQ() >= FIRST_DG_ID) && (Fich.getSQ() < FIRST_DG_ID+NB_OF_MODULES) )
             {
                 // set module based on DG-ID value
-                rpt2.SetModule( 'A' + (char)(Fich.getSQ() - 10) );
+                rpt2.SetModule( 'A' + (char)(Fich.getSQ() - FIRST_DG_ID) );
             }
             else
             {

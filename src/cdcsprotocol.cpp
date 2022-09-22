@@ -530,7 +530,6 @@ void CDcsProtocol::EncodeDisconnectPacket(CBuffer *Buffer, CClient *Client)
     Buffer->Append((uint8)0x00);
     Buffer->Append((uint8 *)(const char *)GetReflectorCallsign(), CALLSIGN_LEN-1);
     Buffer->Append((uint8)' ');
-    Buffer->Append((uint8)0x00);
 }
 
 void CDcsProtocol::EncodeDvPacket(const CDvHeaderPacket &Header, const CDvFramePacket &DvFrame, uint32 iSeq, CBuffer *Buffer) const

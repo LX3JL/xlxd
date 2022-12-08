@@ -81,7 +81,7 @@
 #define PROTOCOL_DMRPLUS                5
 #define PROTOCOL_DMRMMDVM               6
 #define PROTOCOL_YSF                    7
-#define PROTOCOL_G3                     8
+#define PROTOCOL_G3          			8
 #define PROTOCOL_IMRS					9
 
 // DExtra

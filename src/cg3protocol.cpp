@@ -79,9 +79,17 @@ bool CG3Protocol::Init(void)
     if (ok)
     {
         // start helper threads
-        m_pPresenceThread = new std::thread(PresenceThread, this);
-        m_pPresenceThread = new std::thread(ConfigThread, this);
-        m_pPresenceThread = new std::thread(IcmpThread, this);
+        try
+        {
+            m_pPresenceThread = new std::thread(PresenceThread, this);
+            m_pConfigThread = new std::thread(ConfigThread, this);
+            m_pIcmpThread = new std::thread(IcmpThread, this);
+        }
+        catch (const std::system_error& e)
+        {
+            ok = false;
+            // ... threads will be cleaned up on the call to ::Close()
+        }
     }
 #endif
     
@@ -94,25 +102,25 @@ bool CG3Protocol::Init(void)
 
 void CG3Protocol::Close(void)
 {
-    if (m_pPresenceThread != NULL)
+    if (m_pPresenceThread)
     {
         m_pPresenceThread->join();
         delete m_pPresenceThread;
-        m_pPresenceThread = NULL;
+        m_pPresenceThread = nullptr;
     }
 
-    if (m_pConfigThread != NULL)
+    if (m_pConfigThread)
     {
         m_pConfigThread->join();
         delete m_pConfigThread;
-        m_pConfigThread = NULL;
+        m_pConfigThread = nullptr;
     }
 
-    if (m_pIcmpThread != NULL)
+    if (m_pIcmpThread)
     {
         m_pIcmpThread->join();
         delete m_pIcmpThread;
-        m_pIcmpThread = NULL;
+        m_pIcmpThread = nullptr;
     }
 }
 
@@ -600,7 +608,7 @@ bool CG3Protocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
                         // drop if invalid module
                         delete Header;
                         g_Reflector.ReleaseClients();
-                        return NULL;
+                        return false;
                     }
                 }
 

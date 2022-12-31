@@ -50,7 +50,7 @@ public:
     CDmridDir();
     
     // destructor
-    ~CDmridDir();
+    virtual ~CDmridDir();
     
     // init & close
     virtual bool Init(void);

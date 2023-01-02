@@ -86,7 +86,7 @@ protected:
     CWiresxPacketQueue m_PacketQueue;
     
     // thread
-    bool               m_bStopThread;
+    std::atomic_bool   m_bStopThread;
     std::thread        *m_pThread;
 };
 

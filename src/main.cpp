@@ -53,7 +53,7 @@ static int wait_for_termination()
     sigaddset(&waitset, SIGHUP);
     pthread_sigmask(SIG_BLOCK, &waitset, nullptr);
 
-    // Now wait for termination signal
+    // Wait for a termination signal
     int result = -1;
     while (result < 0)
     {
@@ -156,7 +156,7 @@ int main(int argc, const char * argv[])
     // and wait for end
     wait_for_termination();
 
-    g_Reflector->Stop();
+    g_Reflector.Stop();
     std::cout << "Reflector stopped" << std::endl;
     
     // done

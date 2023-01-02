@@ -32,6 +32,8 @@
 #include "cysfnodedirfile.h"
 #include "cysfnodedirhttp.h"
 
+#include <chrono>
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
@@ -72,6 +74,7 @@ CReflector::CReflector(const CCallsign &callsign)
 CReflector::~CReflector()
 {
     m_bStopThreads = true;
+    m_cv.signal();
     if ( m_XmlReportThread != NULL )
     {
         m_XmlReportThread->join();
@@ -146,6 +149,7 @@ void CReflector::Stop(void)
 {
     // stop & delete all threads
     m_bStopThreads = true;
+    m_cv.signal();
 
     // stop & delete report threads
     if ( m_XmlReportThread != NULL )
@@ -388,6 +392,7 @@ void CReflector::RouterThread(CReflector *This, CPacketStream *streamIn)
 
 void CReflector::XmlReportThread(CReflector *This)
 {
+    const std::chrono::minutes timeout(XML_UPDATE_PERIOD);
     while ( !This->m_bStopThreads )
     {
         // report to xml file
@@ -408,8 +413,7 @@ void CReflector::XmlReportThread(CReflector *This)
         }
 #endif
 
-        // and wait a bit
-        CTimePoint::TaskSleepFor(XML_UPDATE_PERIOD * 1000);
+        This->m_cv.wait(timeout, [&]{return This->m_bStopThreads==true;});
     }
 }
 
@@ -493,7 +497,8 @@ void CReflector::JsonReportThread(CReflector *This)
                    case NOTIFICATION_NONE:
                     default:
                         // nothing to do, just sleep a bit
-                        CTimePoint::TaskSleepFor(250);
+                        std::chrono::milliseconds timeout(250);
+                        This->m_cv.wait(timeout, [&]{return This->m_bStopThreads==true;});
                         break;
                 }
             }

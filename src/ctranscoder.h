@@ -92,7 +92,7 @@ protected:
     uint16          m_PortOpenStream;
     
     // thread
-    bool            m_bStopThread;
+    std::atomic_bool  m_bStopThread;
     std::thread     *m_pThread;
 
     // socket

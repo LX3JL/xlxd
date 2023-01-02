@@ -80,8 +80,8 @@ bool CG3Protocol::Init(void)
     {
         // start helper threads
         m_pPresenceThread = new std::thread(PresenceThread, this);
-        m_pPresenceThread = new std::thread(ConfigThread, this);
-        m_pPresenceThread = new std::thread(IcmpThread, this);
+        m_pConfigThread = new std::thread(ConfigThread, this);
+        m_pIcmpThread = new std::thread(IcmpThread, this);
     }
 #endif
     
@@ -94,6 +94,7 @@ bool CG3Protocol::Init(void)
 
 void CG3Protocol::Close(void)
 {
+    m_bStopThread = true;
     if (m_pPresenceThread != NULL)
     {
         m_pPresenceThread->join();

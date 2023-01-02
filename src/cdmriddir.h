@@ -31,6 +31,7 @@
 #include <netdb.h>
 #include "cbuffer.h"
 #include "ccallsign.h"
+#include "csimplecondition.h"
 
 // compare function for std::map::find
 
@@ -84,9 +85,10 @@ protected:
     
     // Lock()
     std::mutex          m_Mutex;
+    CSimpleCondition    m_cv;
            
     // thread
-    bool                m_bStopThread;
+    std::atomic_bool    m_bStopThread;
     std::thread         *m_pThread;
 
 };

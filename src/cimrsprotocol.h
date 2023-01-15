@@ -85,7 +85,7 @@ protected:
     
     // DV packet decoding helpers
     bool IsValidPingPacket(const CBuffer &);
-    bool IsValidConnectPacket(const CBuffer &, CCallsign *);
+    bool IsValidConnectPacket(const CBuffer &, CCallsign *, uint32 *);
     bool IsValidDvHeaderPacket(const CIp &, const CBuffer &, CDvHeaderPacket **);
     bool IsValidDvLastFramePacket(const CIp &, const CBuffer &, CDvFramePacket **);
     bool IsValidDvFramePacket(const CIp &, const CBuffer &, CDvFramePacket **);

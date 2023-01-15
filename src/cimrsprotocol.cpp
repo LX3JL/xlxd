@@ -76,6 +76,7 @@ void CImrsProtocol::Task(void)
     //CYSFFICH            Fich;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frames[5];
+    uint32              Version;
 
     // handle incoming packets
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
@@ -130,7 +131,7 @@ void CImrsProtocol::Task(void)
             EncodePingPacket(&Buffer);
             m_Socket.Send(Buffer, Ip, IMRS_PORT);
         }
-        else if ( IsValidConnectPacket(Buffer, &Callsign) )
+        else if ( IsValidConnectPacket(Buffer, &Callsign, &Version) )
         {
             //std::cout << "IMRS keepalive/connect packet from " << Callsign << " at " << Ip << std::endl;
             
@@ -143,8 +144,12 @@ void CImrsProtocol::Task(void)
                 // client already connected ?
                 if ( client == NULL )
                 {
-                    std::cout << "IMRS connect packet from " << Callsign << " at " << Ip << std::endl;
-                    
+                    std::cout << "IMRS connect packet from " << Callsign << " at " << Ip << " fw version "
+                              << (int)HIBYTE(HIWORD(Version)) << "."
+                              << (int)LOBYTE(HIWORD(Version)) << "."
+                              << (int)HIBYTE(LOWORD(Version)) << "."
+                              << (int)LOBYTE(LOWORD(Version)) << std::endl;
+
                     // create the client
                     CImrsClient *newclient = new CImrsClient(Callsign, Ip);
                     // connect to default module
@@ -164,7 +169,7 @@ void CImrsProtocol::Task(void)
         else
         {
             // invalid packet
-            //std::cout << "IMRS packet (" << Buffer.size() << ") from " << Callsign << " at " << Ip << std::endl;
+            std::cout << "IMRS packet (" << Buffer.size() << ") from " << Callsign << " at " << Ip << std::endl;
             //Buffer.DebugDump(g_Reflector.m_DebugFile);
         }
     }
@@ -382,9 +387,9 @@ bool CImrsProtocol::IsValidPingPacket(const CBuffer &Buffer)
     return ( (Buffer.size() == 16) && (Buffer.Compare(tag, sizeof(tag)) == 0) );
 }
 
-bool CImrsProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *Callsign)
+bool CImrsProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *Callsign, uint32 *FirmwareVersion)
 {
-    uint8 tag[] = { 0x00,0x2C,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x04,0x00,0x00 };
+    uint8 tag[] = { 0x00,0x2C,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 };
 
     bool valid = false;
     if ( (Buffer.size() == 60) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
@@ -392,6 +397,7 @@ bool CImrsProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *Calls
         Callsign->SetCallsign(Buffer.data()+26, 8);
         Callsign->SetModule(IMRS_MODULE_ID);
         valid = (Callsign->IsValid());
+        *FirmwareVersion = MAKEDWORD(MAKEWORD(Buffer.at(16), Buffer.at(17)), MAKEWORD(Buffer.at(18), Buffer.at(19)));
         //std::cout << "DG-IDs " << (int)Buffer.at(58) << "," << (int)Buffer.at(59) << std::endl;
     }
     return valid;

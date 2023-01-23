@@ -30,6 +30,7 @@
 #include "cip.h"
 #include "ccallsignlist.h"
 #include "cpeercallsignlist.h"
+#include "csimplecondition.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -71,8 +72,10 @@ protected:
     CPeerCallsignList   m_PeerList;
     
     // thread
-    bool                m_bStopThread;
+    CSimpleCondition    m_cv;
+    std::atomic_bool    m_bStopThread;
     std::thread         *m_pThread;
+
 };
 
 

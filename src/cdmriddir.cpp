@@ -29,6 +29,8 @@
 #include "cdmriddirfile.h"
 #include "cdmriddirhttp.h"
 
+#include <chrono>
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor & destructor
 
@@ -42,6 +44,7 @@ CDmridDir::~CDmridDir()
 {
     // kill threads
     m_bStopThread = true;
+    m_cv.signal();
     if ( m_pThread != NULL )
     {
         m_pThread->join();
@@ -55,12 +58,12 @@ CDmridDir::~CDmridDir()
 
 bool CDmridDir::Init(void)
 {
-	// load content
-	Reload();
+    // load content
+    Reload();
 	
     // reset stop flag
     m_bStopThread = false;
-    
+
     // start  thread;
     m_pThread = new std::thread(CDmridDir::Thread, this);
 
@@ -70,6 +73,7 @@ bool CDmridDir::Init(void)
 void CDmridDir::Close(void)
 {
     m_bStopThread = true;
+    m_cv.signal();
     if ( m_pThread != NULL )
     {
         m_pThread->join();
@@ -83,15 +87,13 @@ void CDmridDir::Close(void)
 
 void CDmridDir::Thread(CDmridDir *This)
 {
-    while ( !This->m_bStopThread )
+    std::chrono::minutes timeout(DMRIDDB_REFRESH_RATE);
+    while (!This->m_cv.wait(timeout, [&]{return This->m_bStopThread==true;}))
     {
-        // Wait 30 seconds
-        CTimePoint::TaskSleepFor(DMRIDDB_REFRESH_RATE * 60000);
-
         // have lists files changed ?
         if ( This->NeedReload() )
         {
-           	This->Reload();
+            This->Reload();
         }
      }
 }

@@ -132,7 +132,7 @@ protected:
     CPacketQueue    m_Queue;
     
     // thread
-    bool            m_bStopThread;
+    std::atomic_bool m_bStopThread;
     std::thread     *m_pThread;
     
     // identity

@@ -64,7 +64,13 @@ class CG3Protocol : public CProtocol
 {
 public:
     // constructor
-    CG3Protocol() : m_GwAddress(0u), m_Modules("*"), m_LastModTime(0) {};
+    CG3Protocol() :
+        m_pPresenceThread(nullptr),
+        m_pConfigThread(nullptr),
+        m_pIcmpThread(nullptr),
+        m_GwAddress(0u),
+        m_Modules("*"),
+        m_LastModTime(0) {}
     
     // destructor
     virtual ~CG3Protocol() {};

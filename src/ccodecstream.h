@@ -97,7 +97,7 @@ protected:
     CPacketQueue    m_LocalQueue;
 
     // thread
-    bool            m_bStopThread;
+    std::atomic_bool m_bStopThread;
     std::thread     *m_pThread;
     CTimePoint      m_TimeoutTimer;
     CTimePoint      m_StatsTimer;

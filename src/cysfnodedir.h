@@ -32,6 +32,7 @@
 #include "cbuffer.h"
 #include "ccallsign.h"
 #include "cysfnode.h"
+#include "csimplecondition.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
@@ -84,9 +85,10 @@ protected:
 protected:
     // Lock()
      std::mutex          m_Mutex;
-            
+
      // thread
-     bool                m_bStopThread;
+     CSimpleCondition    m_cv;
+     std::atomic_bool    m_bStopThread;
      std::thread         *m_pThread;
 };
 

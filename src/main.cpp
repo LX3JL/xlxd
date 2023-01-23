@@ -26,6 +26,7 @@
 #include "creflector.h"
 
 #include "syslog.h"
+#include <csignal>
 #include <sys/stat.h>
 
 
@@ -38,6 +39,37 @@ CReflector  g_Reflector;
 // function declaration
 
 #include "cusers.h"
+
+// Returns caught termination signal or -1 on error
+static int wait_for_termination()
+{
+    sigset_t waitset;
+    siginfo_t siginfo;
+
+    sigemptyset(&waitset);
+    sigaddset(&waitset, SIGTERM);
+    sigaddset(&waitset, SIGINT);
+    sigaddset(&waitset, SIGQUIT);
+    sigaddset(&waitset, SIGHUP);
+    pthread_sigmask(SIG_BLOCK, &waitset, nullptr);
+
+    // Wait for a termination signal
+    int result = -1;
+    while (result < 0)
+    {
+        result = sigwaitinfo(&waitset, &siginfo);
+        if (result == -1 && errno == EINTR)
+        {
+            // try again
+            if (errno == EINTR)
+                continue;
+
+            // an unexpected error occurred, consider it fatal
+            break;
+        }
+    }
+    return result;
+}
 
 int main(int argc, const char * argv[])
 {
@@ -101,36 +133,29 @@ int main(int argc, const char * argv[])
     g_Reflector.SetCallsign(argv[1]);
     g_Reflector.SetListenIp(CIp(argv[2]));
     g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
-  
+
+    // Block all signals while starting up the reflector -- we don't
+    // want any of the worker threads handling them.
+    sigset_t sigblockall, sigorig;
+    sigfillset(&sigblockall);
+    pthread_sigmask(SIG_SETMASK, &sigblockall, &sigorig);
+
     // and let it run
     if ( !g_Reflector.Start() )
     {
         std::cout << "Error starting reflector" << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    // Restore main thread default signal state
+    pthread_sigmask(SIG_SETMASK, &sigorig, nullptr);
+
     std::cout << "Reflector " << g_Reflector.GetCallsign()
               << "started and listening on " << g_Reflector.GetListenIp() << std::endl;
     
-#ifdef RUN_AS_DAEMON
-	// run forever
-    while ( true )
-    {
-        // sleep 60 seconds
-        CTimePoint::TaskSleepFor(60000);
-    }
-#else
-    // wait any key
-    for (;;)
-    {
-        // sleep 60 seconds
-        CTimePoint::TaskSleepFor(60000);
-#ifdef DEBUG_DUMPFILE
-        g_Reflector.m_DebugFile.close();
-#endif
-    }
-#endif
-    
     // and wait for end
+    wait_for_termination();
+
     g_Reflector.Stop();
     std::cout << "Reflector stopped" << std::endl;
     

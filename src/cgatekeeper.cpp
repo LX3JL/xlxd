@@ -25,6 +25,9 @@
 #include "main.h"
 #include "ctimepoint.h"
 #include "cgatekeeper.h"
+#include "csimplecondition.h"
+
+#include <chrono>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -47,6 +50,7 @@ CGateKeeper::~CGateKeeper()
 {
     // kill threads
     m_bStopThread = true;
+    m_cv.signal();
     if ( m_pThread != NULL )
     {
         m_pThread->join();
@@ -78,6 +82,7 @@ bool CGateKeeper::Init(void)
 void CGateKeeper::Close(void)
 {
     m_bStopThread = true;
+    m_cv.signal();
     if ( m_pThread != NULL )
     {
         m_pThread->join();
@@ -179,11 +184,9 @@ bool CGateKeeper::MayTransmit(const CCallsign &callsign, const CIp &ip, int prot
 
 void CGateKeeper::Thread(CGateKeeper *This)
 {
-    while ( !This->m_bStopThread )
+    std::chrono::seconds timeout(30);
+    while (!This->m_cv.wait(timeout, [&]{return This->m_bStopThread==true;}))
     {
-        // Wait 30 seconds
-        CTimePoint::TaskSleepFor(30000);
-
         // have lists files changed ?
         if ( This->m_NodeWhiteList.NeedReload() )
         {

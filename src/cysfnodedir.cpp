@@ -26,7 +26,7 @@
 #include "main.h"
 #include "creflector.h"
 #include "cysfnodedir.h"
-
+#include <chrono>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor & destructor
@@ -41,6 +41,7 @@ CYsfNodeDir::~CYsfNodeDir()
 {
     // kill threads
     m_bStopThread = true;
+    m_cv.signal();
     if ( m_pThread != NULL )
     {
         m_pThread->join();
@@ -69,6 +70,7 @@ bool CYsfNodeDir::Init(void)
 void CYsfNodeDir::Close(void)
 {
     m_bStopThread = true;
+    m_cv.signal();
     if ( m_pThread != NULL )
     {
         m_pThread->join();
@@ -82,11 +84,9 @@ void CYsfNodeDir::Close(void)
 
 void CYsfNodeDir::Thread(CYsfNodeDir *This)
 {
-    while ( !This->m_bStopThread )
+    const std::chrono::minutes timeout(YSFNODEDB_REFRESH_RATE);
+    while (!This->m_cv.wait(timeout, [&]{return This->m_bStopThread==true;}))
     {
-        // Wait 30 seconds
-        CTimePoint::TaskSleepFor(YSFNODEDB_REFRESH_RATE * 60000);
-
         // have lists files changed ?
         if ( This->NeedReload() )
         {

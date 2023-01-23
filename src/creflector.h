@@ -31,6 +31,8 @@
 #include "cprotocols.h"
 #include "cpacketstream.h"
 #include "cnotificationqueue.h"
+#include "cysfnodedir.h"
+#include "csimplecondition.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -137,7 +139,8 @@ protected:
     std::array<CPacketStream, NB_OF_MODULES> m_Streams;
     
     // threads
-    bool            m_bStopThreads;
+    CSimpleCondition        m_cv;
+    std::atomic_bool        m_bStopThreads;
     std::array<std::thread *, NB_OF_MODULES> m_RouterThreads;
     std::thread    *m_XmlReportThread;
     std::thread    *m_JsonReportThread;

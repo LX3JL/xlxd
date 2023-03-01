@@ -55,6 +55,15 @@ CUsb3xxxInterface::CUsb3xxxInterface(uint32 uiVid, uint32 uiPid, const char *szD
 
 CUsb3xxxInterface::~CUsb3xxxInterface()
 {
+    // stop thread first
+    m_bStopThread = true;
+    if ( m_pThread != NULL )
+    {
+        m_pThread->join();
+        delete m_pThread;
+        m_pThread = NULL;
+    }
+    
     // delete m_SpeechQueues
     for ( int i = 0; i < m_SpeechQueues.size(); i++ )
     {

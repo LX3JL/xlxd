@@ -174,7 +174,10 @@ void CPacket::UpdatePids(uint32 pid)
     }
     if ( m_uiYsfPacketFrameId == 0xFF )
     {
-        m_uiYsfPacketFrameId = ((pid / 5) & 0x7FU) << 1;
+        if (IsDvHeader())
+            m_uiYsfPacketFrameId = 0;
+        else
+            m_uiYsfPacketFrameId = (((pid / 5) + 1) & 0x7FU) << 1;
     }
     // imrs pid needs update ?
     if ( m_uiImrsPacketId == 0xFF )
@@ -184,6 +187,9 @@ void CPacket::UpdatePids(uint32 pid)
     }
     if ( m_uiImrsPacketFrameId == 0xFFFF )
     {
-        m_uiImrsPacketFrameId = LOWORD(pid / 5);
+        if (IsDvHeader())
+            m_uiImrsPacketFrameId = 0;
+        else
+            m_uiImrsPacketFrameId = LOWORD((pid / 5) + 1);
     }
 }

@@ -77,7 +77,8 @@ void CPacketStream::Push(CPacket *Packet)
 {
     // update stream dependent packet data
     m_LastPacketTime.Now();
-    Packet->UpdatePids(m_uiPacketCntr++);
+    Packet->UpdatePids(m_uiPacketCntr);
+    if (Packet->IsDvFrame()) { m_uiPacketCntr++; }
     // transcoder avaliable ?
     if ( m_CodecStream != NULL )
     {

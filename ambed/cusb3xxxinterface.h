@@ -32,6 +32,7 @@
 #include "cambepacket.h"
 #include "cvoicepacket.h"
 #include "cvocodecinterface.h"
+#include "ctimepoint.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
@@ -104,6 +105,7 @@ protected:
     bool DisableParity(void);
     virtual bool ConfigureDevice(void)                      { return false; }
     bool ConfigureChannel(uint8, const uint8 *, int, int);
+    bool CheckIfDeviceNeedsReOpen(void);
     virtual int GetDeviceFifoSize(void) const              { return 1; }
     
     // io level
@@ -130,6 +132,8 @@ protected:
     CPacketQueue                m_DeviceQueue;
     int                         m_iSpeechFifolLevel;
     int                         m_iChannelFifolLevel;
+    CTimePoint                  m_SpeechFifoLevelTimeout;
+    CTimePoint                  m_ChannelFifoLevelTimeout;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

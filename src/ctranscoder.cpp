@@ -216,6 +216,7 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
         {
             // yes, post openstream request
             EncodeOpenstreamPacket(&Buffer, uiCodecIn, (uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS);
+            m_SemaphoreOpenStream.PreWaitFor(); // pre flag waiting notify and discard timedout notify(s) count
             m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
             
             // wait relpy here

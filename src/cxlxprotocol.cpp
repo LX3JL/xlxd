@@ -287,14 +287,7 @@ void CXlxProtocol::HandleQueue(void)
                                 break;
                             case XLX_PROTOCOL_REVISION_2:
                             default:
-                                if ( g_Transcoder.IsConnected() )
-                                {
-                                    m_Socket.Send(buffer, client->GetIp());
-                                }
-                                else
-                                {
-                                    m_Socket.Send(bufferLegacy, client->GetIp());
-                                }
+                                m_Socket.Send(buffer, client->GetIp());
                                 break;
                         }
                     }

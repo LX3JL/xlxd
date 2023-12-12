@@ -87,10 +87,10 @@ int main(int argc, const char * argv[])
 #endif
 
     // check arguments
-    if ( argc != 4 )
+    if ( argc != 3 )
     {
-        std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
-        std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
+        std::cout << "Usage: xlxd callsign xlxdip" << std::endl;
+        std::cout << "example: xlxd XLX999 192.168.178.212" << std::endl;
         return 1;
     }
 
@@ -100,7 +100,7 @@ int main(int argc, const char * argv[])
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);
     g_Reflector.SetListenIp(CIp(argv[2]));
-    g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
+    g_Reflector.SetTranscoderIp(CIp("127.0.0.1")); // default if xlxd.transcoder does not exist
   
     // and let it run
     if ( !g_Reflector.Start() )

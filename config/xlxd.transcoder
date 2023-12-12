@@ -1,0 +1,19 @@
+#########################################################################################
+#  XLXD transcoder options file
+#
+#  One line per entry, each entry specifies a transcoder option.
+#
+#  Valid options (case-sensitive):
+#  Address <ip>          - Ip address of the ambed server used for transcoding.
+#  ModulesOn <modules>   - A string with all modules which transcoding should be enabled,
+#                          "*" means all modules.
+#  ModulesAuto <modules> - A string with all modules which transcoding should be enabled
+#                          in automatic mode (transcoding will get enabled only if there
+#                          are clients linked on the module with different codecs),
+#                          "*" means all modules. ModulesOn supersedes ModulesAuto.
+#
+#########################################################################################
+
+Address 127.0.0.1
+ModulesOn ABCD
+ModulesAuto *

@@ -214,13 +214,36 @@ CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client
             {
                 // get the module's queue
                 char module = DvHeader->GetRpt2Module();
+                
+                bool enableTranscoding = false;
+                if (g_Transcoder.IsModuleOn(module))
+                {
+                    enableTranscoding = true;
+                }
+                else if (g_Transcoder.IsModuleAuto(module))
+                {
+                    // enable transcoding only if we have clients on the module with different codecs
+                    uint8 clientCodecs = 0;
+                    for ( int i = 0; i < m_Clients.GetSize(); i++ )
+                    {
+                        if ( m_Clients.GetClient(i)->GetReflectorModule() == module )
+                        {
+                            clientCodecs |= m_Clients.GetClient(i)->GetCodec();
+                            if ( clientCodecs == (CODEC_AMBEPLUS | CODEC_AMBE2PLUS) ) {
+                                enableTranscoding = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
                 CPacketStream *stream = GetStream(module);
                 if ( stream != NULL )
                 {
                     // lock it
                     stream->Lock();
                     // is it available ?
-                    if ( stream->Open(*DvHeader, client) )
+                    if ( stream->Open(*DvHeader, client, enableTranscoding) )
                     {
                         // stream open, mark client as master
                         // so that it can't be deleted

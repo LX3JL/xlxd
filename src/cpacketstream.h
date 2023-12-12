@@ -48,7 +48,7 @@ public:
     virtual ~CPacketStream() {};
 
     // open / close
-    bool Open(const CDvHeaderPacket &, CClient *);
+    bool Open(const CDvHeaderPacket &, CClient *, bool enableTranscoding);
     void Close(void);
     
     // push & pop

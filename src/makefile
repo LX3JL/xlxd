@@ -31,3 +31,6 @@ install:
 	[ -f /xlxd/xlxd.terminal ] && \
 		cp ../config/xlxd.terminal /xlxd/xlxd.terminal.sample || \
 		cp ../config/xlxd.terminal /xlxd/xlxd.terminal
+	[ -f /xlxd/xlxd.transcoder ] && \
+		cp ../config/xlxd.transcoder /xlxd/xlxd.transcoder.sample || \
+		cp ../config/xlxd.transcoder /xlxd/xlxd.transcoder

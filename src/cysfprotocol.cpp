@@ -803,8 +803,8 @@ bool CYsfProtocol::EncodeDvLastPacket(const CDvHeaderPacket &Header, CBuffer *Bu
     Buffer->Append((uint8 *)sz, YSF_CALLSIGN_LENGTH);
     // dest
     Buffer->Append(dest, 10);
-    // net frame counter
-    Buffer->Append((uint8)0x00);
+    // eot status bit + net frame counter (<<1)
+    Buffer->Append((uint8)0x01);
     // FS
     Buffer->Append((uint8 *)YSF_SYNC_BYTES, YSF_SYNC_LENGTH_BYTES);
     // FICH

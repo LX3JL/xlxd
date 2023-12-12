@@ -289,6 +289,7 @@ bool CVocodecs::DiscoverFtdiDevices(void)
                         list[i].Description, list[i].SerialNumber);
                     m_FtdiDeviceDescrs.push_back(descr);
                 }
+                std::cout << std::endl;
             }
             else
             {

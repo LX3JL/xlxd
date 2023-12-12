@@ -402,7 +402,12 @@ bool CUsb3xxxInterface::ReadDeviceVersion(void)
         ok = (len > 0);
         //we succeed in reading a packet, print it out
         std::cout << "ReadDeviceVersion : ";
-        for ( i = 4; i < len+4 ; i++ )
+        for ( i = 5; (i < len+4) && (rxpacket[i] != 0x00); i++ )
+        {
+            std::cout << (char)(rxpacket[i] & 0x00ff);
+        }
+        std::cout << " ";
+        for ( i = i+2; (i < len+4) && (rxpacket[i] != 0x00); i++ )
         {
             std::cout << (char)(rxpacket[i] & 0x00ff);
         }

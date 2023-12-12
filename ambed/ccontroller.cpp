@@ -134,7 +134,7 @@ void CController::Task(void)
         // crack packet
         if ( IsValidOpenstreamPacket(Buffer, &Callsign, &CodecIn, &CodecOut) )
         {
-            std::cout << "Stream Open from " << Callsign << std::endl;
+            std::cout << "Stream Open from " << Callsign << " at " << Ip << std::endl;
             
             // try create the stream
             Stream = OpenStream(Callsign, Ip, CodecIn, CodecOut);

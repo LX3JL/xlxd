@@ -46,6 +46,7 @@ public:
     
     // get
     virtual const char *GetName(void) const                     { return ""; }
+    virtual const char *GetSerial(void) const                   { return ""; }
     
     // manage channels
     virtual int   GetNbChannels(void) const                     { return 0; }

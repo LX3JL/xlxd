@@ -59,8 +59,6 @@
 
 // Transcoder server --------------------------------------------
 #define TRANSCODER_PORT                 10100                               // UDP port
-#define TRANSCODER_KEEPALIVE_PERIOD     5                                   // in seconds
-#define TRANSCODER_KEEPALIVE_TIMEOUT    30                                  // in seconds
 
 // Codecs -------------------------------------------------------
 #define CODEC_NONE                      0

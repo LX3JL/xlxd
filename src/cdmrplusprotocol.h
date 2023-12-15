@@ -83,8 +83,8 @@ protected:
     // packet decoding helpers
     bool IsValidConnectPacket(const CBuffer &, CCallsign *, char *, const CIp &);
     bool IsValidDisconnectPacket(const CBuffer &, CCallsign *, char *);
-    bool IsValidDvHeaderPacket(const CIp &, const CBuffer &, CDvHeaderPacket **);
-    bool IsValidDvFramePacket(const CIp &, const CBuffer &, CDvFramePacket **);
+    bool IsValidDvHeaderPacket(const CBuffer &, CDvHeaderPacket **);
+    bool IsValidDvFramePacket(const CBuffer &, CDvFramePacket **);
     
     // packet encoding helpers
     void EncodeConnectAckPacket(CBuffer *);
@@ -102,7 +102,7 @@ protected:
     uint32 ModuleToDmrDestId(char) const;
     
     // uiStreamId helpers
-    uint32 IpToStreamId(const CIp &) const;
+    uint32 CreateStreamId(void) const;
     
     // Buffer & LC helpers
     void AppendVoiceLCToBuffer(CBuffer *, uint32) const;
@@ -116,6 +116,9 @@ protected:
     
     // for queue header caches
     std::array<CDmrplusStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
+    
+    // random number generator
+    mutable std::mt19937 m_Random;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

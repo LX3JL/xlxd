@@ -73,9 +73,8 @@ bool CDmrmmdvmProtocol::Init(void)
     m_LastKeepaliveTime.Now();
     
     // random number generator
-    time_t t;
-    ::srand((unsigned) time(&t));
-    m_uiAuthSeed = (uint32)rand();
+    std::random_device rd;
+    m_uiAuthSeed = rd();
     
     // done
     return ok;

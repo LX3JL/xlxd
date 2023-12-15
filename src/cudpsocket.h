@@ -29,6 +29,7 @@
 //#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
@@ -40,6 +41,7 @@
 // define
 
 #define UDP_BUFFER_LENMAX       1024
+#define UDP_SOCKET_MAX          2
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,12 +57,12 @@ public:
     ~CUdpSocket();
     
     // open & close
-    bool Open(uint16);
+    bool Open(uint16, int = AF_UNSPEC);
     void Close(void);
-    int  GetSocket(void)        { return m_Socket; }
+    int  GetSocket(const CIp &);
     
     // read
-    int Receive(CBuffer *, CIp *, int);
+    int Receive(CBuffer *, CIp *, int, int * = NULL);
     
     // write
     int Send(const CBuffer &, const CIp &);
@@ -70,8 +72,9 @@ public:
     
 protected:
     // data
-    int                 m_Socket;
-    struct sockaddr_in  m_SocketAddr;
+    int                 m_Socket[UDP_SOCKET_MAX];
+    CIp                 m_Ip[UDP_SOCKET_MAX];
+    unsigned int        m_Counter;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -30,13 +30,44 @@
 // open
 bool CUdpMsgSocket::Open(uint16 uiPort)
 {
-    bool ret;
-    int on = 1;
-
-    ret = CUdpSocket::Open(uiPort);
-    setsockopt(m_Socket, IPPROTO_IP, IP_PKTINFO, (char *)&on, sizeof(on));
-
-    return ret;
+    int on = 1, err;
+    struct sockaddr_storage *ss;
+    socklen_t ss_len;
+    
+    // IPv6 not supported
+    if ( !CUdpSocket::Open(uiPort, AF_INET) )
+    {
+        return false;
+    }
+    
+    for ( int i = 0; i < UDP_SOCKET_MAX; i++ )
+    {
+        if ( m_Socket[i] != -1 )
+        {
+            ss = m_Ip[i].GetSockAddr(ss_len);
+            switch ( ss->ss_family )
+            {
+                case AF_INET:
+#if defined(IP_PKTINFO)
+                    err = setsockopt(m_Socket[i], IPPROTO_IP, IP_PKTINFO, (char *)&on, sizeof(on));
+#elif defined(IP_RECVDSTADDR)
+                    err = setsockopt(m_Socket[i], IPPROTO_IP, IP_RECVDSTADDR, (char *)&on, sizeof(on));
+#endif
+                    break;
+                default:
+                    err = -1;
+                    break;
+            }
+            
+            if ( err < 0 )
+            {
+                CUdpSocket::Close();
+                return false;
+            }
+        }
+    }
+    
+    return true;
 }
 
 
@@ -46,70 +77,98 @@ bool CUdpMsgSocket::Open(uint16 uiPort)
 int CUdpMsgSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
 {
     struct sockaddr_in Sin;
-    fd_set FdSet;
-    unsigned int uiFromLen = sizeof(struct sockaddr_in);
-    int iRecvLen = -1;
-    struct timeval tv;
-
+    struct pollfd pfd[UDP_SOCKET_MAX];
+    int i, socks, index, iRecvLen = -1;
+    
     struct msghdr Msg;
     struct iovec Iov[1];
-
+    
     union {
          struct cmsghdr cm;
+#if defined(IP_PKTINFO)
          unsigned char pktinfo_sizer[sizeof(struct cmsghdr) + sizeof(struct in_pktinfo)];
+#elif defined(IP_RECVDSTADDR)
+         unsigned char pktinfo_sizer[sizeof(struct cmsghdr) + sizeof(struct sockaddr_in)];
+#endif
     } Control;
-
+    
     // socket valid ?
-    if ( m_Socket != -1 )
+    for ( i = socks = 0; i < UDP_SOCKET_MAX; i++ )
     {
-        // allocate buffer
-        Buffer->resize(UDP_MSG_BUFFER_LENMAX);
-
-        //prepare msghdr
-        bzero(&Msg, sizeof(Msg));
-        Iov[0].iov_base = Buffer->data();
-        Iov[0].iov_len = UDP_MSG_BUFFER_LENMAX;
-
-        bzero(&Sin, sizeof(Sin));
-        Msg.msg_name = &Sin;
-        Msg.msg_namelen = sizeof(Sin);
-        Msg.msg_iov = Iov;
-        Msg.msg_iovlen = 1;
-        Msg.msg_control = &Control;
-        Msg.msg_controllen = sizeof(Control);
-
-        // control socket
-        FD_ZERO(&FdSet);
-        FD_SET(m_Socket, &FdSet);
-        tv.tv_sec = timeout / 1000;
-        tv.tv_usec = (timeout % 1000) * 1000;
-        select(m_Socket + 1, &FdSet, 0, 0, &tv);
-        
-        // read
-        iRecvLen = (int)recvmsg(m_Socket, &Msg, 0);
-        
-        // handle
-        if ( iRecvLen != -1 )
+        if ( m_Socket[i] != -1 )
         {
-            // adjust buffer size
-            Buffer->resize(iRecvLen);
+            pfd[socks].fd = m_Socket[i];
+            pfd[socks].events = POLLIN;
+            socks++;
+        }
+    }
+    
+    if ( socks != 0 )
+    {
+        // control socket
+        poll(pfd, socks, timeout);
+        
+        for ( i = 0; i < socks; i++ )
+        {
+            // round robin
+            index = (i + m_Counter) % socks;
             
-            // get IP
-            Ip->SetSockAddr(&Sin);
-
-            // get local IP
-            struct cmsghdr *Cmsg;
-            for (Cmsg = CMSG_FIRSTHDR(&Msg); Cmsg != NULL; Cmsg = CMSG_NXTHDR(&Msg, Cmsg))
+            if ( pfd[index].revents & POLLIN )
             {
-                if (Cmsg->cmsg_level == IPPROTO_IP && Cmsg->cmsg_type == IP_PKTINFO)
+                // allocate buffer
+                Buffer->resize(UDP_MSG_BUFFER_LENMAX);
+                
+                // prepare msghdr
+                bzero(&Msg, sizeof(Msg));
+                Iov[0].iov_base = Buffer->data();
+                Iov[0].iov_len = UDP_MSG_BUFFER_LENMAX;
+                
+                bzero(&Sin, sizeof(Sin));
+                Msg.msg_name = &Sin;
+                Msg.msg_namelen = sizeof(Sin);
+                Msg.msg_iov = Iov;
+                Msg.msg_iovlen = 1;
+                Msg.msg_control = &Control;
+                Msg.msg_controllen = sizeof(Control);
+                
+                // read
+                iRecvLen = (int)recvmsg(pfd[index].fd, &Msg, 0);
+                
+                // handle
+                if ( iRecvLen != -1 )
                 {
-                    struct in_pktinfo *PktInfo = (struct in_pktinfo *)CMSG_DATA(Cmsg);
-                    m_LocalAddr.s_addr = PktInfo->ipi_spec_dst.s_addr;
+                    // adjust buffer size
+                    Buffer->resize(iRecvLen);
+                    
+                    // get IP
+                    Ip->SetSockAddr((struct sockaddr_storage *)&Sin, sizeof(Sin));
+                    
+                    // get local IP
+                    struct cmsghdr *Cmsg;
+                    for (Cmsg = CMSG_FIRSTHDR(&Msg); Cmsg != NULL; Cmsg = CMSG_NXTHDR(&Msg, Cmsg))
+                    {
+#if defined(IP_PKTINFO)
+                        if (Cmsg->cmsg_level == IPPROTO_IP && Cmsg->cmsg_type == IP_PKTINFO)
+                        {
+                            struct in_pktinfo *PktInfo = (struct in_pktinfo *)CMSG_DATA(Cmsg);
+                            m_LocalAddr.s_addr = PktInfo->ipi_spec_dst.s_addr;
+                        }
+#elif defined(IP_RECVDSTADDR)
+                        if (Cmsg->cmsg_level == IPPROTO_IP && Cmsg->cmsg_type == IP_RECVDSTADDR)
+                        {
+                            struct sockaddr_in *DestAddr = (struct sockaddr_in *)CMSG_DATA(Cmsg);
+                            m_LocalAddr.s_addr = DestAddr->sin_addr.s_addr;
+                        }
+#endif
+                    }
+                    
+                    m_Counter++;
+                    break;
                 }
             }
         }
     }
- 
+    
     // done
     return iRecvLen;
 }

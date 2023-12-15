@@ -55,6 +55,11 @@ bool CImrsProtocol::Init(void)
     // update time
     m_LastKeepaliveTime.Now();
     
+    // random number generator
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    m_Random = mt;
+
     // done
     return ok;
 }
@@ -76,10 +81,11 @@ void CImrsProtocol::Task(void)
     //CYSFFICH            Fich;
     CDvHeaderPacket     *Header;
     CDvFramePacket      *Frames[5];
+    int                 sno;
     uint32              Version;
 
     // handle incoming packets
-    if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
+    if ( m_Socket.Receive(&Buffer, &Ip, 20, &sno) != -1 )
     {
         // force port
         Ip.SetPort(IMRS_PORT);
@@ -124,7 +130,7 @@ void CImrsProtocol::Task(void)
             //std::cout << "IMRS ping packet from "  << Ip << std::endl;
             
             // acknowledge request
-            EncodePongPacket(&Buffer);
+            EncodePongPacket(&Buffer, sno);
             m_Socket.Send(Buffer, Ip, IMRS_PORT);
 
             // our turn
@@ -412,7 +418,7 @@ bool CImrsProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffer, 
     if ( (Buffer.size() == 91) && (Buffer.at(1) == 0x4B) )
     {
         // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = CreateStreamId();
         
         // and payload
         CBuffer payload;
@@ -491,7 +497,7 @@ bool CImrsProtocol::IsValidDvFramePacket(const CIp &Ip, const CBuffer &Buffer, C
     if ( (Buffer.size() == 181) && (Buffer.at(1) == 0xA5) )
     {
         // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = CreateStreamId();
 
         // and payload
         CBuffer payload;
@@ -584,7 +590,7 @@ bool CImrsProtocol::IsValidDvLastFramePacket(const CIp &Ip, const CBuffer &Buffe
     if ( (Buffer.size() == 31) && (Buffer.at(1) == 0x0F) )
     {
         // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = CreateStreamId();
         
         // and payload
         CBuffer payload;
@@ -647,7 +653,7 @@ void CImrsProtocol::EncodePingPacket(CBuffer *Buffer) const
     Buffer->Set(tag, sizeof(tag));
 }
 
-void CImrsProtocol::EncodePongPacket(CBuffer *Buffer) const
+void CImrsProtocol::EncodePongPacket(CBuffer *Buffer, int sno) const
 {
     uint8 tag1[] = { 0x00,0x2C,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x04,0x00,0x00 };
     uint8 radioid[] = { 'G','0','g','B','J' };
@@ -656,7 +662,7 @@ void CImrsProtocol::EncodePongPacket(CBuffer *Buffer) const
     // tag
     Buffer->Set(tag1, sizeof(tag1));
     // mac address
-    Buffer->Append(g_Reflector.GetListenMac(), 6);
+    Buffer->Append(g_Reflector.GetListenMac(sno), 6);
     // callsign
     ::memset(sz, ' ', sizeof(sz));
     g_Reflector.GetCallsign().GetCallsignString(sz);
@@ -902,9 +908,9 @@ bool CImrsProtocol::EncodeDvLastPacket(const CDvHeaderPacket &Header, const CDvL
 ////////////////////////////////////////////////////////////////////////////////////////
 // uiStreamId helpers
 
-uint32 CImrsProtocol::IpToStreamId(const CIp &ip) const
+uint32 CImrsProtocol::CreateStreamId(void) const
 {
-    return ip.GetAddr() ^ (uint32)(MAKEDWORD(ip.GetPort(), ip.GetPort()));
+    return m_Random();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

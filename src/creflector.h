@@ -31,6 +31,7 @@
 #include "cprotocols.h"
 #include "cpacketstream.h"
 #include "cnotificationqueue.h"
+#include "cudpsocket.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -57,10 +58,10 @@ public:
     // settings
     void SetCallsign(const CCallsign &callsign)     { m_Callsign = callsign; }
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
-    void SetListenIp(const CIp &ip)                 { m_Ip = ip; UpdateListenMac(); }
+    void SetListenIp(int i, const CIp &ip)          { m_Ip[i] = ip; UpdateListenMac(i); }
     void SetTranscoderIp(const CIp &ip)             { m_AmbedIp = ip; }
-    const CIp &GetListenIp(void) const              { return m_Ip; }
-    const uint8 *GetListenMac(void) const           { return (const uint8 *)m_Mac; }
+    const CIp &GetListenIp(int i = 0) const         { return m_Ip[i]; }
+    const uint8 *GetListenMac(int i) const          { return (const uint8 *)m_Mac[i]; }
     const CIp &GetTranscoderIp(void) const          { return m_AmbedIp; }
     
     // operation
@@ -118,13 +119,13 @@ protected:
     void SendJsonOffairObject(CUdpSocket &, CIp &, const CCallsign &);
     
     // MAC address helpers
-    bool UpdateListenMac(void);
+    bool UpdateListenMac(int i);
     
 protected:
     // identity
     CCallsign       m_Callsign;
-    CIp             m_Ip;
-    uint8           m_Mac[6];
+    CIp             m_Ip[UDP_SOCKET_MAX];
+    uint8           m_Mac[UDP_SOCKET_MAX][6];
     CIp             m_AmbedIp;
     
     // objects

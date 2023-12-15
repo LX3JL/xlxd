@@ -60,14 +60,35 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    if ($PageOptions['RepeatersPage']['IPModus'] != 'HideIP') {
       echo '
    <td>';
-      $Bytes = explode(".", $Reflector->Nodes[$i]->GetIP());
-      if ($Bytes !== false && count($Bytes) == 4) {
-         switch ($PageOptions['RepeatersPage']['IPModus']) {
-            case 'ShowLast1ByteOfIP'      : echo $PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[3]; break;
-            case 'ShowLast2ByteOfIP'      : echo $PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[2].'.'.$Bytes[3]; break;
-            case 'ShowLast3ByteOfIP'      : echo $PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[1].'.'.$Bytes[2].'.'.$Bytes[3]; break;
-            default                       : echo $Reflector->Nodes[$i]->GetIP();
-         }
+      $IPBinary = inet_pton($Reflector->Nodes[$i]->GetIP());
+      $IPLength = strlen($IPBinary);
+      $Bytes = str_split($IPBinary, 1);
+      switch ($PageOptions['RepeatersPage']['IPModus']) {
+         case 'ShowLast1ByteOfIP' : $MasqByte = 3; break;
+         case 'ShowLast2ByteOfIP' : $MasqByte = 2; break;
+         case 'ShowLast3ByteOfIP' : $MasqByte = 1; break;
+         default                  : $MasqByte = 0; break;
+      }
+      switch ($IPLength) {
+         case 4:
+            for ($pos = 0; $pos < $IPLength; $pos++) {
+               if ($pos) echo '.';
+               if ($pos < $MasqByte) echo $PageOptions['RepeatersPage']['MasqueradeCharacter'];
+               else echo ord($Bytes[$pos]);
+            }
+            break;
+         case 16:
+            for ($pos = 0; $pos < $IPLength; $pos += 2) {
+               if ($pos) echo ':';
+               if ($pos < ($MasqByte * 4)) echo $PageOptions['RepeatersPage']['MasqueradeCharacter'];
+               else {
+                  echo bin2hex($Bytes[$pos]);
+                  echo bin2hex($Bytes[$pos + 1]);
+               }
+            }
+            break;
+         default:
+            break;
       }
       echo '</td>';
    }

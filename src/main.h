@@ -39,8 +39,11 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <random>
 #include <algorithm>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <ifaddrs.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -62,6 +65,7 @@
 //#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
 //#define DEBUG_DUMPFILE
 //#define DEBUG_NO_G3_ICMP_SOCKET
+//#define DEBUG_NO_G3_SUPPORT
 
 // reflector ---------------------------------------------------
 

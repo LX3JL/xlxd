@@ -54,6 +54,10 @@ $PageOptions['IRCDDB']['Show']                       = true;        // Show live
 
 $PageOptions['CustomTXT']                            = '';					// custom text in your header   
 
+$PageOptions['DateFormat']                           = 'd.m.Y H:i';  // Date format for LastHeard column
+$PageOptions['LastHeardTZ']                          = '';           // Arbitrary text after "Last Heard" column header
+
+
 $Service['PIDFile']                                  = '/var/log/xlxd.pid';
 $Service['XMLFile']                                  = '/var/log/xlxd.xml';
 

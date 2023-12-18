@@ -3,6 +3,12 @@
 *copy ambed.service to /etc/systemd/system/
 *copy watchdog to /ambed/
 *************************************************
+* If you want to use systemd for xlxd:
+* copy xlxd.service to /etc/systemd/system
+* copy xlxd.default to /etc/default/xlxd
+* edit /etc/default/xlxd to suit the local install
+* systemctl daemon-reload
+*************************************************
 * xlxd executable must be in /xlxd/ folder
 * ambed executable must be in /ambed/ folder
 *************************************************

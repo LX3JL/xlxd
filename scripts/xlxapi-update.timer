@@ -1,0 +1,9 @@
+[Unit]
+Description=Run xlx api call every day (if nobody opens the dashboard)
+
+[Timer]
+OnCalendar=*-*-* 1:0:0
+Unit=xlxapi-update.service
+
+[Install]
+WantedBy=multi-user.target

@@ -3,7 +3,7 @@ Description=XLX Reflector (XLX999)
 After=network.target ambed.service
 
 [Service]
-Type=forking
+Type=notify
 User=xlxd
 Group=xlxd
 AmbientCapabilities=CAP_NET_RAW

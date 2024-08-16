@@ -8,7 +8,8 @@ EXECUTABLE=ambed
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -lftd2xx -I/usr/src/libftd2xx-x86_64-1.4.27 -Wl,-rpath,/usr/local/lib -lsystemd -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -lftd2xx -Wl,-rpath,/usr/local/lib -lsystemd -o $@
+
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@

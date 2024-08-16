@@ -249,7 +249,7 @@ bool CVocodecs::Init(void)
     else
     {
         std::cout << "At least one codec interfaces failed to initialize : " << iNbCh << " channels availables" << std::endl;
-        sd_notifyf(0, "At least one codec interfaces failed to initialize : %i channels availables", iNbCh);
+        sd_notifyf(0, "STATUS=At least one codec interfaces failed to initialize : %i channels availables", iNbCh);
     }
     // done
     return ok;

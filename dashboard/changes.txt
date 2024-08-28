@@ -1,6 +1,38 @@
+xlx db v2.4.1
+
+you can now hide the liveircddb menu button, if you are running your db in https.
+
+- "config.inc.php
+- "index.php"
+
+xlx db v2.4.0
+
+- "config.inc.php"
+- "index.php"
+- "js"
+- "layout.css"
+
+xlx db v2.3.9
+
+redesign for the callinghome.php
+
+- "config.inc.php"
+- "index.php"
+- "functions.php"
+
+xlx db v2.3.8
+
+add support for network traffic statistics via vnstat.
+
+- "config.inc.php"
+- "index.php"
+- "functions.php"
+
+add traffic.php
+
 xlx db v2.3.7
 
-add background button color change on active page.
+add background color change on active page.
 
 - "config.inc.php"
 - "layout.css"
@@ -66,7 +98,7 @@ xlx db v2.2.2
 
 This version is a major release with voluntary self-registration feature build in.
 You need to edit the conf.inc.php to your needs.
-On the first run your personal hash to access the database is place in the server’s /tmp folder.
+On the first run your personal hash to access the database is place in the serverâ€™s /tmp folder.
 Take care to make a backup of this file because this folder is cleaned up after a server reboot.
 
 This version is a major release
@@ -94,7 +126,7 @@ xlx db v2.1.4
 
 - "class.reflector.php" improved the flag search
 - "country.csv" added serveral prefixes
-- "flags" added Puerto Ricco and Åland Islands
+- "flags" added Puerto Ricco and Ã…land Islands
 
 xlx db v2.1.3
 

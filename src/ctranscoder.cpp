@@ -94,7 +94,7 @@ bool CTranscoder::Init(void)
     m_bStopThread = false;
 
     // create server's IP
-    m_Ip = g_Reflector.GetTrasncoderIp();
+    m_Ip = g_Reflector.GetTranscoderIp();
     
     // create our socket
     ok = m_Socket.Open(TRANSCODER_PORT);
@@ -188,12 +188,6 @@ void CTranscoder::Task(void)
         
     }
     
-    // handle end of streaming timeout
-    //CheckStreamsTimeout();
-    
-    // handle queue from reflector
-    //HandleQueue();
-    
     // keep client alive
     if ( m_LastKeepaliveTime.DurationSinceNow() > TRANSCODER_KEEPALIVE_PERIOD )
     {
@@ -222,6 +216,7 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
         {
             // yes, post openstream request
             EncodeOpenstreamPacket(&Buffer, uiCodecIn, (uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS);
+            m_SemaphoreOpenStream.PreWaitFor(); // pre flag waiting notify and discard timedout notify(s) count
             m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
             
             // wait relpy here
@@ -229,7 +224,7 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
             {
                 if ( m_bStreamOpened )
                 {
-                    std::cout << "ambed openstream ok" << std::endl;
+                    std::cout << "ambed stream open on port " << m_PortOpenStream << std::endl;
                 
                     // create stream object
                     stream = new CCodecStream(PacketStream, m_StreamidOpenStream, uiCodecIn, (uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS);
@@ -287,7 +282,7 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
                     m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
                     
                     // display stats
-                    if ( m_Streams[i]->GetPingMin() >= 0.0 )
+                    //if ( m_Streams[i]->GetPingMin() >= 0.0 )
                     {
                         char sz[256];
                         sprintf(sz, "ambed stats (ms) : %.1f/%.1f/%.1f",
@@ -296,7 +291,7 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
                                 m_Streams[i]->GetPingMax() * 1000.0);
                         std::cout << sz << std::endl;
                     }
-                    if ( m_Streams[i]->GetTimeoutPackets() > 0 )
+                    //if ( m_Streams[i]->GetTimeoutPackets() > 0 )
                     {
                         char sz[256];
                         sprintf(sz, "ambed %d of %d packets timed out",

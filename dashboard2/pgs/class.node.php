@@ -10,8 +10,9 @@ class Node {
    private $LastHeardTime;
    private $Suffix;
    private $Prefix;
+   private $RandomID;
 
-   public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime) {
+   public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime, $RandomID) {
 
       $this->IP            = $IP;
 
@@ -34,8 +35,8 @@ class Node {
          $this->Prefix        = "";
       }
 
-
-      $this->LinkedModule  = trim($LinkedModule);
+      $this->LinkedModule     = trim($LinkedModule);
+      $this->RandomID         = $RandomID;
    }
 
    public function GetFullCallsign()         { return $this->FullCallsign;   }
@@ -47,6 +48,8 @@ class Node {
    public function GetLastHeardTime()        { return $this->LastHeardTime;  }
    public function GetSuffix()               { return $this->Suffix;         }
    public function GetPrefix()               { return $this->Prefix;         }
+   public function GetRandomID()             { return $this->RandomID;       }
+   
 }
 
 ?>

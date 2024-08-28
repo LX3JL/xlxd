@@ -71,18 +71,20 @@ CStream::CStream(uint16 uiId, const CCallsign &Callsign, const CIp &Ip, uint8 ui
 
 CStream::~CStream()
 {
-    m_Socket.Close();
-    if ( m_VocodecChannel != NULL )
-    {
-        g_Vocodecs.CloseChannel(m_VocodecChannel);
-        m_VocodecChannel = NULL;
-    }
-    
+    // stop thread first
     m_bStopThread = true;
     if ( m_pThread != NULL )
     {
         m_pThread->join();
         delete m_pThread;
+        m_pThread = NULL;
+    }
+    
+    // then close everything
+    m_Socket.Close();
+    if ( m_VocodecChannel != NULL )
+    {
+        m_VocodecChannel->Close();
     }
 }
 
@@ -124,7 +126,7 @@ bool CStream::Init(uint16 uiPort)
     }
     else
     {
-        std::cout << "Error opening socket on port UDP" << uiPort << " on ip " << m_Ip << std::endl;
+        std::cout << "Error opening socket on port UDP" << uiPort << " on ip " << g_AmbeServer.GetListenIp() << std::endl;
     }
     
     // done
@@ -134,13 +136,7 @@ bool CStream::Init(uint16 uiPort)
 
 void CStream::Close(void)
 {
-    // close everything
-    m_Socket.Close();
-    if ( m_VocodecChannel != NULL )
-    {
-        m_VocodecChannel->Close();
-    }
-    
+    // stop thread first
     m_bStopThread = true;
     if ( m_pThread != NULL )
     {
@@ -148,6 +144,14 @@ void CStream::Close(void)
         delete m_pThread;
         m_pThread = NULL;
     }
+
+    // then close everything
+    m_Socket.Close();
+    if ( m_VocodecChannel != NULL )
+    {
+        m_VocodecChannel->Close();
+    }
+    
     
     // report
     std::cout << m_iLostPackets << " of " << m_iTotalPackets << " packets lost" << std::endl;
@@ -170,7 +174,7 @@ void CStream::Thread(CStream *This)
 void CStream::Task(void)
 {
     CBuffer     Buffer;
-    static CIp  Ip;
+    CIp         Ip;
     uint8       uiPid;
     uint8       Ambe[AMBE_FRAME_SIZE];
     CAmbePacket *packet;
@@ -203,7 +207,7 @@ void CStream::Task(void)
         queue->pop();
         // send it to client
         EncodeDvFramePacket(&Buffer, packet->GetPid(), packet->GetAmbe());
-        m_Socket.Send(Buffer, Ip, m_uiPort);
+        m_Socket.Send(Buffer, m_Ip, m_uiPort);
         // and done
         delete packet;
     }

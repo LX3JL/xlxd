@@ -99,6 +99,7 @@ protected:
     std::thread     *m_pThread;
     CTimePoint      m_TimeoutTimer;
     CTimePoint      m_FrameTimer;
+    uint32          m_uiNbTotalPacketSent;
     
     // stats
     CTimePoint      m_StatsTimer;

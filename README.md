@@ -1,10 +1,17 @@
-# Copyright
+﻿# Copyright
 
-� 2016 Luc Engelmann LX1IQ
+© 2016 Jean-Luc Deltombe LX3JL and Luc Engelmann LX1IQ
 
 The XLX Multiprotocol Gateway Reflector Server is part of the software system
 for the D-Star Network.
 The sources are published under GPL Licenses.
+
+# Supported Protocols since XLX v2.5.x
+
+- In D-Star, Icom-G3Terminal, DExtra, DPLus and DCS
+- In DMR, DMRPlus (dongle) and DMRMmdvm
+- In C4FM, YSF, Wires-X and IMRS
+- XLX Interlink protocol
 
 # Usage
 
@@ -50,7 +57,13 @@ Please use the stable version listed above, we cannot support others.
  # apt-get install build-essential
  # apt-get install g++-4.7 (skip this step on Debian 8.x) 
 ```
+###### After downloading and before compiling, please have a look at the main.h file
+```
+ # nano /xlxd/src/main.h
 
+ For YSF you need to define a default HotSpot frequency !!!
+
+```
 ###### Download and compile the XLX sources
 ```
 # git clone https://github.com/LX3JL/xlxd.git
@@ -113,6 +126,7 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 10001         (json interface XLX Core)
  - UDP port 10002         (XLX interlink)
  - TCP port 22            (ssh) optional  TCP port 10022
+ - UDP port 42000         (YSF protocol)
  - UDP port 30001         (DExtra protocol)
  - UPD port 20001         (DPlus protocol)
  - UDP port 30051         (DCS protocol)
@@ -120,5 +134,14 @@ XLX Server requires the following ports to be open and forwarded properly for in
  - UDP port 62030         (MMDVM protocol)
  - UDP port 10100         (AMBE controller port)
  - UDP port 10101 - 10199 (AMBE transcoding port)
+ - UDP port 12345 - 12346 (Icom Terminal presence and request port)
+ - UDP port 40000         (Icom Terminal dv port)
+ - UDP port 21110         (Yaesu IMRS protocol)
 
-� 2016 Luc Engelmann LX1IQ
+# YSF Master Server
+
+Pay attention, the XLX Server acts as an YSF Master, which provides 26 wires-x rooms.
+It has nothing to do with the regular YSFReflector network, hence you don’t need to register your XLX at ysfreflector.de !
+Nevertheless it is possible.
+
+© 2016 Jean-Luc Deltombe (LX3JL) and Luc Engelmann (LX1IQ)

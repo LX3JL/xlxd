@@ -48,6 +48,9 @@ public:
     // destructor
     virtual ~CAmbePacket();
     
+    // identity
+    bool IsAmbe(void) const         { return true; }
+    
     // get
     uint8  GetCodec(void) const     { return m_uiCodec; }
     uint8 *GetAmbe(void)            { return m_uiAmbe; }

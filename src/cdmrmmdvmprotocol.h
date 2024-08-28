@@ -43,6 +43,9 @@
 #define MMDVM_SLOTTYPE_HEADER        1
 #define MMDVM_SLOTTYPE_TERMINATOR    2
 
+// DMRMMDVM Module ID
+#define MMDVM_MODULE_ID             'B'
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
@@ -56,6 +59,7 @@ public:
     CDvFramePacket  m_dvFrame0;
     CDvFramePacket  m_dvFrame1;
     
+    uint8  m_embeddedLC[16];
     uint8  m_uiSeqId;
 };
 
@@ -86,10 +90,10 @@ protected:
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &, uint8, uint8);
     
     // packet decoding helpers
-    bool IsValidConnectPacket(const CBuffer &, CCallsign *);
-    bool IsValidAuthenticationPacket(const CBuffer &, CCallsign *);
+    bool IsValidConnectPacket(const CBuffer &, CCallsign *, const CIp &);
+    bool IsValidAuthenticationPacket(const CBuffer &, CCallsign *, const CIp &);
     bool IsValidDisconnectPacket(const CBuffer &, CCallsign *);
-    bool IsValidConfigPacket(const CBuffer &, CCallsign *);
+    bool IsValidConfigPacket(const CBuffer &, CCallsign *, const CIp &);
     bool IsValidOptionPacket(const CBuffer &, CCallsign *);
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
     bool IsValidRssiPacket(const CBuffer &, CCallsign *, int *);
@@ -114,7 +118,8 @@ protected:
     // Buffer & LC helpers
     void AppendVoiceLCToBuffer(CBuffer *, uint32) const;
     void AppendTerminatorLCToBuffer(CBuffer *, uint32) const;
-    void ReplaceEMBInBuffer(CBuffer *, uint8) const;
+    void ReplaceEMBInBuffer(CBuffer *, uint8, const uint8 *) const;
+    void EncodeEmbeddedLC(uint8 *, uint32);
     void AppendDmrIdToBuffer(CBuffer *, uint32) const;
     void AppendDmrRptrIdToBuffer(CBuffer *, uint32) const;
 

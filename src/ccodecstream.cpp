@@ -95,13 +95,16 @@ bool CCodecStream::Init(uint16 uiPort)
     m_bStopThread = false;
     
     // create server's IP
-    m_Ip = g_Reflector.GetTrasncoderIp();
+    m_Ip = g_Reflector.GetTranscoderIp();
     m_uiPort = uiPort;
     
     // create our socket
     ok = m_Socket.Open(uiPort);
     if ( ok )
     {
+        // init timers
+        m_TimeoutTimer.Now();
+        
         // start  thread;
         m_pThread = new std::thread(CCodecStream::Thread, this);
         m_bConnected = true;

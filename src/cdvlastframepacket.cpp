@@ -47,6 +47,32 @@ CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, const uint8 *sync, uin
 {
 }
 
+// dstar + dmr constructor
+
+CDvLastFramePacket::CDvLastFramePacket
+    (uint16 sid,
+     uint8 dstarpid, const uint8 *dstarambe, const uint8 *dstardvdata,
+     uint8 dmrpid, uint8 dprspid, const uint8 *dmrambe, const uint8 *dmrsync)
+    : CDvFramePacket(sid, dstarpid, dstarambe, dstardvdata, dmrpid, dprspid, dmrambe, dmrsync)
+{
+}
+
+// ysf constructor
+
+CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint8 fid)
+    : CDvFramePacket(ambe, sid, pid, spid, fid)
+{
+}
+
+// imrs constructor
+
+CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid, uint8 spid, uint16 fid)
+    : CDvFramePacket(ambe, sid, pid, spid, fid)
+{
+}
+
+
+
 // copy constructor
     
 CDvLastFramePacket::CDvLastFramePacket(const CDvLastFramePacket &DvFrame)

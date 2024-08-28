@@ -32,16 +32,40 @@
 
 CXlxClient::CXlxClient()
 {
+    m_ProtRev = XLX_PROTOCOL_REVISION_0;
 }
 
-CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
+CXlxClient::CXlxClient(const CCallsign &callsign, const CIp &ip, char reflectorModule, int protRev)
 : CClient(callsign, ip, reflectorModule)
 {
+    m_ProtRev = protRev;
 }
 
 CXlxClient::CXlxClient(const CXlxClient &client)
 : CClient(client)
 {
+    m_ProtRev = client.m_ProtRev;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// identity
+
+int CXlxClient::GetCodec(void) const
+{
+    int codec;
+    
+    switch ( GetProtocolRevision() )
+    {
+        case XLX_PROTOCOL_REVISION_0:
+        case XLX_PROTOCOL_REVISION_1:
+        default:
+            codec = CODEC_AMBEPLUS;
+            break;
+        case XLX_PROTOCOL_REVISION_2:
+            codec = CODEC_NONE;
+            break;
+    }
+    return codec;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

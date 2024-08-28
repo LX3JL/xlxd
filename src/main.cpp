@@ -94,6 +94,9 @@ int main(int argc, const char * argv[])
         return 1;
     }
 
+    // splash
+    std::cout << "Starting xlxd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << std::endl << std::endl;
+
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);
     g_Reflector.SetListenIp(CIp(argv[2]));
@@ -119,10 +122,10 @@ int main(int argc, const char * argv[])
     // wait any key
     for (;;)
     {
-        std::cin.get();
+        // sleep 60 seconds
+        CTimePoint::TaskSleepFor(60000);
 #ifdef DEBUG_DUMPFILE
         g_Reflector.m_DebugFile.close();
-        g_Reflector.m_DebugFile.open("/Users/jeanluc/Desktop/dmrdebug.txt");
 #endif
     }
 #endif

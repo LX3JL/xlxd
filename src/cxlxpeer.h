@@ -26,9 +26,11 @@
 #define cxlxpeer_h
 
 #include "cpeer.h"
+#include "cxlxclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//
+// define
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -38,7 +40,7 @@ class CXlxPeer : public CPeer
 public:
     // constructors
     CXlxPeer();
-    CXlxPeer(const CCallsign &, const CIp &, char *);
+    CXlxPeer(const CCallsign &, const CIp &, char *, const CVersion &);
     CXlxPeer(const CXlxPeer &);
     
     // destructor
@@ -46,9 +48,13 @@ public:
     
     // status
     bool IsAlive(void) const;
+    
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_XLX; }
     const char *GetProtocolName(void) const     { return "XLX"; }
+    
+    // revision helper
+    static int GetProtocolRevision(const CVersion &);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

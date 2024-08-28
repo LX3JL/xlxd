@@ -32,6 +32,7 @@
 #include "cambepacket.h"
 #include "cvoicepacket.h"
 #include "cvocodecinterface.h"
+#include "ctimepoint.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
@@ -98,12 +99,14 @@ protected:
     virtual void EncodeSpeechPacket(CBuffer *, int, CVoicePacket *) {}
     
     // low level
-    virtual bool OpenDevice(void)   { return false; }
-    virtual bool ResetDevice(void)  { return false; }
+    virtual bool OpenDevice(void)                           { return false; }
+    virtual bool ResetDevice(void)                          { return false; }
     bool ReadDeviceVersion(void);
     bool DisableParity(void);
-    virtual bool ConfigureDevice(void)  { return false; }
+    virtual bool ConfigureDevice(void)                      { return false; }
     bool ConfigureChannel(uint8, const uint8 *, int, int);
+    bool CheckIfDeviceNeedsReOpen(void);
+    virtual int GetDeviceFifoSize(void) const              { return 1; }
     
     // io level
     bool ReadBuffer(CBuffer *);
@@ -117,17 +120,20 @@ protected:
     
 protected:
     // data
-    uint32          m_uiVid;
-    uint32          m_uiPid;
-    char            m_szDeviceName[FTDI_MAX_STRINGLENGTH];
-    char            m_szDeviceSerial[FTDI_MAX_STRINGLENGTH];
-    FT_HANDLE       m_FtdiHandle;
+    uint32                      m_uiVid;
+    uint32                      m_uiPid;
+    char                        m_szDeviceName[FTDI_MAX_STRINGLENGTH];
+    char                        m_szDeviceSerial[FTDI_MAX_STRINGLENGTH];
+    FT_HANDLE                   m_FtdiHandle;
     
     // queue
-    CPacketQueue    m_SpeechQueue;
-    CPacketQueue    m_ChannelQueue;
-    int             m_iDeviceFifoLevel;
-    int             m_iActiveQueue;
+    std::vector<CPacketQueue*>  m_SpeechQueues;
+    std::vector<CPacketQueue*>  m_ChannelQueues;
+    CPacketQueue                m_DeviceQueue;
+    int                         m_iSpeechFifolLevel;
+    int                         m_iChannelFifolLevel;
+    CTimePoint                  m_SpeechFifoLevelTimeout;
+    CTimePoint                  m_ChannelFifoLevelTimeout;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -2,30 +2,31 @@
 
 class xReflector {
    
-   public $Nodes                     = null;
-   public $Stations                  = null;
-   public $Peers                     = null;
-   private $Flagarray                = null;
-   private $Flagfile                 = null;
-   private $CallingHomeActive        = null;
-   private $CallingHomeHash          = null;
-   private $CallingHomeDashboardURL  = null;
-   private $CallingHomeServerURL     = null;
-   private $ReflectorName            = null;
-   private $ServiceUptime            = null;
-   private $ProcessIDFile            = null;
-   private $XMLContent               = null;
-   private $XMLFile                  = null;
-   private $ServiceName              = null;
-   private $Version                  = null;
-   private $CallingHomeCountry       = null;
-   private $CallingHomeComment       = null;
-   private $CallingHomeOverrideIP    = null;
-   private $Transferinterlink        = null;
-   private $Interlinkfile            = null;
+   public $Nodes                    = null;
+   public $Stations                 = null;
+   public $Peers                    = null;
+   private $Flagarray               = null;
+   private $Flagarray_DXCC          = null;
+   private $Flagfile                = null;
+   private $CallingHomeActive       = null;
+   private $CallingHomeHash         = null;
+   private $CallingHomeDashboardURL = null;
+   private $CallingHomeServerURL    = null;
+   private $ReflectorName           = null;
+   private $ServiceUptime           = null;
+   private $ProcessIDFile           = null;
+   private $XMLContent              = null;
+   private $XMLFile                 = null;
+   private $ServiceName             = null;
+   private $Version                 = null;
+   private $CallingHomeCountry      = null;
+   private $CallingHomeComment      = null;
+   private $CallingHomeOverrideIP   = null;
+   private $Transferinterlink       = null;
+   private $Interlinkfile           = null;
    public $Interlinks               = null;
-   private $InterlinkXML             = null;
-   private $ReflectorXML             = null;
+   private $InterlinkXML            = null;
+   private $ReflectorXML            = null;
    
    public function __construct() {
       $this->Nodes             = array();
@@ -40,13 +41,14 @@ class xReflector {
          $handle = fopen($this->XMLFile, 'r');
          $this->XMLContent = fread($handle, filesize($this->XMLFile));
          fclose($handle);
-         
+
+ # XLX alphanumeric naming...
          $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
-         if (!is_numeric($this->ServiceName)) {
+         if (preg_match('/[^a-zA-Z0-9]/', $this->ServiceName) == 1) {
             $this->ServiceName = null;
             return false;
          }
-         
+
          $this->ReflectorName = "XLX".$this->ServiceName;
          
          $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";
@@ -125,6 +127,7 @@ class xReflector {
    public function LoadFlags() {
       if ($this->Flagfile != null) {
          $this->Flagarray = array();
+         $this->Flagarray_DXCC = array();
          $handle = fopen($this->Flagfile,"r");
          if ($handle) {
             $i = 0;
@@ -134,11 +137,12 @@ class xReflector {
          
                if (isset($tmp[0])) { $this->Flagarray[$i]['Country'] = $tmp[0]; } else { $this->Flagarray[$i]['Country'] = 'Undefined'; }
                if (isset($tmp[1])) { $this->Flagarray[$i]['ISO']     = $tmp[1]; } else { $this->Flagarray[$i]['ISO'] = "Undefined"; }
-               $this->Flagarray[$i]['DXCC']    = array();
+               //$this->Flagarray[$i]['DXCC']    = array();
                if (isset($tmp[2])) { 
                   $tmp2 = explode("-", $tmp[2]);
                   for ($j=0;$j<count($tmp2);$j++) {
-                     $this->Flagarray[$i]['DXCC'][] = $tmp2[$j];
+                     //$this->Flagarray[$i]['DXCC'][] = $tmp2[$j];
+                     $this->Flagarray_DXCC[ trim($tmp2[$j]) ] = $i;
                   }
                }
                $i++; 
@@ -236,7 +240,12 @@ class xReflector {
       $i        = 0;
       while ($i < $this->NodeCount()) {
          if ($this->Nodes[$i]->GetRandomID() == $RandomId) {
-            return $this->Nodes[$i]->GetCallSign().'-'.$this->Nodes[$i]->GetSuffix();
+            if (trim($this->Nodes[$i]->GetSuffix()) == "") {
+               return $this->Nodes[$i]->GetCallSign();
+            }
+            else {
+               return $this->Nodes[$i]->GetCallSign().'-'.$this->Nodes[$i]->GetSuffix();
+            }
          }
          $i++;
       }
@@ -256,25 +265,15 @@ class xReflector {
    
    public function GetFlag($Callsign) {
       $Image     = "";
-      $FoundFlag = false;
       $Letters = 4;
       $Name = "";
-      while (($Letters >= 2) && (!$FoundFlag)) {
-         $j = 0;
-         $Prefix = substr($Callsign, 0, $Letters);
-         while (($j < count($this->Flagarray)) && (!$FoundFlag)) {
-            
-            $z = 0;
-            while (($z < count($this->Flagarray[$j]['DXCC'])) && (!$FoundFlag)) {
-               if (trim($Prefix) == trim($this->Flagarray[$j]['DXCC'][$z])) {
-                  $Image = $this->Flagarray[$j]['ISO'];
-                  $Name = $this->Flagarray[$j]['Country'];
-                  $FoundFlag = true;
+      while ($Letters >= 2) {
+         $Prefix = substr(trim($Callsign), 0, $Letters);
+               if (isset($this->Flagarray_DXCC[$Prefix])) {
+                  $Image = $this->Flagarray[ $this->Flagarray_DXCC[$Prefix] ]['ISO'];
+                  $Name  = $this->Flagarray[ $this->Flagarray_DXCC[$Prefix] ]['Country'];
+                  break;
                }
-               $z++;
-            }
-            $j++;
-         }
          $Letters--;
       }
       return array(strtolower($Image), $Name);

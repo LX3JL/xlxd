@@ -209,9 +209,9 @@ bool CUsb3003Interface::OpenDevice(void)
     ftStatus = FT_SetVIDPID(m_uiVid, m_uiPid);
     if (ftStatus != FT_OK) {FTDI_Error((char *)"FT_SetVIDPID", ftStatus ); return false; }
     
-    ftStatus = FT_OpenEx((PVOID)m_szDeviceName, FT_OPEN_BY_DESCRIPTION, &m_FtdiHandle);
+    ftStatus = FT_OpenEx((PVOID)m_szDeviceSerial, FT_OPEN_BY_SERIAL_NUMBER, &m_FtdiHandle);
     if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_OpenEx", ftStatus ); return false; }
-    
+
     CTimePoint::TaskSleepFor(50);
     FT_Purge(m_FtdiHandle, FT_PURGE_RX | FT_PURGE_TX );
     CTimePoint::TaskSleepFor(50);
@@ -249,22 +249,46 @@ bool CUsb3003Interface::OpenDevice(void)
 bool CUsb3003Interface::ResetDevice(void)
 {
     bool ok = false;
-    FT_STATUS ftStatus;
     int len;
     char rxpacket[100];
-    
-    //if the device is a USB-3003, it supports reset via UART break signal
-    //printf("reset via uart break...\n");
-    ftStatus = FT_SetBreakOn( m_FtdiHandle );
-    CTimePoint::TaskSleepFor(10);
-    ftStatus = FT_SetBreakOff( m_FtdiHandle );
-    //CTimePoint::TaskSleepFor(10);
-
-    len = FTDI_read_packet( m_FtdiHandle, rxpacket, sizeof(rxpacket) );
-    ok = ((len == 7) && (rxpacket[4] == PKT_READY));
-    if ( !ok )
+    char zeropacket[10] =
     {
-        std::cout << "USB-3003 hard reset failed" << std::endl;
+        0,0,0,0,0,0,0,0,0,0
+    };
+    char txpacket[7] =
+    {
+        PKT_HEADER,
+        0,
+        3,
+        0,
+        PKT_RESET,
+        PKT_PARITYBYTE,
+        3 ^ PKT_RESET ^ PKT_PARITYBYTE
+    };
+    
+    
+    //the chip might be in a state where it is waiting to receive bytes from a prior incomplete packet.
+    //first send 350 zeros in case, the chip's receive state is still waiting for characters
+    //if we send more than needed, the exta characters will just get discarded since they do not match the header byte
+    //after that we send PKT_RESET to reset the device
+    //As long as the AMBE3000 is able to receive via uart, this method will succeed in resetting it.
+    
+    for ( int i = 0; i < 35 ; i++ )
+    {
+        FTDI_write_packet(m_FtdiHandle, zeropacket, sizeof(zeropacket));
+    }
+    
+    
+    // write soft-reset packet
+    if ( FTDI_write_packet(m_FtdiHandle, txpacket, sizeof(txpacket)) )
+    {
+        // read reply
+        len = FTDI_read_packet( m_FtdiHandle, rxpacket, sizeof(rxpacket) );
+        ok = ((len == 7) && (rxpacket[4] == PKT_READY));
+        if ( !ok )
+        {
+            std::cout << "USB-3003 soft reset failed" << std::endl;
+        }
     }
     
     // done

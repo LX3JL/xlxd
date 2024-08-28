@@ -25,7 +25,9 @@
 #include "main.h"
 #include <string.h>
 #include <cctype>
-#include "cdmriddir.h"
+#include "cdmriddirfile.h"
+#include "cdmriddirhttp.h"
+#include "ysfdefines.h"
 #include "ccallsign.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -60,16 +62,24 @@ CCallsign::CCallsign(const char *sz, uint32 dmrid)
         // dmrid ok ?
         if ( m_uiDmrid == 0 )
         {
-            m_uiDmrid = g_DmridDir.FindDmrid(*this);
+			g_DmridDir.Lock();
+			{
+            	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+            }
+            g_DmridDir.Unlock();
         }
     }
     else if ( m_uiDmrid != 0 )
     {
-        const CCallsign *callsign = g_DmridDir.FindCallsign(m_uiDmrid);
-        if ( callsign != NULL )
-        {
-            ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
-        }
+    	g_DmridDir.Lock();
+    	{
+			const CCallsign *callsign = g_DmridDir.FindCallsign(m_uiDmrid);
+			if ( callsign != NULL )
+			{
+				::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+			}
+		}
+		g_DmridDir.Unlock();
     }
 }
 
@@ -151,7 +161,11 @@ void CCallsign::SetCallsign(const char *sz, bool UpdateDmrid)
     // and update dmrid
     if ( UpdateDmrid )
     {
-        m_uiDmrid = g_DmridDir.FindDmrid(*this);
+    	g_DmridDir.Lock();
+    	{
+        	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+        }
+        g_DmridDir.Unlock();
     }
 }
 
@@ -174,8 +188,45 @@ void CCallsign::SetCallsign(const uint8 *buffer, int len, bool UpdateDmrid)
     }
     if ( UpdateDmrid )
     {
+    	g_DmridDir.Lock();
+    	{
+        	m_uiDmrid = g_DmridDir.FindDmrid(*this);
+        }
+        g_DmridDir.Unlock();
+    }
+}
+
+void CCallsign::SetYsfCallsign(const char *sz)
+{
+    int i;
+   
+    // reset object
+    ::memset(m_Callsign, ' ', sizeof(m_Callsign));
+    ::memset(m_Suffix, ' ', sizeof(m_Suffix));
+    m_Module = ' ';
+    m_uiDmrid = 0;
+
+    // set callsign
+    for ( i = 0; (i < sizeof(m_Callsign)) && (sz[i] != '/') && (sz[i] != '-') && (sz[i] != 0x00); i++ )
+    {
+        m_Callsign[i] = sz[i];
+    }
+    // suffix
+    if ( (sz[i] == '/') || (sz[i] == '-') )
+    {
+        i++;
+        int j =  0;
+        for ( ; (i < YSF_CALLSIGN_LENGTH) && (j < sizeof(m_Suffix)); i++ )
+        {
+            m_Suffix[j++] = sz[i];
+        }
+    }
+    // and update dmrid
+    g_DmridDir.Lock();
+    {
         m_uiDmrid = g_DmridDir.FindDmrid(*this);
     }
+    g_DmridDir.Unlock();
 }
 
 void CCallsign::SetDmrid(uint32 dmrid, bool UpdateCallsign)
@@ -183,11 +234,15 @@ void CCallsign::SetDmrid(uint32 dmrid, bool UpdateCallsign)
     m_uiDmrid = dmrid;
     if ( UpdateCallsign )
     {
-        const CCallsign *callsign = g_DmridDir.FindCallsign(dmrid);
-        if ( callsign != NULL )
-        {
-            ::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
-        }
+    	g_DmridDir.Lock();
+    	{
+			const CCallsign *callsign = g_DmridDir.FindCallsign(dmrid);
+			if ( callsign != NULL )
+			{
+				::memcpy(m_Callsign, callsign->m_Callsign, sizeof(m_Callsign));
+			}
+		}
+		g_DmridDir.Unlock();
     }
 }
 

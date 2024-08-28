@@ -43,12 +43,14 @@ public:
     void Notify(void);
     void Wait(void);
     bool WaitFor(uint);
+    void PreWaitFor(void);
     
 protected:
     // data
     std::mutex              m_Mutex;
     std::condition_variable m_Condition;
     size_t                  m_Count;
+    size_t                  m_WaitingCount;
 
 };
 

@@ -31,6 +31,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
+#define XLX_PROTOCOL_REVISION_0      0       // AMBE only, original connect mechanism
+#define XLX_PROTOCOL_REVISION_1      1       // AMBE only, revised connect mechanism
+#define XLX_PROTOCOL_REVISION_2      2       // Transcoded AMBE+AMBE2 interlink
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -40,7 +44,7 @@ class CXlxClient : public CClient
 public:
     // constructors
     CXlxClient();
-    CXlxClient(const CCallsign &, const CIp &, char = ' ');
+    CXlxClient(const CCallsign &, const CIp &, char = ' ', int = XLX_PROTOCOL_REVISION_0);
     CXlxClient(const CXlxClient &);
     
     // destructor
@@ -48,7 +52,9 @@ public:
     
     // identity
     int GetProtocol(void) const                 { return PROTOCOL_XLX; }
+    int GetProtocolRevision(void) const         { return m_ProtRev; }
     const char *GetProtocolName(void) const     { return "XLX"; }
+    int GetCodec(void) const;
     bool IsPeer(void) const                     { return true; }
     
     // status
@@ -56,6 +62,10 @@ public:
 
     // reporting
     void WriteXml(std::ofstream &) {}
+    
+protected:
+    // data
+    int     m_ProtRev;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

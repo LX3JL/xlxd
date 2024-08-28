@@ -6,6 +6,7 @@ class xReflector {
    public $Stations                  = null;
    public $Peers                     = null;
    private $Flagarray                = null;
+   private $Flagarray_DXCC           = null;
    private $Flagfile                 = null;
    private $CallingHomeActive        = null;
    private $CallingHomeHash          = null;
@@ -40,9 +41,10 @@ class xReflector {
          $handle = fopen($this->XMLFile, 'r');
          $this->XMLContent = fread($handle, filesize($this->XMLFile));
          fclose($handle);
-         
+
+# XLX alphanumeric naming...
          $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
-         if (!is_numeric($this->ServiceName)) {
+         if (preg_match('/[^a-zA-Z0-9]/', $this->ServiceName) == 1) {
             $this->ServiceName = null;
             return false;
          }
@@ -59,14 +61,14 @@ class xReflector {
          $tmpNodes          = $XML->GetAllElements($AllNodesString, "NODE");
          
          for ($i=0;$i<count($tmpNodes);$i++) {
-             $Node = new Node($XML->GetElement($tmpNodes[$i], 'Callsign'), $XML->GetElement($tmpNodes[$i], 'IP'), $XML->GetElement($tmpNodes[$i], 'LinkedModule'), $XML->GetElement($tmpNodes[$i], 'Protocol'), $XML->GetElement($tmpNodes[$i], 'ConnectTime'), $XML->GetElement($tmpNodes[$i], 'LastHeardTime'));
+             $Node = new Node($XML->GetElement($tmpNodes[$i], 'Callsign'), $XML->GetElement($tmpNodes[$i], 'IP'), $XML->GetElement($tmpNodes[$i], 'LinkedModule'), $XML->GetElement($tmpNodes[$i], 'Protocol'), $XML->GetElement($tmpNodes[$i], 'ConnectTime'), $XML->GetElement($tmpNodes[$i], 'LastHeardTime'), CreateCode(16));
              $this->AddNode($Node);
          }
          
          $AllStationsString = $XML->GetElement($this->XMLContent, $LinkedUsersName);
          $tmpStations       = $XML->GetAllElements($AllStationsString, "STATION");
          for ($i=0;$i<count($tmpStations);$i++) {
-             $Station = new Station($XML->GetElement($tmpStations[$i], 'Callsign'), $XML->GetElement($tmpStations[$i], 'Via node'), $XML->GetElement($tmpStations[$i], 'Via peer'), $XML->GetElement($tmpStations[$i], 'LastHeardTime'));
+             $Station = new Station($XML->GetElement($tmpStations[$i], 'Callsign'), $XML->GetElement($tmpStations[$i], 'Via node'), $XML->GetElement($tmpStations[$i], 'Via peer'), $XML->GetElement($tmpStations[$i], 'LastHeardTime'), $XML->GetElement($tmpStations[$i], 'On module'));
              $this->AddStation($Station, false);
          }
          
@@ -125,6 +127,7 @@ class xReflector {
    public function LoadFlags() {
       if ($this->Flagfile != null) {
          $this->Flagarray = array();
+         $this->Flagarray_DXCC = array();
          $handle = fopen($this->Flagfile,"r");
          if ($handle) {
             $i = 0;
@@ -134,11 +137,12 @@ class xReflector {
          
                if (isset($tmp[0])) { $this->Flagarray[$i]['Country'] = $tmp[0]; } else { $this->Flagarray[$i]['Country'] = 'Undefined'; }
                if (isset($tmp[1])) { $this->Flagarray[$i]['ISO']     = $tmp[1]; } else { $this->Flagarray[$i]['ISO'] = "Undefined"; }
-               $this->Flagarray[$i]['DXCC']    = array();
+               //$this->Flagarray[$i]['DXCC']    = array();
                if (isset($tmp[2])) { 
                   $tmp2 = explode("-", $tmp[2]);
                   for ($j=0;$j<count($tmp2);$j++) {
-                     $this->Flagarray[$i]['DXCC'][] = $tmp2[$j];
+                     //$this->Flagarray[$i]['DXCC'][] = $tmp2[$j];
+                     $this->Flagarray_DXCC[ trim($tmp2[$j]) ] = $i;
                   }
                }
                $i++; 
@@ -213,7 +217,7 @@ class xReflector {
          }
       }
    }
-   
+      
    public function GetSuffixOfRepeater($Repeater, $LinkedModul, $StartWithIndex = 0) {
       $suffix = "";
       $found  = false;
@@ -230,6 +234,19 @@ class xReflector {
       return $suffix;
    }
    
+   public function GetCallsignAndSuffixByID($RandomId) {
+      $suffix   = "";
+      $callsign = "";
+      $i        = 0;
+      while ($i < $this->NodeCount()) {
+         if ($this->Nodes[$i]->GetRandomID() == $RandomId) {
+            return $this->Nodes[$i]->GetCallSign().'-'.$this->Nodes[$i]->GetSuffix();
+         }
+         $i++;
+      }
+      return 'N/A';
+   }
+   
    public function StationCount() {
       return count($this->Stations);
    }
@@ -243,28 +260,17 @@ class xReflector {
    
    public function GetFlag($Callsign) {
       $Image     = "";
-      $FoundFlag = false;
       $Letters = 4;
       $Name = "";
-      while (($Letters >= 2) && (!$FoundFlag)) {
-         $j = 0;
-         $Prefix = substr($Callsign, 0, $Letters);
-         while (($j < count($this->Flagarray)) && (!$FoundFlag)) {
-            
-            $z = 0;
-            while (($z < count($this->Flagarray[$j]['DXCC'])) && (!$FoundFlag)) {
-               if (trim($Prefix) == trim($this->Flagarray[$j]['DXCC'][$z])) {
-                  $Image = $this->Flagarray[$j]['ISO'];
-                  $Name = $this->Flagarray[$j]['Country'];
-                  $FoundFlag = true;
+      while ($Letters >= 2) {
+         $Prefix = substr(trim($Callsign), 0, $Letters);
+               if (isset($this->Flagarray_DXCC[$Prefix])) {
+                  $Image = $this->Flagarray[ $this->Flagarray_DXCC[$Prefix] ]['ISO'];
+                  $Name  = $this->Flagarray[ $this->Flagarray_DXCC[$Prefix] ]['Country'];
+                  break;
                }
-               $z++;
-            }
-            $j++;
-         }
          $Letters--;
       }
-      
       return array(strtolower($Image), $Name);
    }
    
@@ -287,6 +293,7 @@ class xReflector {
    }
       
    public function GetModuleOfNode($Node) {
+      die("FUNCTION DEPRECATED...");
       $Node = trim(str_replace("   ", "-", $Node));
       $Node = trim(str_replace("  ", "-", $Node));
       $Node = trim(str_replace(" ", "-", $Node));
@@ -309,6 +316,16 @@ class xReflector {
       for ($i=0;$i<$this->NodeCount();$i++) {
           if ($this->Nodes[$i]->GetLinkedModule() == $Module) {
              $out[] = $this->Nodes[$i]->GetCallsign();
+          }  
+      }
+      return $out;
+   }
+   
+   public function GetNodesInModulesById($Module) {
+      $out = array();
+      for ($i=0;$i<$this->NodeCount();$i++) {
+          if ($this->Nodes[$i]->GetLinkedModule() == $Module) {
+             $out[] = $this->Nodes[$i]->GetRandomID();
           }  
       }
       return $out;
@@ -345,11 +362,6 @@ class xReflector {
       
    public function PushCallingHome() {
       $CallingHome = @fopen($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment)."&OverrideIP=".$this->CallingHomeOverrideIP, "r");
-      
-      
-      
-      
-      //debug($this->CallingHomeServerURL."?ReflectorName=".$this->ReflectorName."&ReflectorUptime=".$this->ServiceUptime."&ReflectorHash=".$this->CallingHomeHash."&DashboardURL=".$this->CallingHomeDashboardURL."&Country=".urlencode($this->CallingHomeCountry)."&Comment=".urlencode($this->CallingHomeComment));
    }   
    
    public function ReadInterlinkFile() {
@@ -402,6 +414,7 @@ class xReflector {
    <country>'.$this->CallingHomeCountry.'</country>
    <comment>'.$this->CallingHomeComment.'</comment>
    <ip>'.$this->CallingHomeOverrideIP.'</ip>
+   <reflectorversion>'.$this->Version.'</reflectorversion>
 </reflector>';
    }
       

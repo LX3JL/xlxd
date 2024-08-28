@@ -27,7 +27,6 @@
 #include "cvocodecchannel.h"
 #include "cvocodecinterface.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
@@ -39,6 +38,7 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
     m_InterfaceOut = InterfaceOut;
     m_iChannelOut = iChOut;
     m_iSpeechGain = iSpeechGain;
+    m_signalProcessor = new CSignalProcessor((float)m_iSpeechGain);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +47,7 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
 CVocodecChannel::~CVocodecChannel()
 {
     PurgeAllQueues();
+    delete m_signalProcessor;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,8 +62,8 @@ bool CVocodecChannel::Open(void)
         ok = true;
         PurgeAllQueues();
         std::cout << "Vocodec channel " <<
-            m_InterfaceIn->GetName() << ":" << (int)m_iChannelIn << " -> " <<
-            m_InterfaceOut->GetName() << ":" << (int)m_iChannelOut << " open" << std::endl;
+            m_InterfaceIn->GetName() << ":" << m_InterfaceIn->GetSerial() << ":" << (int)m_iChannelIn << " -> " <<
+            m_InterfaceOut->GetName() << ":" << m_InterfaceOut->GetSerial() << ":" << (int)m_iChannelOut << " open" << std::endl;
     }
     return ok;
 }
@@ -74,8 +75,8 @@ void CVocodecChannel::Close(void)
         m_bOpen = false;
         PurgeAllQueues();
         std::cout << "Vocodec channel " <<
-        m_InterfaceIn->GetName() << ":" << (int)m_iChannelIn << " -> " <<
-        m_InterfaceOut->GetName() << ":" << (int)m_iChannelOut << " closed" << std::endl;
+            m_InterfaceIn->GetName() << ":" << m_InterfaceIn->GetSerial() << ":" << (int)m_iChannelIn << " -> " <<
+            m_InterfaceOut->GetName() << ":" << m_InterfaceOut->GetSerial() << ":" << (int)m_iChannelOut << " closed" << std::endl;
     }
 }
 
@@ -91,6 +92,15 @@ uint8 CVocodecChannel::GetCodecOut(void) const
 {
     return m_InterfaceOut->GetChannelCodec(m_iChannelOut);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// processing
+
+void CVocodecChannel::ProcessSignal(CVoicePacket& voicePacket)
+{
+    m_signalProcessor->Process(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // queues helpers

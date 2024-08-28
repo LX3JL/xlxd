@@ -69,18 +69,3 @@ void CVoicePacket::SetVoice(const uint8 *voice, int size)
     ::memcpy(m_uiVoice, voice, m_iSize);
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// gain
-
-void CVoicePacket::ApplyGain(int dB)
-{
-    float mult = pow(10, dB/20.0);
-    for ( int i = 0; i < m_iSize; i += 2 )
-    {
-        float smp = (float)(short)MAKEWORD(m_uiVoice[i+1], m_uiVoice[i]);
-        smp *= mult;
-        m_uiVoice[i] = HIBYTE((short)smp);
-        m_uiVoice[i+1] = LOBYTE((short)smp);
-    }
-}

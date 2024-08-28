@@ -40,13 +40,17 @@ public:
     // destructor
     virtual ~CPacket() {};
     
+    // identity
+    virtual bool IsVoice(void) const    { return false; }
+    virtual bool IsAmbe(void) const     { return false; }
+    
     // get
-    int   GetChannel(void) const { return m_iCh; }
-    uint8 GetPid(void) const     { return m_uiPid; }
+    int   GetChannel(void) const        { return m_iCh; }
+    uint8 GetPid(void) const            { return m_uiPid; }
     
     // set
-    void SetChannel(int i)      { m_iCh = i; }
-    void SetPid(uint8 ui)       { m_uiPid = ui; }
+    void SetChannel(int i)              { m_iCh = i; }
+    void SetPid(uint8 ui)               { m_uiPid = ui; }
     
 protected:
     // data

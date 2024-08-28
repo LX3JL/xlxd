@@ -1,4 +1,4 @@
-//
+﻿//
 //  cprotocols.cpp
 //  xlxd
 //
@@ -29,6 +29,9 @@
 #include "cxlxprotocol.h"
 #include "cdmrplusprotocol.h"
 #include "cdmrmmdvmprotocol.h"
+#include "cysfprotocol.h"
+#include "cg3protocol.h"
+#include "cimrsprotocol.h"
 #include "cprotocols.h"
 
 
@@ -96,6 +99,21 @@ bool CProtocols::Init(void)
         delete m_Protocols[5];
         m_Protocols[5] = new CDmrmmdvmProtocol;
         ok &= m_Protocols[5]->Init();
+        
+        // create and initialize YSF
+        delete m_Protocols[6];
+        m_Protocols[6] = new CYsfProtocol;
+        ok &= m_Protocols[6]->Init();
+
+        // create and initialize G3
+        delete m_Protocols[7];
+        m_Protocols[7] = new CG3Protocol;
+        ok &= m_Protocols[7]->Init();
+
+        // create and initialize IMRS
+        delete m_Protocols[8];
+        m_Protocols[8] = new CImrsProtocol;
+        ok &= m_Protocols[8]->Init();
     }
     m_Mutex.unlock();
    

@@ -34,6 +34,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
+// DMR Plus Module ID
+#define DMRPLUS_MODULE_ID       'B'
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
@@ -78,7 +81,7 @@ protected:
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &);
     
     // packet decoding helpers
-    bool IsValidConnectPacket(const CBuffer &, CCallsign *, char *);
+    bool IsValidConnectPacket(const CBuffer &, CCallsign *, char *, const CIp &);
     bool IsValidDisconnectPacket(const CBuffer &, CCallsign *, char *);
     bool IsValidDvHeaderPacket(const CIp &, const CBuffer &, CDvHeaderPacket **);
     bool IsValidDvFramePacket(const CIp &, const CBuffer &, CDvFramePacket **);

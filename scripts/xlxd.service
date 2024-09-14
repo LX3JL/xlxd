@@ -1,6 +1,7 @@
 [Unit]
 Description=XLX Reflector (XLX999)
 After=network.target ambed.service
+Requires=network-online.target
 
 [Service]
 Type=notify

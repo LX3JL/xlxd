@@ -1,6 +1,7 @@
 [Unit]
 Description=AMBE Transcoder Daemon
 After=network.target
+Requires=network-online.target
 
 [Service]
 Type=notify

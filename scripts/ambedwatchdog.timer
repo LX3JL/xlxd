@@ -1,0 +1,10 @@
+[Unit]
+Description=Contiously monitor ambed if it crashes
+Requires=xlxd.service ambed.service
+
+[Timer]
+OnCalendar=*-*-* *:*:0/5
+Unit=ambedwatchdog.service
+
+[Install]
+WantedBy=multi-user.target

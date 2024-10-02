@@ -109,6 +109,18 @@ class xReflector {
       else {
          $this->ProcessIDFile = null;
          $this->ServiceUptime = null;
+
+         exec('/usr/bin/systemctl show --property=ActiveEnterTimestamp xlxd.service', $out, $code);
+         if ($code == 0) {
+            if (is_array($out) && count($out) > 0) {
+               $out = $out[0];
+            }
+            if (is_string($out)) {
+               $out = explode('=', $out, 2)[1];
+               $out = strtotime($out);
+               $this->ServiceUptime = time() - $out;
+            }
+         }
       }
    }
    

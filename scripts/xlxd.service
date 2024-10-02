@@ -1,0 +1,16 @@
+[Unit]
+Description=XLX Reflector (XLX999)
+After=network.target ambed.service
+Requires=network-online.target
+
+[Service]
+Type=notify
+User=xlxd
+Group=xlxd
+AmbientCapabilities=CAP_NET_RAW
+ExecStart=/xlxd/xlxd XLX999 1.2.3.4 127.0.0.1
+Restart=on-abnormal
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -25,6 +25,7 @@
 #include "main.h"
 #include <string.h>
 #include "cvocodecs.h"
+#include <systemd/sd-daemon.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // global object
@@ -243,10 +244,12 @@ bool CVocodecs::Init(void)
     if ( ok )
     {
         std::cout << "Codec interfaces initialized successfully : " << iNbCh << " channels available" << std::endl;
+        sd_notifyf(0, "STATUS=Codec interfaces initialized successfully : %i channels available", iNbCh);
     }
     else
     {
         std::cout << "At least one codec interfaces failed to initialize : " << iNbCh << " channels availables" << std::endl;
+        sd_notifyf(0, "STATUS=At least one codec interfaces failed to initialize : %i channels availables", iNbCh);
     }
     // done
     return ok;

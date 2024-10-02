@@ -1,0 +1,5 @@
+#!/bin/sh
+if journalctl -u ambed.service --since "5min ago" --grep 'Device .* is unresponsive'; then
+  systemctl restart ambed.service
+  systemctl restart xlxd.service
+fi

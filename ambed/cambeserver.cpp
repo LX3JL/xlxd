@@ -27,6 +27,7 @@
 #include "ccontroller.h"
 #include "cvocodecs.h"
 #include "cambeserver.h"
+#include <systemd/sd-daemon.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -81,6 +82,7 @@ bool CAmbeServer::Start(void)
     {
         //
         m_pThread = new std::thread(CAmbeServer::Thread, this);
+        sd_notify(0, "READY=1");
     }
     
     // done

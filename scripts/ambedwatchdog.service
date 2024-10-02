@@ -1,0 +1,7 @@
+[Unit]
+Description=Check ambedwatchdog
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ambedwatchdog

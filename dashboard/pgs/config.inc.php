@@ -77,14 +77,8 @@ $VNStat['Binary']                                    = '/usr/bin/vnstat';
 include an extra config file for people who dont like to mess with shipped config.ing.php   
 this makes updating dashboard from git a little bit easier   
 */   
- 
-$external_config = dirname(__FILE__) . '/../config.inc.php';
-if (file_exists($external_config)) {
-    $realPath = realpath($external_config);
-    // Only allow if it's in parent directory
-    if ($realPath !== false && dirname($realPath) === dirname(dirname(__FILE__))) {
-        include($realPath);
-    }
-}  
+if (file_exists("../config.inc.php")) {   
+    include ("../config.inc.php");  
+}
 
 ?>

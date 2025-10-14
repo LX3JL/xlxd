@@ -44,7 +44,7 @@ class Node {
 
     // Validate callsign format (basic check)
     if (!preg_match('/^[A-Z0-9]{1,10}$/i', $this->Callsign)) {
-        $this->Callsign = 'INVALID';
+       $this->Callsign = 'INVALID';
     }
 
     // Validate LinkedModule (single letter A-Z)

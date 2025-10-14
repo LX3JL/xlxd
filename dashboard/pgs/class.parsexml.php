@@ -15,8 +15,8 @@ class ParseXML {
 
     $Element = substr($InputString, strpos($InputString, "<".$ElementName.">")+strlen($ElementName)+2, strpos($InputString, "</".$ElementName.">")-strpos($InputString, "<".$ElementName.">")-strlen($ElementName)-2);
     
-    // Strip any remaining HTML/XML tags from the content
-    return strip_tags($Element);
+    // Return raw content - sanitization happens at output time
+    return $Element;
    }
 
    public function GetAllElements($InputString, $ElementName) {

@@ -9,6 +9,11 @@ if (!isset($_SESSION['FilterModule'])) {
 }
 
 if (isset($_POST['do'])) {
+    // Validate CSRF token
+    if (!isset($_POST['csrf_token']) || !ValidateCSRFToken($_POST['csrf_token'])) {
+        die('CSRF token validation failed');
+    }
+
     if ($_POST['do'] == 'SetFilter') {
 
         if (isset($_POST['txtSetCallsignFilter'])) {
@@ -17,12 +22,17 @@ if (isset($_POST['do'])) {
                 $_SESSION['FilterCallSign'] = null;
             }
             else {
-                $_SESSION['FilterCallSign'] = $_POST['txtSetCallsignFilter'];
-                if (strpos($_SESSION['FilterCallSign'], "*") === false) {
-                    $_SESSION['FilterCallSign'] = "*".$_SESSION['FilterCallSign']."*";
+                // Validate callsign format (alphanumeric, dash, asterisk only)
+                if (preg_match('/^[A-Z0-9\-\*]+$/i', $_POST['txtSetCallsignFilter'])) {
+                    $_SESSION['FilterCallSign'] = $_POST['txtSetCallsignFilter'];
+                    if (strpos($_SESSION['FilterCallSign'], "*") === false) {
+                        $_SESSION['FilterCallSign'] = "*".$_SESSION['FilterCallSign']."*";
+                    }
+                } else {
+                    // Invalid format, reject it
+                    $_SESSION['FilterCallSign'] = null;
                 }
             }
-
         }
 
         if (isset($_POST['txtSetModuleFilter'])) {
@@ -31,9 +41,14 @@ if (isset($_POST['do'])) {
                 $_SESSION['FilterModule'] = null;
             }
             else {
-                $_SESSION['FilterModule'] = $_POST['txtSetModuleFilter'];
+                // Validate module is single letter A-Z
+                if (preg_match('/^[A-Z]$/i', $_POST['txtSetModuleFilter'])) {
+                    $_SESSION['FilterModule'] = strtoupper($_POST['txtSetModuleFilter']);
+                } else {
+                    // Invalid format, reject it
+                    $_SESSION['FilterModule'] = null;
+                }
             }
-
         }
     }
 }
@@ -60,7 +75,8 @@ if ($PageOptions['UserPage']['ShowFilter']) {
             <td align="left">
                <form name="frmFilterCallSign" method="post" action="./index.php">
                   <input type="hidden" name="do" value="SetFilter" />
-                  <input type="text" class="FilterField" value="'.$_SESSION['FilterCallSign'].'" name="txtSetCallsignFilter" placeholder="Callsign" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
+                  <input type="hidden" name="csrf_token" value="' . GenerateCSRFToken() . '" />
+                  <input type="text" class="FilterField" value="'.SafeOutputAttr($_SESSION['FilterCallSign']).'" name="txtSetCallsignFilter" placeholder="Callsign" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
                   <input type="submit" value="Apply" class="FilterSubmit" />
                </form>
             </td>';
@@ -72,7 +88,8 @@ if ($PageOptions['UserPage']['ShowFilter']) {
             <td align="right" style="padding-right:3px;">
                <form name="frmFilterModule" method="post" action="./index.php">
                   <input type="hidden" name="do" value="SetFilter" />
-                  <input type="text" class="FilterField" value="'.$_SESSION['FilterModule'].'" name="txtSetModuleFilter" placeholder="Module" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
+                  <input type="hidden" name="csrf_token" value="' . GenerateCSRFToken() . '" />
+                  <input type="text" class="FilterField" value="'.SafeOutputAttr($_SESSION['FilterModule']).'" name="txtSetModuleFilter" placeholder="Module" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
                   <input type="submit" value="Apply" class="FilterSubmit" />
                </form>
             </td>
@@ -133,16 +150,16 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
             echo '<a href="#" class="tip"><img src="./img/flags/' . $Flag . '.png" class="table-flag" alt="' . $Name . '"><span>' . $Name . '</span></a>';
         }
         echo '</td>
-   <td><a href="https://www.qrz.com/db/' . $Reflector->Stations[$i]->GetCallsignOnly() . '" class="pl" target="_blank">' . $Reflector->Stations[$i]->GetCallsignOnly() . '</a></td>
-   <td>' . $Reflector->Stations[$i]->GetSuffix() . '</td>
-   <td><a href="http://www.aprs.fi/' . $Reflector->Stations[$i]->GetCallsignOnly() . '" class="pl" target="_blank"><img src="./img/sat.png" alt=""></a></td>
-   <td>' . $Reflector->Stations[$i]->GetVia();
+   <td><a href="https://www.qrz.com/db/' . SafeOutput($Reflector->Stations[$i]->GetCallsignOnly()) . '" class="pl" target="_blank">' . SafeOutput($Reflector->Stations[$i]->GetCallsignOnly()) . '</a></td>
+   <td>' . SafeOutput($Reflector->Stations[$i]->GetSuffix()) . '</td>
+   <td><a href="http://www.aprs.fi/' . SafeOutput($Reflector->Stations[$i]->GetCallsignOnly()) . '" class="pl" target="_blank"><img src="./img/sat.png" alt=""></a></td>
+   <td>' . SafeOutput($Reflector->Stations[$i]->GetVia());
         if ($Reflector->Stations[$i]->GetPeer() != $Reflector->GetReflectorName()) {
-            echo ' / ' . $Reflector->Stations[$i]->GetPeer();
+            echo ' / ' . SafeOutput($Reflector->Stations[$i]->GetPeer());
         }
         echo '</td>
    <td>' . @date("d.m.Y H:i", $Reflector->Stations[$i]->GetLastHeardTime()) . '</td>
-   <td>' . $Reflector->Stations[$i]->GetModule() . '</td>
+   <td>' . SafeOutput($Reflector->Stations[$i]->GetModule()) . '</td>
  </tr>';
     }
     if ($i == $PageOptions['LastHeardPage']['LimitTo']) {
@@ -192,7 +209,7 @@ for ($i=0;$i<count($Modules);$i++) {
        $Displayname = $Reflector->GetCallsignAndSuffixByID($Users[$j]);
       echo '
             <tr>
-               <td><a href="http://www.aprs.fi/'.$Displayname.'" class="pl" target="_blank">'.$Displayname.'</a> </td>
+               <td><a href="http://www.aprs.fi/' . SafeOutput($Displayname) . '" class="pl" target="_blank">' . SafeOutput($Displayname) . '</a> </td>
             </tr>';
       $UserCheckedArray[] = $Users[$j];
    }

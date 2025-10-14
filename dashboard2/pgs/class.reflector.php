@@ -419,6 +419,10 @@ class xReflector {
    }
       
    public function CallHome() {
+      // Validate URL before making request
+      if (!filter_var($this->CallingHomeServerURL, FILTER_VALIDATE_URL)) {
+         return false;
+      }
       $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <query>CallingHome</query>'.$this->ReflectorXML.$this->InterlinkXML;
       $p = @stream_context_create(array('http' => array('header'  => "Content-type: application/x-www-form-urlencoded\r\n",

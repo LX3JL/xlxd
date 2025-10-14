@@ -1,3 +1,28 @@
+xlx db v2.3.8
+
+SECURITY UPDATE - XSS Vulnerability Patches and Security Enhancements
+- "functions.php"       added SafeOutput() and SafeOutputAttr() for XSS protection
+                        added GenerateCSRFToken() and ValidateCSRFToken() for CSRF protection
+- "index.php"           added session_start() for CSRF token support
+                        added SafeOutput() to all $_GET['show'] outputs
+                        added input whitelist validation for $_GET['show'] parameter
+                        changed file permission from 777 to 600 for hash file (security hardening)
+                        added SafeOutputAttr() to all meta tag outputs
+                        added SafeOutput() to contact email output
+                        improved error messages to prevent information disclosure
+- "users.php"           added CSRF token validation for all POST requests
+                        added CSRF tokens to both filter forms
+                        added input validation with regex for callsign filter (alphanumeric, dash, asterisk only)
+                        added input validation with regex for module filter (single letter A-Z only)
+                        added SafeOutput() and SafeOutputAttr() to all user data outputs
+                        added SafeOutput() to all callsign, suffix, via, peer, and module outputs
+- "repeaters.php"       added SafeOutput() to all node callsign, suffix, protocol, and module outputs
+                        added SafeOutput() to all IP address outputs
+- "peers.php"           added SafeOutput() and SafeOutputAttr() to peer name and URL outputs
+                        added SafeOutput() to protocol, module, and IP address outputs
+- "reflectors.php"      added SafeOutput() and SafeOutputAttr() to reflector name, country, comment, and URL outputs
+- "class.reflector.php" added URL validation in CallHome() method to prevent remote file inclusion attacks
+
 xlx db v2.3.1
 
 - "config.inc.php" 	$CallingHome['InterlinkFile'] added
@@ -16,7 +41,7 @@ xlx db v2.2.2
 
 This version is a major release with voluntary self-registration feature build in.
 You need to edit the conf.inc.php to your needs.
-On the first run your personal hash to access the database is place in the server’s /tmp folder.
+On the first run your personal hash to access the database is place in the serverï¿½s /tmp folder.
 Take care to make a backup of this file because this folder is cleaned up after a server reboot.
 
 This version is a major release
@@ -44,7 +69,7 @@ xlx db v2.1.4
 
 - "class.reflector.php" improved the flag search
 - "country.csv" added serveral prefixes
-- "flags" added Puerto Ricco and Åland Islands
+- "flags" added Puerto Ricco and ï¿½land Islands
 
 xlx db v2.1.3
 

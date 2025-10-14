@@ -38,10 +38,10 @@ for ($i=0;$i<count($Reflectors);$i++) {
    echo '
  <tr class="table-center">
    <td>'.($i+1).'</td>
-   <td><a href="'.$DASHBOARDURL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$NAME.'">'.$NAME.'</a></td>
-   <td>'.$COUNTRY.'</td>
+   <td><a href="' . SafeOutputAttr($DASHBOARDURL) . '" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;' . SafeOutputAttr($NAME) . '">' . SafeOutput($NAME) . '</a></td>
+   <td>' . SafeOutput($COUNTRY) . '</td>
    <td><img src="./img/'; if ($LASTCONTACT<(time()-1800)) { echo 'down'; } ELSE { echo 'up'; } echo '.png" class="table-status" alt=""></td>
-   <td>'.$COMMENT.'</td>
+   <td>' . SafeOutput($COMMENT) . '</td>
  </tr>';
 }
 

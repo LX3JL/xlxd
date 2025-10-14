@@ -28,7 +28,6 @@ Files Changed and Security Fixes:
 
 - "class.parsexml.php"
   * Added element name sanitization to prevent XML injection
-  * Added strip_tags() to remove HTML/XML from extracted content
 
 - "class.peer.php"
   * Added input validation in constructor for all parameters
@@ -46,10 +45,6 @@ Files Changed and Security Fixes:
   * Added input validation in constructor for all parameters
   * Callsign format validation
   * Module validation
-
-- "config.inc.php"
-  * Secured external config file inclusion with path validation
-  * Added realpath() checks to prevent directory traversal
 
 - "modules.php"
   * All output wrapped with sanitize_output() to prevent XSS

@@ -30,10 +30,10 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
       echo '<a href="#" class="tip"><img src="./img/flags/'.$Flag.'.png" class="table-flag" alt="'.$Name.'"><span>'.$Name.'</span></a>';
    }
    echo '</td>
-   <td><a href="http://www.aprs.fi/'.$Reflector->Nodes[$i]->GetCallSign();
-   if ($Reflector->Nodes[$i]->GetSuffix() != "") echo '-'.$Reflector->Nodes[$i]->GetSuffix();
-   echo '" class="pl" target="_blank">'.$Reflector->Nodes[$i]->GetCallSign();
-   if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.$Reflector->Nodes[$i]->GetSuffix(); } 
+   <td><a href="http://www.aprs.fi/'.SafeOutput($Reflector->Nodes[$i]->GetCallSign());
+   if ($Reflector->Nodes[$i]->GetSuffix() != "") echo '-'.SafeOutput($Reflector->Nodes[$i]->GetSuffix());
+   echo '" class="pl" target="_blank">'.SafeOutput($Reflector->Nodes[$i]->GetCallSign());
+   if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.SafeOutput($Reflector->Nodes[$i]->GetSuffix()); } 
    echo '</a></td>
    <td>';
    if (($Reflector->Nodes[$i]->GetPrefix() == 'REF') || ($Reflector->Nodes[$i]->GetPrefix() == 'XRF')) {
@@ -55,8 +55,8 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
    echo '</td>
    <td>'.date("d.m.Y H:i", $Reflector->Nodes[$i]->GetLastHeardTime()).'</td>
    <td>'.FormatSeconds(time()-$Reflector->Nodes[$i]->GetConnectTime()).' s</td>
-   <td>'.$Reflector->Nodes[$i]->GetProtocol().'</td>
-   <td>'.$Reflector->Nodes[$i]->GetLinkedModule().'</td>';
+   <td>'.SafeOutput($Reflector->Nodes[$i]->GetProtocol()).'</td>
+   <td>'.SafeOutput($Reflector->Nodes[$i]->GetLinkedModule()).'</td>';
    if ($PageOptions['RepeatersPage']['IPModus'] != 'HideIP') {
       echo '
    <td>';

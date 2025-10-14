@@ -59,4 +59,30 @@ function CreateCode ($laenge) {
 	return $out;  
 }
 
+function SafeOutput($string, $encoding = 'UTF-8') {
+    return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, $encoding);
+}
+
+function SafeOutputAttr($string, $encoding = 'UTF-8') {
+    // Extra safe for attributes
+    return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, $encoding);
+}
+
+function GenerateCSRFToken() {
+    if (!isset($_SESSION)) {
+        session_start();
+    }
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function ValidateCSRFToken($token) {
+    if (!isset($_SESSION)) {
+        session_start();
+    }
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
 ?>

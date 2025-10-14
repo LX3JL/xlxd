@@ -54,26 +54,26 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    }
    if ($Result && (trim($URL) != "")) {
       echo '
-   <td><a href="'.$URL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$Name.'" style="text-decoration:none;color:#000000;">'.$Name.'</a></td>';
+   <td><a href="'.sanitize_attribute($URL).'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.sanitize_attribute($Name).'" style="text-decoration:none;color:#000000;">'.sanitize_output($Name).'</a></td>';
    } else {
       echo '
-   <td>'.$Name.'</td>';
+   <td>'.sanitize_output($Name).'</td>';
    }
    echo '
-   <td>'.date("d.m.Y H:i", $Reflector->Peers[$i]->GetLastHeardTime()).'</td>
-   <td>'.FormatSeconds(time()-$Reflector->Peers[$i]->GetConnectTime()).' s</td>
-   <td align="center">'.$Reflector->Peers[$i]->GetProtocol().'</td>
-   <td align="center">'.$Reflector->Peers[$i]->GetLinkedModule().'</td>';
+   <td>'.sanitize_output(date("d.m.Y H:i", $Reflector->Peers[$i]->GetLastHeardTime())).'</td>
+   <td>'.sanitize_output(FormatSeconds(time()-$Reflector->Peers[$i]->GetConnectTime())).' s</td>
+   <td align="center">'.sanitize_output($Reflector->Peers[$i]->GetProtocol()).'</td>
+   <td align="center">'.sanitize_output($Reflector->Peers[$i]->GetLinkedModule()).'</td>';
    if ($PageOptions['PeerPage']['IPModus'] != 'HideIP') {
-      echo '
-   <td>';
+    echo '
+    <td>';
       $Bytes = explode(".", $Reflector->Peers[$i]->GetIP());
       if ($Bytes !== false && count($Bytes) == 4) {
          switch ($PageOptions['PeerPage']['IPModus']) {
-            case 'ShowLast1ByteOfIP'      : echo $PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[3]; break;
-            case 'ShowLast2ByteOfIP'      : echo $PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[2].'.'.$Bytes[3]; break;
-            case 'ShowLast3ByteOfIP'      : echo $PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[1].'.'.$Bytes[2].'.'.$Bytes[3]; break;
-            default                       : echo $Reflector->Peers[$i]->GetIP();
+            case 'ShowLast1ByteOfIP' : echo sanitize_output($PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[3]); break;
+            case 'ShowLast2ByteOfIP' : echo sanitize_output($PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[2].'.'.$Bytes[3]); break;
+            case 'ShowLast3ByteOfIP' : echo sanitize_output($PageOptions['PeerPage']['MasqueradeCharacter'].'.'.$Bytes[1].'.'.$Bytes[2].'.'.$Bytes[3]); break;
+            default : echo sanitize_output($Reflector->Peers[$i]->GetIP());
          }
       }
       echo '</td>';

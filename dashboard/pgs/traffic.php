@@ -1,25 +1,26 @@
 <?php
 
 if (!isset($_GET['iface'])) {
-	 if (isset($VNStat['Interfaces'][0]['Address'])) {
-	 		$_GET['iface'] = $VNStat['Interfaces'][0]['Address'];
-	 }
-	 else {
-	 	  $_GET['iface'] = "";
-	 }
+    if (isset($VNStat['Interfaces'][0]['Address'])) {
+        $_GET['iface'] = $VNStat['Interfaces'][0]['Address'];
+    }
+    else {
+        $_GET['iface'] = "";
+    }
 }
-else {
-	 $f = false;
-	 $i = 0;
-	 while ($i < count($VNStat['Interfaces']) && (!$f)) {
-	 	  if ($_GET['iface'] == $VNStat['Interfaces'][$i]['Address']) {
-	 	  	 $f = true;
-	 	  }
-	 	  $i++;
-	 }
-	 if (!$f) {
-	 	  $_GET['iface'] = "";
-	 }
+
+// Validate interface name against whitelist
+if (!empty($_GET['iface'])) {
+    $valid = false;
+    for ($i = 0; $i < count($VNStat['Interfaces']); $i++) {
+        if ($_GET['iface'] === $VNStat['Interfaces'][$i]['Address']) {
+            $valid = true;
+            break;
+        }
+    }
+    if (!$valid) {
+        $_GET['iface'] = "";
+    }
 }
 
 ?>
@@ -33,11 +34,11 @@ else {
  	 <td bgcolor="#F1FAFA" align="left" valign="top" style="padding-left:5px;"><?php
  	 
    for ($i=0;$i<count($VNStat['Interfaces']);$i++) {
-   	   echo '<a href="./index.php?show=traffic&iface='.$VNStat['Interfaces'][$i]['Address'].'" class="listinglink">'.$VNStat['Interfaces'][$i]['Name'].'</a>';
-   	   if ($i < count($VNStat['Interfaces'])) {
-   	   	  echo '<br />';
-   	   }
-   } 	
+    echo '<a href="./index.php?show=traffic&iface='.sanitize_attribute($VNStat['Interfaces'][$i]['Address']).'" class="listinglink">'.sanitize_output($VNStat['Interfaces'][$i]['Name']).'</a>';
+    if ($i < count($VNStat['Interfaces'])-1) {
+        echo '<br />';
+    }
+   }
       
  	 ?></td>
  	 <td bgcolor="#FFFFFF"><?php

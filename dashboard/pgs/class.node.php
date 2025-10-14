@@ -14,29 +14,44 @@ class Node {
 
    public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime, $RandomID) {
 
-      $this->IP            = $IP;
+    // Validate and sanitize IP
+    $IP = trim($IP);
+    $this->IP = filter_var($IP, FILTER_VALIDATE_IP) ? $IP : '0.0.0.0';
 
-      $this->Protocol      = $Protocol;
-      $this->ConnectTime   = ParseTime($ConnectTime);
-      $this->LastHeardTime = ParseTime($LastHeardTime);
-   
-      $this->FullCallsign  = trim(str_replace("   ", "-", $Callsign));
-      $this->FullCallsign  = str_replace("  ", "-", $this->FullCallsign);
-      $this->FullCallsign  = str_replace(" ", "-", $this->FullCallsign); 
-      
-      if (strpos($Callsign, " ") !== false) {
-         $this->Callsign      = trim(substr($Callsign, 0, strpos($Callsign, " ")));
-         $this->Suffix        = trim(substr($Callsign, strpos($Callsign, " "), strlen($Callsign)));
-         $this->Prefix        = strtoupper(trim(substr($Callsign, 0, 3)));
-      }
-      else {
-         $this->Callsign      = trim($Callsign);
-         $this->Suffix        = "";
-         $this->Prefix        = "";
-      }
+    // Validate protocol
+    $Protocol = trim($Protocol);
+    $allowed_protocols = ['DPlus', 'DExtra', 'DCS', 'DMR', 'YSF', 'DEXTRA', 'DPLUS'];
+    $this->Protocol = in_array($Protocol, $allowed_protocols, true) ? $Protocol : 'Unknown';
+    
+    $this->ConnectTime   = ParseTime($ConnectTime);
+    $this->LastHeardTime = ParseTime($LastHeardTime);
 
-      $this->LinkedModule     = trim($LinkedModule);
-      $this->RandomID         = $RandomID;
+    // Sanitize callsign (remove excessive spaces, validate format)
+    $Callsign = trim(preg_replace('/\s+/', ' ', $Callsign));
+    
+    $this->FullCallsign  = str_replace(" ", "-", $Callsign);
+    
+    if (strpos($Callsign, " ") !== false) {
+        $this->Callsign = trim(substr($Callsign, 0, strpos($Callsign, " ")));
+        $this->Suffix   = trim(substr($Callsign, strpos($Callsign, " ")));
+        $this->Prefix   = strtoupper(trim(substr($Callsign, 0, 3)));
+    }
+    else {
+        $this->Callsign = trim($Callsign);
+        $this->Suffix   = "";
+        $this->Prefix   = "";
+    }
+
+    // Validate callsign format (basic check)
+    if (!preg_match('/^[A-Z0-9]{1,10}$/i', $this->Callsign)) {
+        $this->Callsign = 'INVALID';
+    }
+
+    // Validate LinkedModule (single letter A-Z)
+    $LinkedModule = trim(strtoupper($LinkedModule));
+    $this->LinkedModule = preg_match('/^[A-Z]$/', $LinkedModule) ? $LinkedModule : '';
+    
+    $this->RandomID = $RandomID;
    }
 
    public function GetFullCallsign()         { return $this->FullCallsign;   }

@@ -30,15 +30,15 @@ $odd = "";
 
 for ($i=0;$i<count($Reflectors);$i++) {
 
-   $NAME          = $XML->GetElement($Reflectors[$i], "name");
-   $COUNTRY       = $XML->GetElement($Reflectors[$i], "country");
-   $LASTCONTACT   = $XML->GetElement($Reflectors[$i], "lastcontact");
-   $COMMENT       = $XML->GetElement($Reflectors[$i], "comment");
-   $DASHBOARDURL  = $XML->GetElement($Reflectors[$i], "dashboardurl");
+  $NAME          = sanitize_output($XML->GetElement($Reflectors[$i], "name"));
+  $COUNTRY       = sanitize_output($XML->GetElement($Reflectors[$i], "country"));
+  $LASTCONTACT   = intval($XML->GetElement($Reflectors[$i], "lastcontact"));
+  $COMMENT       = sanitize_output($XML->GetElement($Reflectors[$i], "comment"));
+  $DASHBOARDURL  = sanitize_attribute($XML->GetElement($Reflectors[$i], "dashboardurl"));
 
-   if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
+  if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
 
-   echo '
+  echo '
  <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
    <td align="center">'.($i+1).'</td>
    <td><a href="'.$DASHBOARDURL.'" target="_blank" class="listinglink" title="Visit the Dashboard of&nbsp;'.$NAME.'">'.$NAME.'</a></td>

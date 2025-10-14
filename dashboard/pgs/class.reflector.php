@@ -37,50 +37,73 @@ class xReflector {
    }
    
    public function LoadXML() {
-      if ($this->XMLFile != null) {
-         $handle = fopen($this->XMLFile, 'r');
-         $this->XMLContent = fread($handle, filesize($this->XMLFile));
-         fclose($handle);
+    if ($this->XMLFile != null) {
+        $handle = fopen($this->XMLFile, 'r');
+        $this->XMLContent = fread($handle, filesize($this->XMLFile));
+        fclose($handle);
 
- # XLX alphanumeric naming...
-         $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
-         if (preg_match('/[^a-zA-Z0-9]/', $this->ServiceName) == 1) {
+        # XLX alphanumeric naming...
+        $this->ServiceName = substr($this->XMLContent, strpos($this->XMLContent, "<XLX")+4, 3);
+        
+        // Validate service name
+        if (!preg_match('/^[a-zA-Z0-9]{3}$/', $this->ServiceName)) {
             $this->ServiceName = null;
             return false;
-         }
+        }
 
-         $this->ReflectorName = "XLX".$this->ServiceName;
-         
-         $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";
-         $LinkedNodesName = "XLX".$this->ServiceName."  linked nodes";
-         $LinkedUsersName = "XLX".$this->ServiceName."  heard users";
-         
-         $XML       = new ParseXML();
-         
-         $AllNodesString    = $XML->GetElement($this->XMLContent, $LinkedNodesName);
-         $tmpNodes          = $XML->GetAllElements($AllNodesString, "NODE");
-         
-         for ($i=0;$i<count($tmpNodes);$i++) {
-             $Node = new Node($XML->GetElement($tmpNodes[$i], 'Callsign'), $XML->GetElement($tmpNodes[$i], 'IP'), $XML->GetElement($tmpNodes[$i], 'LinkedModule'), $XML->GetElement($tmpNodes[$i], 'Protocol'), $XML->GetElement($tmpNodes[$i], 'ConnectTime'), $XML->GetElement($tmpNodes[$i], 'LastHeardTime'), CreateCode(16));
-             $this->AddNode($Node);
-         }
-         
-         $AllStationsString = $XML->GetElement($this->XMLContent, $LinkedUsersName);
-         $tmpStations       = $XML->GetAllElements($AllStationsString, "STATION");
-         for ($i=0;$i<count($tmpStations);$i++) {
-             $Station = new Station($XML->GetElement($tmpStations[$i], 'Callsign'), $XML->GetElement($tmpStations[$i], 'Via node'), $XML->GetElement($tmpStations[$i], 'Via peer'), $XML->GetElement($tmpStations[$i], 'LastHeardTime'), $XML->GetElement($tmpStations[$i], 'On module'));
-             $this->AddStation($Station, false);
-         }
-         
-         $AllPeersString    = $XML->GetElement($this->XMLContent, $LinkedPeersName);
-         $tmpPeers          = $XML->GetAllElements($AllPeersString, "PEER");
-         for ($i=0;$i<count($tmpPeers);$i++) {
-             $Peer = new Peer($XML->GetElement($tmpPeers[$i], 'Callsign'), $XML->GetElement($tmpPeers[$i], 'IP'), $XML->GetElement($tmpPeers[$i], 'LinkedModule'), $XML->GetElement($tmpPeers[$i], 'Protocol'), $XML->GetElement($tmpPeers[$i], 'ConnectTime'), $XML->GetElement($tmpPeers[$i], 'LastHeardTime'));
-             $this->AddPeer($Peer, false);
-         }
-         
-         $this->Version = $XML->GetElement($this->XMLContent, "Version");   
-      }
+        $this->ReflectorName = "XLX".$this->ServiceName;
+        
+        $LinkedPeersName = "XLX".$this->ServiceName."  linked peers";
+        $LinkedNodesName = "XLX".$this->ServiceName."  linked nodes";
+        $LinkedUsersName = "XLX".$this->ServiceName."  heard users";
+        
+        $XML = new ParseXML();
+        
+        $AllNodesString = $XML->GetElement($this->XMLContent, $LinkedNodesName);
+        $tmpNodes = $XML->GetAllElements($AllNodesString, "NODE");
+        
+        for ($i=0;$i<count($tmpNodes);$i++) {
+            $Node = new Node(
+                $XML->GetElement($tmpNodes[$i], 'Callsign'), 
+                $XML->GetElement($tmpNodes[$i], 'IP'), 
+                $XML->GetElement($tmpNodes[$i], 'LinkedModule'), 
+                $XML->GetElement($tmpNodes[$i], 'Protocol'), 
+                $XML->GetElement($tmpNodes[$i], 'ConnectTime'), 
+                $XML->GetElement($tmpNodes[$i], 'LastHeardTime'), 
+                CreateCode(16)
+            );
+            $this->AddNode($Node);
+        }
+        
+        $AllStationsString = $XML->GetElement($this->XMLContent, $LinkedUsersName);
+        $tmpStations = $XML->GetAllElements($AllStationsString, "STATION");
+        for ($i=0;$i<count($tmpStations);$i++) {
+            $Station = new Station(
+                $XML->GetElement($tmpStations[$i], 'Callsign'), 
+                $XML->GetElement($tmpStations[$i], 'Via node'), 
+                $XML->GetElement($tmpStations[$i], 'Via peer'), 
+                $XML->GetElement($tmpStations[$i], 'LastHeardTime'), 
+                $XML->GetElement($tmpStations[$i], 'On module')
+            );
+            $this->AddStation($Station, false);
+        }
+        
+        $AllPeersString = $XML->GetElement($this->XMLContent, $LinkedPeersName);
+        $tmpPeers = $XML->GetAllElements($AllPeersString, "PEER");
+        for ($i=0;$i<count($tmpPeers);$i++) {
+            $Peer = new Peer(
+                $XML->GetElement($tmpPeers[$i], 'Callsign'), 
+                $XML->GetElement($tmpPeers[$i], 'IP'), 
+                $XML->GetElement($tmpPeers[$i], 'LinkedModule'), 
+                $XML->GetElement($tmpPeers[$i], 'Protocol'), 
+                $XML->GetElement($tmpPeers[$i], 'ConnectTime'), 
+                $XML->GetElement($tmpPeers[$i], 'LastHeardTime')
+            );
+            $this->AddPeer($Peer, false);
+        }
+        
+        $this->Version = strip_tags($XML->GetElement($this->XMLContent, "Version"));
+    }
    }
    
    public function GetVersion() {
@@ -92,24 +115,33 @@ class xReflector {
    }
    
    public function SetXMLFile($XMLFile) {
-      if (file_exists($XMLFile) && (is_readable($XMLFile))) {
-         $this->XMLFile = $XMLFile;
-      }
-      else {
-         die("File ".$XMLFile." does not exist or is not readable");
-         $this->XMLContent = null;
-      }
+    // Prevent path traversal
+    $XMLFile = basename($XMLFile);
+    $XMLFile = '/var/log/' . $XMLFile; // Force it to expected directory
+    
+    if (file_exists($XMLFile) && is_readable($XMLFile)) {
+        $this->XMLFile = $XMLFile;
+    }
+    else {
+        error_log("XML File ".$XMLFile." does not exist or is not readable");
+        $this->XMLFile = null;
+        $this->XMLContent = null;
+    }
    }
    
    public function SetPIDFile($ProcessIDFile) {
-      if (file_exists($ProcessIDFile)) {
-         $this->ProcessIDFile = $ProcessIDFile;
-         $this->ServiceUptime = time() - filectime($ProcessIDFile);
-      }
-      else {
-         $this->ProcessIDFile = null;
-         $this->ServiceUptime = null;
-      }
+    // Prevent path traversal
+    $ProcessIDFile = basename($ProcessIDFile);
+    $ProcessIDFile = '/var/log/' . $ProcessIDFile;
+    
+    if (file_exists($ProcessIDFile)) {
+        $this->ProcessIDFile = $ProcessIDFile;
+        $this->ServiceUptime = time() - filectime($ProcessIDFile);
+    }
+    else {
+        $this->ProcessIDFile = null;
+        $this->ServiceUptime = null;
+    }
    }
    
    public function GetServiceUptime() {
@@ -117,11 +149,17 @@ class xReflector {
    }
    
    public function SetFlagFile($Flagfile) {
-      if (file_exists($Flagfile) && (is_readable($Flagfile))) {
-         $this->Flagfile = $Flagfile;
-         return true;
-      }
-      return false;
+    // Prevent path traversal
+    $realPath = realpath($Flagfile);
+    if ($realPath === false || strpos($realPath, '/dashboard/pgs/') === false) {
+        return false;
+    }
+    
+    if (file_exists($realPath) && is_readable($realPath)) {
+        $this->Flagfile = $realPath;
+        return true;
+    }
+    return false;
    }
     
    public function LoadFlags() {
@@ -346,6 +384,18 @@ class xReflector {
       if (!isset($CallingHomeVariables['OverrideIPAddress']))     {    $CallingHomeVariables['OverrideIPAddress'] = false; }
       if (!isset($CallingHomeVariables['InterlinkFile']))         {    $CallingHomeVariables['InterlinkFile']     = '';    }
       
+      // Validate URLs
+      if (!empty($CallingHomeVariables['MyDashBoardURL'])) {
+         if (filter_var($CallingHomeVariables['MyDashBoardURL'], FILTER_VALIDATE_URL) === false) {
+               $CallingHomeVariables['MyDashBoardURL'] = '';
+         }
+      }
+      if (!empty($CallingHomeVariables['ServerURL'])) {
+         if (filter_var($CallingHomeVariables['ServerURL'], FILTER_VALIDATE_URL) === false) {
+               $CallingHomeVariables['ServerURL'] = '';
+         }
+      }
+
       if (!file_exists($CallingHomeVariables['InterlinkFile']))   {    
          $this->Interlinkfile      = '';    
          $this->Transferinterlink  = false;
@@ -370,95 +420,131 @@ class xReflector {
    }   
    
    public function ReadInterlinkFile() {
-      if (file_exists($this->Interlinkfile) && (is_readable($this->Interlinkfile))) {
-         $this->Interlinks   = array();
-         $this->InterlinkXML = "";
-         $Interlinkfilecontent = file($this->Interlinkfile);
-         for ($i=0;$i<count($Interlinkfilecontent);$i++) {
-             if (substr($Interlinkfilecontent[$i], 0, 1) != '#') {
+    if (empty($this->Interlinkfile)) {
+        return false;
+    }
+    
+    // Prevent path traversal
+    $realPath = realpath($this->Interlinkfile);
+    if ($realPath === false || strpos($realPath, '/xlxd/') === false) {
+        error_log("ReadInterlinkFile blocked - invalid path");
+        return false;
+    }
+    
+    if (file_exists($realPath) && is_readable($realPath)) {
+        $this->Interlinks = array();
+        $this->InterlinkXML = "";
+        $Interlinkfilecontent = file($realPath);
+        for ($i=0;$i<count($Interlinkfilecontent);$i++) {
+            if (substr($Interlinkfilecontent[$i], 0, 1) != '#') {
                 $Interlink = explode(" ", $Interlinkfilecontent[$i]);
                 $this->Interlinks[] = new Interlink();
-                if (isset($Interlink[0])) { $this->Interlinks[count($this->Interlinks)-1]->SetName(trim($Interlink[0]));    }
-                if (isset($Interlink[1])) { $this->Interlinks[count($this->Interlinks)-1]->SetAddress(trim($Interlink[1])); }
-                if (isset($Interlink[2])) { 
-                   $Modules = str_split(trim($Interlink[2]), 1);
-                   for ($j=0;$j<count($Modules);$j++) {
-                       $this->Interlinks[count($this->Interlinks)-1]->AddModule($Modules[$j]);
-                   }
+                if (isset($Interlink[0])) { 
+                    $this->Interlinks[count($this->Interlinks)-1]->SetName(trim($Interlink[0])); 
                 }
-             }
-         }
-         return true;
-      }
-      return false;
+                if (isset($Interlink[1])) { 
+                    $this->Interlinks[count($this->Interlinks)-1]->SetAddress(trim($Interlink[1])); 
+                }
+                if (isset($Interlink[2])) { 
+                    $Modules = str_split(trim($Interlink[2]), 1);
+                    for ($j=0;$j<count($Modules);$j++) {
+                        $this->Interlinks[count($this->Interlinks)-1]->AddModule($Modules[$j]);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    return false;
    }
    
    public function PrepareInterlinkXML() {
-      $xml = '
+    $xml = '
 <interlinks>';
-      for ($i=0;$i<count($this->Interlinks);$i++) {
-          $xml .= '
+    for ($i=0;$i<count($this->Interlinks);$i++) {
+        $xml .= '
    <interlink>
-      <name>'.$this->Interlinks[$i]->GetName().'</name>
-      <address>'.$this->Interlinks[$i]->GetAddress().'</address>
-      <modules>'.$this->Interlinks[$i]->GetModules().'</modules>
+      <name>'.htmlspecialchars($this->Interlinks[$i]->GetName(), ENT_XML1, 'UTF-8').'</name>
+      <address>'.htmlspecialchars($this->Interlinks[$i]->GetAddress(), ENT_XML1, 'UTF-8').'</address>
+      <modules>'.htmlspecialchars($this->Interlinks[$i]->GetModules(), ENT_XML1, 'UTF-8').'</modules>
    </interlink>';
-      }
-      $xml .= '
+    }
+    $xml .= '
 </interlinks>';
-      $this->InterlinkXML = $xml;
+    $this->InterlinkXML = $xml;
    }
    
    public function PrepareReflectorXML() {
-      $this->ReflectorXML = '
+    $this->ReflectorXML = '
 <reflector>
-   <name>'.$this->ReflectorName.'</name>
-   <uptime>'.$this->ServiceUptime.'</uptime>
-   <hash>'.$this->CallingHomeHash.'</hash>
-   <url>'.$this->CallingHomeDashboardURL.'</url>
-   <country>'.$this->CallingHomeCountry.'</country>
-   <comment>'.$this->CallingHomeComment.'</comment>
-   <ip>'.$this->CallingHomeOverrideIP.'</ip>
-   <reflectorversion>'.$this->Version.'</reflectorversion>
+   <name>'.htmlspecialchars($this->ReflectorName, ENT_XML1, 'UTF-8').'</name>
+   <uptime>'.intval($this->ServiceUptime).'</uptime>
+   <hash>'.htmlspecialchars($this->CallingHomeHash, ENT_XML1, 'UTF-8').'</hash>
+   <url>'.htmlspecialchars($this->CallingHomeDashboardURL, ENT_XML1, 'UTF-8').'</url>
+   <country>'.htmlspecialchars($this->CallingHomeCountry, ENT_XML1, 'UTF-8').'</country>
+   <comment>'.htmlspecialchars($this->CallingHomeComment, ENT_XML1, 'UTF-8').'</comment>
+   <ip>'.htmlspecialchars($this->CallingHomeOverrideIP, ENT_XML1, 'UTF-8').'</ip>
+   <reflectorversion>'.htmlspecialchars($this->Version, ENT_XML1, 'UTF-8').'</reflectorversion>
 </reflector>';
    }
       
    public function CallHome() {
-      $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    // Validate ServerURL is not localhost/internal IP
+    $parsed = parse_url($this->CallingHomeServerURL);
+    if (!isset($parsed['host'])) {
+        error_log("CallHome failed - invalid URL");
+        return false;
+    }
+    
+    $ip = gethostbyname($parsed['host']);
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        error_log("CallHome blocked - internal/private IP detected");
+        return false;
+    }
+    
+    // Sanitize all data being sent
+    $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <query>CallingHome</query>'.$this->ReflectorXML.$this->InterlinkXML;
-      $p = @stream_context_create(array('http' => array('header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-                                                       'method'  => 'POST', 
-                                                       'content' => http_build_query(array('xml' => $xml)) )));
-      $result = @file_get_contents($this->CallingHomeServerURL, false, $p);
-      if ($result === false) {
-         die("CONNECTION FAILED!");
-      }
+    
+    $p = @stream_context_create(array('http' => array(
+        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+        'method'  => 'POST', 
+        'content' => http_build_query(array('xml' => $xml)),
+        'timeout' => 10
+    )));
+    
+    $result = @file_get_contents($this->CallingHomeServerURL, false, $p);
+    if ($result === false) {
+        error_log("CallHome connection failed");
+        return false;
+    }
+    return true;
    }
-   
+         
    public function InterlinkCount() {
       return count($this->Interlinks);
    }
-   
+
    public function GetInterlink($Index) {
-      if (isset($this->Interlinks[$Index])) return $this->Interlinks[$Index];
-      return array();
+      if (isset($this->Interlinks[$Index])) {
+         return $this->Interlinks[$Index];
+      }
+      return false;
    }
-   
+
    public function IsInterlinked($Reflectorname) {
       $i = -1;
       $f = false;
-      while (!$f && $i<$this->InterlinkCount()) {
+      while (!$f && $i < $this->InterlinkCount()) {
          $i++;
          if (isset($this->Interlinks[$i])) {
-            if ($this->Interlinks[$i]->GetName() == $Reflectorname) {
-               $f = true;
-               return $i;
-            }
+               if ($this->Interlinks[$i]->GetName() == $Reflectorname) {
+                  $f = true;
+                  return $i;
+               }
          }
       }
       return -1;
    }
-         
 }
-
 ?>

@@ -66,6 +66,10 @@ public:
     static void Thread(CTranscoder *);
     void Task(void);
 
+    // options
+    bool IsModuleOn(char);
+    bool IsModuleAuto(char);
+
 protected:
     // keepalive helpers
     void HandleKeepalives(void);
@@ -79,6 +83,11 @@ protected:
     void EncodeKeepAlivePacket(CBuffer *);
     void EncodeOpenstreamPacket(CBuffer *, uint8, uint8);
     void EncodeClosestreamPacket(CBuffer *, uint16);
+
+    // options
+    char *TrimWhiteSpaces(char *);
+    void NeedReload(void);
+    void ReadOptions(void);
     
 protected:
     // streams
@@ -103,6 +112,12 @@ protected:
     // time
     CTimePoint      m_LastKeepaliveTime;
     CTimePoint      m_LastActivityTime;
+
+    // options
+    std::string         m_ModulesOn;
+    std::string         m_ModulesAuto;
+    CTimePoint          m_LastNeedReloadTime;
+    time_t              m_LastModTime;
 };
 
 

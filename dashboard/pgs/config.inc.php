@@ -23,6 +23,7 @@ $PageOptions['PageRefreshActive']                    = true;		// Activate automa
 $PageOptions['PageRefreshDelay']                     = '10000';		// Page refresh time in miliseconds
 
 $PageOptions['NumberOfModules']                      = 10;		// Number of Modules enabled on reflector
+$PageOptions['TranscoderFile']                       = '/xlxd/xlxd.transcoder';			// Path to transcoder file
 
 $PageOptions['RepeatersPage'] = array();
 $PageOptions['RepeatersPage']['LimitTo']             = 99;		// Number of Repeaters to show

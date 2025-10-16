@@ -1,3 +1,94 @@
+xlx db v2.4.3
+
+SECURITY UPDATE - All files updated to fix vulnerabilities
+
+This release addresses multiple security vulnerabilities including XSS (Cross-Site Scripting), 
+command injection, path traversal, and SSRF (Server-Side Request Forgery) attacks.
+
+Files Changed and Security Fixes:
+
+- "functions.php"
+  * Added sanitize_output() and sanitize_attribute() helper functions for XSS prevention
+  * Added validate_callsign(), validate_module(), validate_protocol() input validation functions
+  * Replaced exec() call in GetSystemUptime() with secure file reading from /proc/uptime
+  * Added input validation and shell argument escaping to VNStatGetData()
+  * Added array bounds checking to ParseTime() to prevent errors on malformed input
+
+- "class.interlink.php"
+  * Added input validation to SetName() - validates reflector name format
+  * Added input validation to SetAddress() - validates IP addresses and hostnames
+  * Added input validation to AddModule(), RemoveModule(), and HasModuleEnabled()
+
+- "class.node.php"
+  * Added input validation in constructor for all parameters
+  * IP addresses validated with filter_var()
+  * Protocol validated against whitelist
+  * Callsign format validated with regex
+  * LinkedModule validated as single A-Z letter
+
+- "class.parsexml.php"
+  * Added element name sanitization to prevent XML injection
+
+- "class.peer.php"
+  * Added input validation in constructor for all parameters
+  * Same validation as class.node.php for consistency
+
+- "class.reflector.php"
+  * Added path traversal prevention to SetXMLFile(), SetPIDFile(), and SetFlagFile()
+  * Added SSRF protection to CallHome() - blocks internal/private IP addresses
+  * Added validation to ReadInterlinkFile() to prevent path traversal
+  * Added XML entity encoding to PrepareInterlinkXML() and PrepareReflectorXML()
+  * Added URL validation to SetCallingHome()
+  * Added missing InterlinkCount(), GetInterlink(), and IsInterlinked() methods
+
+- "class.station.php"
+  * Added input validation in constructor for all parameters
+  * Callsign format validation
+  * Module validation
+
+- "modules.php"
+  * All output wrapped with sanitize_output() to prevent XSS
+
+- "peers.php"
+  * All peer data output sanitized with sanitize_output() and sanitize_attribute()
+  * URL and callsign outputs properly escaped
+
+- "reflectors.php"
+  * All XML element data sanitized before output
+  * Dashboard URLs and reflector names properly escaped
+
+- "repeaters.php"
+  * Added input validation for filter parameters
+  * All node/repeater data sanitized before output
+  * Flag images and URLs properly escaped
+  * IP addresses sanitized
+
+- "traffic.php"
+  * Added strict whitelist validation for interface parameter
+  * Interface names validated against configured list only
+
+- "users.php"
+  * Added input validation for filter parameters
+  * All station/user data sanitized before output
+  * Callsigns, suffixes, and module names properly escaped
+
+- "index.php"
+  * Added secure session configuration (HttpOnly, SameSite, Secure flags)
+  * Added security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy)
+  * Added whitelist validation for 'show' parameter
+  * Added validation for 'do' and 'callhome' parameters
+  * All configuration values sanitized before output to HTML
+  * JavaScript injection prevented in page refresh code
+  * All meta tags properly escaped
+
+Security Vulnerabilities Fixed:
+- XSS (Cross-Site Scripting) - All user input and XML data now properly escaped
+- Command Injection - Removed unsafe exec() calls, added shell argument escaping
+- Path Traversal - File paths validated and restricted to expected directories
+- SSRF (Server-Side Request Forgery) - CallHome validates URLs and blocks internal IPs
+- Session Hijacking - Added HttpOnly, SameSite, and Secure cookie flags
+- XML Injection - Element names sanitized, content stripped of tags
+
 xlx db v2.4.1
 
 you can now hide the liveircddb menu button, if you are running your db in https.

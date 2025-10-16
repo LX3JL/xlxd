@@ -1,30 +1,90 @@
 <?php
+function sanitize_output($string) {
+    if ($string === null) return '';
+    return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+function sanitize_attribute($string) {
+    if ($string === null) return '';
+    return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+function validate_callsign($callsign) {
+    $callsign = trim($callsign);
+    if (preg_match('/^[A-Z0-9\-\/\s]{3,20}$/i', $callsign)) {
+        return strtoupper($callsign);
+    }
+    return '';
+}
+
+function validate_module($module) {
+    $module = trim(strtoupper($module));
+    if (preg_match('/^[A-Z]$/', $module)) {
+        return $module;
+    }
+    return '';
+}
+
+function validate_protocol($protocol) {
+    $allowed = ['DPlus', 'DExtra', 'DCS', 'DMR', 'YSF', 'DEXTRA', 'DPLUS', 'DMRMmdvm', 'XLX'];
+    return in_array(trim($protocol), $allowed, true) ? trim($protocol) : '';
+}
 
 function GetSystemUptime() {
-   $out = exec("uptime");
-   return substr($out, 0, strpos($out, ","));
+    if (file_exists('/proc/uptime')) {
+        $uptime = @file_get_contents('/proc/uptime');
+        if ($uptime !== false) {
+            $parts = explode(' ', $uptime);
+            return isset($parts[0]) ? (int)$parts[0] : 0;
+        }
+    }
+    return 0;
 }
 
 function Debug($message) {
-   echo '<br><hr><pre>';
-   print_r($message);
-   echo '</pre><hr><br>';
+    if (defined('DEBUG_MODE') && DEBUG_MODE === true) {
+        echo '<br><hr><pre>';
+        print_r($message); // Don't sanitize here as it's debug only
+        echo '</pre><hr><br>';
+    }
 }
 
 function ParseTime($Input) {
+    if (empty($Input) || !is_string($Input)) {
+        return false;
+    }
+    
+    $Input = strip_tags($Input); // Remove any HTML tags
    
     if (strpos($Input, "<") !== false) {
        $Input = substr($Input, 0, strpos($Input, "<"));
     }
     
     // Tuesday Tue Nov 17 14:23:22 2015
-    $tmp  = explode(" ", $Input);
+    $tmp = explode(" ", $Input);
+    
+    // Add bounds checking
+    if (count($tmp) < 6) {
+        return false;
+    }
+    
     if (strlen(trim($tmp[3])) == 0) {
        unset($tmp[3]);
        $tmp = array_values($tmp);
     }
+    
+    // Check array indices exist after potential unset
+    if (!isset($tmp[4]) || !isset($tmp[2]) || !isset($tmp[3]) || !isset($tmp[5])) {
+        return false;
+    }
 
-    $tmp1 = explode(":", $tmp[4]); 
+    $tmp1 = explode(":", $tmp[4]);
+    
+    // Check time parts exist
+    if (count($tmp1) < 3) {
+        return false;
+    }
+    
     $month = "";
     switch (strtolower($tmp[2])) {
       case 'jan' : $month = 1; break;
@@ -42,7 +102,6 @@ function ParseTime($Input) {
       default    : $month = 1; 
     }
     return @mktime($tmp1[0], $tmp1[1], $tmp1[2], $month, $tmp[3], $tmp[5]);
-    
 }
 
 function FormatSeconds($seconds) {
@@ -70,9 +129,23 @@ function VNStatLocalize($str) {
 }
 
 function VNStatGetData($iface, $vnstat_bin) {
+   // Validate interface name (only allow alphanumeric, dash, underscore)
+   if (!preg_match('/^[a-zA-Z0-9_-]+$/', $iface)) {
+      return null;
+   }
+    
+   // Validate vnstat binary path
+   if (!file_exists($vnstat_bin) || !is_executable($vnstat_bin)) {
+      return null;
+   }
+    
+   // Escape shell arguments
+   $iface_escaped = escapeshellarg($iface);
+   $vnstat_bin_escaped = escapeshellarg($vnstat_bin);
+
    $vnstat_data = array();
 
-   $fd = @popen("$vnstat_bin --dumpdb -i $iface", "r");
+   $fd = @popen("$vnstat_bin_escaped --dumpdb -i $iface_escaped", "r");
    if (is_resource($fd)) {
       $buffer = '';
       while (!feof($fd)) {

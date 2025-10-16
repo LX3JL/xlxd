@@ -32,17 +32,17 @@ for ($i = 1; $i <= $NumberOfModules; $i++) {
 
    echo '
  <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
-   <td align="center">'. $module .'</td>
-   <td align="center">'. (empty($PageOptions['ModuleNames'][$module]) ? '-' : $PageOptions['ModuleNames'][$module]) .'</td>
+   <td align="center">'. sanitize_output($module) .'</td>
+   <td align="center">'. sanitize_output(empty($PageOptions['ModuleNames'][$module]) ? '-' : $PageOptions['ModuleNames'][$module]) .'</td>
    <td align="center">'. count($Reflector->GetNodesInModulesByID($module)) .'</td>
-   <td align="center">'. 'REF' . $ReflectorNumber . $module . 'L' .'</td>
-   <td align="center">'. (is_numeric($ReflectorNumber) ? '*' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
-   <td align="center">'. 'XRF' . $ReflectorNumber . $module . 'L' .'</td>
-   <td align="center">'. (is_numeric($ReflectorNumber) ? 'B' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
-   <td align="center">'. 'DCS' . $ReflectorNumber . $module . 'L' .'</td>
-   <td align="center">'. (is_numeric($ReflectorNumber) ? 'D' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
-   <td align="center">'. (4000+$i) .'</td>
-   <td align="center">'. (9+$i) .'</td>
+   <td align="center">'. sanitize_output('REF' . $ReflectorNumber . $module . 'L') .'</td>
+   <td align="center">'. sanitize_output(is_numeric($ReflectorNumber) ? '*' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
+   <td align="center">'. sanitize_output('XRF' . $ReflectorNumber . $module . 'L') .'</td>
+   <td align="center">'. sanitize_output(is_numeric($ReflectorNumber) ? 'B' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
+   <td align="center">'. sanitize_output('DCS' . $ReflectorNumber . $module . 'L') .'</td>
+   <td align="center">'. sanitize_output(is_numeric($ReflectorNumber) ? 'D' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
+   <td align="center">'. sanitize_output(4000+$i) .'</td>
+   <td align="center">'. sanitize_output(9+$i) .'</td>
  </tr>';
 }
 

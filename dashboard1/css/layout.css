@@ -1,0 +1,190 @@
+body {
+   margin               : 0px;
+   padding              : 0px;
+   background-color     : #D3D3D3;
+   font-family          : calibri, verdana, arial, comic sans;
+   min-width            : 760px;
+}
+
+h1 {
+   font-size            : 25pt;
+}
+
+a img {
+   border: 0;
+}
+
+a.tip {
+   text-decoration      : none;
+}
+
+a.tip:hover {
+   position             : relative;
+}
+
+a.tip span {
+   display              : none
+}
+
+a.tip:hover span {
+   background           : #000000;
+   opacity              : 0.8;
+   border               : none;
+   border-radius        : 5px 5px 5px 5px;
+   font-family          : calibri, verdana, arial, comic sans;
+   font-size            : 12pt;
+   text-decoration      : none;
+   white-space          : nowrap;
+   color                : #FFFFFF;
+   padding              : 6px 6px 6px 6px;
+   margin               : 10px;
+   display              : block;
+   z-index              : 50; 
+   position             : absolute;
+   top                  : 10px;
+}
+
+#top {
+   height               : 115px;
+   background-color     : #FFFFFF;
+   width                : 100%;
+   background-image     : url('../img/dvc.jpg');
+   background-repeat    : no-repeat;
+   background-position  : 98.5%;
+   position             : absolute;
+   left                 : 0px;
+   top                  : 0px;  
+   min-width            : 760px;   
+}
+
+#menu {
+   margin-top           : 5px;
+   height               : 34px;
+   float                : left;
+}
+
+#menubar {
+   height               : 40px;
+   width                : 100%;
+   background-color     : #FEC456;
+   position             : absolute;   
+   left                 : 0px;
+   top                  : 115px;
+   min-width            : 760px;      
+}
+
+#content {
+   width                : 100%;
+   position             : absolute;
+   left                 : 0px;
+   top                  : 175px;   
+}
+
+.menulink {
+   font-size            : 14pt;
+   text-decoration      : none;
+   white-space          : nowrap;
+   border               : 1px #000000 solid;
+   padding-left         : 10px;
+   padding-top          : 3px;
+   padding-bottom       : 3px;
+   padding-right        : 10px;
+   margin-left          : 10px;
+   background-color     : #FFFFC6;
+   color                : #000000;
+}
+
+ .menulinkactive {
+   font-size            : 14pt;
+   text-decoration      : none;
+   white-space          : nowrap;
+   border               : 1px #000000 solid;
+   padding-left         : 10px;
+   padding-top          : 3px;
+   padding-bottom       : 3px;
+   padding-right        : 10px;
+   margin-left          : 10px;
+   background-color     : #87dcfc;
+   color                : #000000;
+} 
+
+.pl {
+   font-size            : 12pt;
+   text-decoration      : none;
+   color                : #000000;
+}
+  
+.listingtable {
+   margin-top           : 10px;
+   border               : 1px #C1DAD7 solid;
+   font-size            : 12pt;   
+}
+  
+.listingtable th {
+   height               : 35px;
+   text-align           : center;
+   background-color     : #D5EBF0;
+   background-image     : -webkit-gradient(
+      linear,
+      left top,
+      left bottom,
+      color-stop(0, rgb(201, 231, 233)),
+      color-stop(0.8, rgb(220, 237, 244))
+   );
+   background-image: -o-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: -moz-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: -webkit-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: -ms-linear-gradient(bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+   background-image: linear-gradient(to bottom, rgb(201, 231, 233) 0%, rgb(220, 237, 244) 80%);
+}
+
+.listingtable td {
+   padding-left         : 5px;
+}      
+
+.listinglink {
+   font-size            : 12pt;
+   text-decoration      : underline;
+   color                : #60A1DE;
+}
+
+.error {
+   font-size         : 12pt;
+   text-decoration   : none,
+   font-weight       : bold;
+   color             : #FF0000;
+   background-color  : #FFFFFF;
+   width             : 90%;
+   padding           : 15px;
+   margin            : 5px;
+}
+
+.FilterField {
+   font-size         : 10pt;
+   text-decoration   : none,
+   color             : #000000;
+   background-color  : #FFFFFF;
+   width             : 150px;
+   height            : 20px;
+   padding-left      : 5px;
+   padding-top       : 3px;
+   border            : 1px #60A1DE solid;
+}
+
+.FilterSubmit {
+   font-size         : 10pt;
+   text-decoration   : none,
+   color             : #000000;
+   background-color  : #FFFFFF;
+   height            : 26px;
+   width             : 60px;
+   padding-left      : 5px;
+   padding-top       : 3px;
+   border            : 1px #60A1DE solid;
+}
+
+.smalllink {
+   font-size         : 12pt;
+   text-decoration   : none;
+   color             : #0E0789;
+}

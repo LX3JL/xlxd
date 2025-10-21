@@ -149,9 +149,28 @@ class xReflector {
    }
    
    public function SetFlagFile($Flagfile) {
-    // Prevent path traversal
+    // Prevent path traversal - get the real path
     $realPath = realpath($Flagfile);
-    if ($realPath === false || strpos($realPath, '/dashboard/pgs/') === false) {
+    
+    // If realpath fails, the file doesn't exist
+    if ($realPath === false) {
+        error_log("Flag file does not exist: " . $Flagfile);
+        return false;
+    }
+    
+    // Security: Ensure it's the country.csv file we expect
+    if (basename($realPath) !== 'country.csv') {
+        error_log("Flag file must be country.csv, got: " . basename($realPath));
+        return false;
+    }
+    
+    // Security: Ensure the file is in the same directory as this class file or subdirectory
+    $thisDir = dirname(__FILE__); // Gets /path/to/pgs
+    $thisDirReal = realpath($thisDir);
+    
+    // The flag file must be in the same directory as this class
+    if (dirname($realPath) !== $thisDirReal) {
+        error_log("Flag file must be in the same directory as class files. Expected: " . $thisDirReal . ", Got: " . dirname($realPath));
         return false;
     }
     
@@ -159,9 +178,11 @@ class xReflector {
         $this->Flagfile = $realPath;
         return true;
     }
+    
+    error_log("Flag file not readable: " . $realPath);
     return false;
    }
-    
+
    public function LoadFlags() {
       if ($this->Flagfile != null) {
          $this->Flagarray = array();

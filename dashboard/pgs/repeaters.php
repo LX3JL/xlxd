@@ -1,5 +1,18 @@
 <?php
 
+// Initialize filter session variables
+if (!isset($_SESSION['FilterCallSign'])) {
+   $_SESSION['FilterCallSign'] = null;
+}
+
+if (!isset($_SESSION['FilterProtocol'])) {
+   $_SESSION['FilterProtocol'] = null;
+}
+
+if (!isset($_SESSION['FilterModule'])) {
+   $_SESSION['FilterModule'] = null;
+}
+
 // Validate filter inputs
 if (isset($_SESSION['FilterCallSign']) && $_SESSION['FilterCallSign'] !== null) {
     $_SESSION['FilterCallSign'] = preg_replace('/[^A-Z0-9\*\-\/\s]/i', '', $_SESSION['FilterCallSign']);

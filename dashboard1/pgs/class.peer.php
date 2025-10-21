@@ -33,7 +33,7 @@ class Peer {
     
     // Validate LinkedModule (single letter A-Z)
     $LinkedModule = trim(strtoupper($LinkedModule));
-    $this->LinkedModule = preg_match('/^[A-Z]$/', $LinkedModule) ? $LinkedModule : '';
+    $this->LinkedModule = preg_match('/^[A-Z]+$/', $LinkedModule) ? $LinkedModule : '';
    }
    
 

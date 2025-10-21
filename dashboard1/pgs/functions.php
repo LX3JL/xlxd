@@ -26,7 +26,7 @@ function validate_module($module) {
 }
 
 function validate_protocol($protocol) {
-    $allowed = ['DPlus', 'DExtra', 'DCS', 'DMR', 'YSF', 'DEXTRA', 'DPLUS', 'DMRMmdvm', 'XLX'];
+    $allowed = ['DPlus', 'DExtra', 'DCS', 'DMR', 'DMRplus', 'DMRMmdvm', 'YSF', 'XLX', 'Terminal/AP', 'IMRS', 'none'];
     return in_array(trim($protocol), $allowed, true) ? trim($protocol) : '';
 }
 

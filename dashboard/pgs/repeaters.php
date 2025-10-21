@@ -1,14 +1,15 @@
 <?php
 
-// Validate filter inputs
-if (isset($_SESSION['FilterCallSign']) && $_SESSION['FilterCallSign'] !== null) {
-    $_SESSION['FilterCallSign'] = preg_replace('/[^A-Z0-9\*\-\/\s]/i', '', $_SESSION['FilterCallSign']);
+if (!isset($_SESSION['FilterCallSign'])) {
+   $_SESSION['FilterCallSign'] = null;
 }
-if (isset($_SESSION['FilterProtocol']) && $_SESSION['FilterProtocol'] !== null) {
-    $_SESSION['FilterProtocol'] = validate_protocol($_SESSION['FilterProtocol']);
+
+if (!isset($_SESSION['FilterProtocol'])) {
+   $_SESSION['FilterProtocol'] = null;
 }
-if (isset($_SESSION['FilterModule']) && $_SESSION['FilterModule'] !== null) {
-    $_SESSION['FilterModule'] = validate_module($_SESSION['FilterModule']);
+
+if (!isset($_SESSION['FilterModule'])) {
+   $_SESSION['FilterModule'] = null;
 }
 
 if (isset($_POST['do'])) {
@@ -74,7 +75,7 @@ if ($PageOptions['UserPage']['ShowFilter']) {
             <td align="left">
                <form name="frmFilterCallSign" method="post" action="./index.php?show=repeaters">
                   <input type="hidden" name="do" value="SetFilter" />
-                  <input type="text" class="FilterField" value="'.sanitize_attribute($_SESSION['FilterCallSign']).'" name="txtSetCallsignFilter" placeholder="Callsign" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
+                  <input type="text" class="FilterField" value="'.$_SESSION['FilterCallSign'].'" name="txtSetCallsignFilter" placeholder="Callsign" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
                   <input type="submit" value="Apply" class="FilterSubmit" />
                </form>
             </td>';
@@ -86,14 +87,14 @@ if ($PageOptions['UserPage']['ShowFilter']) {
             <td align="right" style="padding-right:3px;">
                <form name="frmFilterProtocol" method="post" action="./index.php?show=repeaters">
                   <input type="hidden" name="do" value="SetFilter" />
-                  <input type="text" class="FilterField" value="'.sanitize_attribute($_SESSION['FilterProtocol']).'" name="txtSetProtocolFilter" placeholder="Protocol" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
+                  <input type="text" class="FilterField" value="'.$_SESSION['FilterProtocol'].'" name="txtSetProtocolFilter" placeholder="Protocol" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
                   <input type="submit" value="Apply" class="FilterSubmit" />
                </form>
             </td>
             <td align="right" style="padding-right:3px;">
                <form name="frmFilterModule" method="post" action="./index.php?show=repeaters">
                   <input type="hidden" name="do" value="SetFilter" />
-                  <input type="text" class="FilterField" value="'.sanitize_attribute($_SESSION['FilterModule']).'" name="txtSetModuleFilter" placeholder="Module" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
+                  <input type="text" class="FilterField" value="'.$_SESSION['FilterModule'].'" name="txtSetModuleFilter" placeholder="Module" onfocus="SuspendPageRefresh();" onblur="setTimeout(ReloadPage, '.$PageOptions['PageRefreshDelay'].');" />
                   <input type="submit" value="Apply" class="FilterSubmit" />
                </form>
             </td>
@@ -160,19 +161,19 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
       <td align="center">';
       list ($Flag, $Name) = $Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign());
       if (file_exists("./img/flags/".$Flag.".png")) {
-         echo '<a href="#" class="tip"><img src="./img/flags/'.sanitize_attribute($Flag).'.png" height="15" alt="'.sanitize_attribute($Name).'" /><span>'.sanitize_output($Name).'</span></a>';
+         echo '<a href="#" class="tip"><img src="./img/flags/'.$Flag.'.png" height="15" alt="'.$Name.'" /><span>'.$Name.'</span></a>';
       }
       echo '</td>
-      <td><a href="http://www.aprs.fi/'.sanitize_attribute($Reflector->Nodes[$i]->GetCallSign());
-      if ($Reflector->Nodes[$i]->GetSuffix() != "") echo '-'.sanitize_attribute($Reflector->Nodes[$i]->GetSuffix());
-      echo '" class="pl" target="_blank">'.sanitize_output($Reflector->Nodes[$i]->GetCallSign());
-      if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.sanitize_output($Reflector->Nodes[$i]->GetSuffix()); }
+      <td><a href="http://www.aprs.fi/'.$Reflector->Nodes[$i]->GetCallSign();
+      if ($Reflector->Nodes[$i]->GetSuffix() != "") echo '-'.$Reflector->Nodes[$i]->GetSuffix();
+      echo '" class="pl" target="_blank">'.$Reflector->Nodes[$i]->GetCallSign();
+      if ($Reflector->Nodes[$i]->GetSuffix() != "") { echo '-'.$Reflector->Nodes[$i]->GetSuffix(); }
       echo '</a></td>
       <td>';
       if (($Reflector->Nodes[$i]->GetPrefix() == 'REF') || ($Reflector->Nodes[$i]->GetPrefix() == 'XRF')) {
          switch ($Reflector->Nodes[$i]->GetPrefix()) {
-            case 'REF'  : echo 'REF-Link'; break;
-            case 'XRF'  : echo 'XRF-Link'; break;
+           case 'REF'  : echo 'REF-Link'; break;
+           case 'XRF'  : echo 'XRF-Link'; break;
          }
       }
       else {
@@ -186,20 +187,20 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
          }
       }
       echo '</td>
-      <td>'.sanitize_output(date("d.m.Y H:i", $Reflector->Nodes[$i]->GetLastHeardTime())).'</td>
-      <td>'.sanitize_output(FormatSeconds(time()-$Reflector->Nodes[$i]->GetConnectTime())).' s</td>
-      <td>'.sanitize_output($Reflector->Nodes[$i]->GetProtocol()).'</td>
-      <td align="center">'.sanitize_output($Reflector->Nodes[$i]->GetLinkedModule()).'</td>';
+      <td>'.date("d.m.Y H:i", $Reflector->Nodes[$i]->GetLastHeardTime()).'</td>
+      <td>'.FormatSeconds(time()-$Reflector->Nodes[$i]->GetConnectTime()).' s</td>
+      <td>'.$Reflector->Nodes[$i]->GetProtocol().'</td>
+      <td align="center">'.$Reflector->Nodes[$i]->GetLinkedModule().'</td>';
       if ($PageOptions['RepeatersPage']['IPModus'] != 'HideIP') {
          echo '
       <td>';
          $Bytes = explode(".", $Reflector->Nodes[$i]->GetIP());
          if ($Bytes !== false && count($Bytes) == 4) {
             switch ($PageOptions['RepeatersPage']['IPModus']) {
-                  case 'ShowLast1ByteOfIP' : echo sanitize_output($PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[3]); break;
-                  case 'ShowLast2ByteOfIP' : echo sanitize_output($PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[2].'.'.$Bytes[3]); break;
-                  case 'ShowLast3ByteOfIP' : echo sanitize_output($PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[1].'.'.$Bytes[2].'.'.$Bytes[3]); break;
-                  default : echo sanitize_output($Reflector->Nodes[$i]->GetIP());
+               case 'ShowLast1ByteOfIP'      : echo $PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[3]; break;
+               case 'ShowLast2ByteOfIP'      : echo $PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[2].'.'.$Bytes[3]; break;
+               case 'ShowLast3ByteOfIP'      : echo $PageOptions['RepeatersPage']['MasqueradeCharacter'].'.'.$Bytes[1].'.'.$Bytes[2].'.'.$Bytes[3]; break;
+               default                       : echo $Reflector->Nodes[$i]->GetIP();
             }
          }
          echo '</td>';

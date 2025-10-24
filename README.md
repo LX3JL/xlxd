@@ -54,20 +54,30 @@ Please use the stable version listed above, we cannot support others.
 
 ###### Install g++ compiler
 ```
- # apt-get install build-essential
- # apt-get install g++-4.7 (skip this step on Debian 8.x) 
+# apt-get install build-essential
+# apt-get install g++-4.7 (skip this step on Debian 8.x) 
+ 
 ```
-###### After downloading and before compiling, please have a look at the main.h file
+###### Download source code
 ```
- # nano /xlxd/src/main.h
+# git clone https://github.com/LX3JL/xlxd.git
+# cd xlxd/src/
 
- For YSF you need to define a default HotSpot frequency !!!
+```
+###### If you want to enable YSF, edit the main.h file 
+```
+# nano main.h
+
+Then modify the following line:
+#define YSF_AUTOLINK_ENABLE 0 <- Replace 0 with 1
+
+Review YSF Frequencies
+#define YSF_DEFAULT_NODE_TX_FREQ        437000000   <-- in Hz
+#define YSF_DEFAULT_NODE_RX_FREQ        437000000   <-- in Hz
 
 ```
 ###### Download and compile the XLX sources
 ```
-# git clone https://github.com/LX3JL/xlxd.git
-# cd xlxd/src/
 # make clean
 # make
 # make install

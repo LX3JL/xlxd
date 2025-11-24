@@ -1,3 +1,12 @@
+xlx db v2.4.4
+SECURITY UPDATE - Minor upgrade to further improve dashboard security
+
+ - "index.php"
+  * Added additional security headders to improve security score for dashbaord application.
+  * Add Content Security Policy
+  * Add Permissions Policy
+  * Add Transport Security Policy
+
 xlx db v2.4.3
 
 SECURITY UPDATE - All files updated to fix vulnerabilities

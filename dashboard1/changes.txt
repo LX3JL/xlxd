@@ -1,3 +1,16 @@
+xlx db v2.4.5
+Fix liveircddb page broken by CSP security headers
+
+ - "pgs/ircddb_proxy.php" (NEW)
+  * Added transparent proxy for live.ircddb.net to resolve CSP and mixed-content issues
+  * Proxies all requests through local server, rewriting URLs to maintain functionality
+  * Supports both HTTP and HTTPS dashboard deployments
+  * Defaults to live.ircddb.net:8080, configurable via $PageOptions['IRCDDB']['URL']
+  * Default page ircddblive5.html, configurable via $PageOptions['IRCDDB']['Page']
+
+ - "pgs/liveircddb.php"
+  * Changed iframe source from direct external URL to local proxy
+
 xlx db v2.4.4
 SECURITY UPDATE - Minor upgrade to further improve dashboard security
 

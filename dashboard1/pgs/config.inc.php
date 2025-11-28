@@ -17,7 +17,7 @@ $VNStat      = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';	// Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.4.4';		// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.4.5';		// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;		// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';		// Page refresh time in miliseconds
@@ -50,7 +50,9 @@ $PageOptions['MetaRobots']                           = 'index,follow';							// 
 
 $PageOptions['UserPage']['ShowFilter']               = true;								// Show Filter on Users page
 $PageOptions['Traffic']['Show']                      = false;								// Enable vnstat traffic statistics
-$PageOptions['IRCDDB']['Show']                       = true;        // Show liveircddb, set it to false if you are running your db in https 
+$PageOptions['IRCDDB']['Show']                       = true;        // Show liveircddb menu option
+// $PageOptions['IRCDDB']['URL']                     = 'http://live.ircddb.net:8080';  // Optional: Override ircddb server URL
+// $PageOptions['IRCDDB']['Page']                    = 'ircddblive5.html';             // Optional: Override ircddb page
 
 $PageOptions['CustomTXT']                            = '';					// custom text in your header   
 

@@ -78,9 +78,9 @@ Please use the stable version listed above, we cannot support others.
 # cp ~/xlxd/scripts/xlxd /etc/init.d/xlxd
 ```
 
-###### Adapt the default startup parameters to your needs
+###### Adapt the default configuration to your needs
 ```
-# pico /etc/init.d/xlxd
+# pico /xlxd/xlxd.config
 ```
 ###### Download the dmrid.dat from the XLXAPI server to your xlxd folder
 ```

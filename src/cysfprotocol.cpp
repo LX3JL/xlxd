@@ -157,6 +157,42 @@ void CYsfProtocol::RxTask(void)
                     g_Reflector.ReleaseClients();
                 }
 
+                // DG-ID module selection (Yaesu radio user-facing feature).
+                // Yaesu radios in System Fusion V/D mode transmit their
+                // selected DG-ID in the FICH SQ field. Values 10..(10 +
+                // NB_OF_MODULES - 1) map to modules A..(letter). Other
+                // values (typically 0..9, or above the module range) mean
+                // "no module change intent" — the client stays on their
+                // currently-linked module.
+                //
+                // Applied to native clients ONLY. Peers represent external
+                // reflectors whose module identity is fixed by interlink
+                // config; DG-ID from a peer's upstream user must not move
+                // the peer's link. See also the IsPeer() safety belt in
+                // OnDvHeaderPacketIn.
+                //
+                // Rpt2 module is stamped here so the gatekeeper's
+                // MayTransmit call below sees the DESTINATION module,
+                // not the client's stale current module — closes the
+                // "mute on A, dial DG-ID for B, transmit under B's rules"
+                // bypass that narspt fixed in the pre-regression 2021
+                // code (upstream commits 32c9e0c + e752b76).
+                if ( !isPeer )
+                {
+                    unsigned char sq = Fich.getSQ();
+                    char dgidModule;
+                    if ( (sq >= 10) && (sq < 10 + NB_OF_MODULES) )
+                    {
+                        dgidModule = 'A' + (char)(sq - 10);
+                    }
+                    else
+                    {
+                        // no DG-ID intent — keep on client's current module
+                        dgidModule = clientModule;
+                    }
+                    Header->SetRpt2Module(dgidModule);
+                }
+
                 // Peer traffic bypasses MayTransmit (peers are trusted
                 // interlinks, not subject to whitelist/blacklist/
                 // callsign-validity checks) but is still subject to
@@ -177,7 +213,7 @@ void CYsfProtocol::RxTask(void)
                 }
                 else if ( !g_GateKeeper.MayTransmit(
                             Header->GetMyCallsign(), Ip,
-                            PROTOCOL_YSF, clientModule) )
+                            PROTOCOL_YSF, Header->GetRpt2Module()) )
                 {
                     delete Header;
                     Header = NULL;
@@ -419,8 +455,45 @@ bool CYsfProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
             // get client callsign
             via = client->GetCallsign();
 
-            // For YSF, always use client's assigned module (RPT2 is a D-Star concept)
-            Header->SetRpt2Module(client->GetReflectorModule());
+            if ( client->IsPeer() )
+            {
+                // Peer traffic: always use peer's assigned link module
+                // (fixed by interlink config). Never let a wire field
+                // move a peer's client — safety belt against upstream
+                // sources that might carry DG-ID or a garbled rpt2.
+                // Task() doesn't stamp DG-ID for peers, but this
+                // belt-and-braces guarantee protects against any
+                // future code path that might.
+                Header->SetRpt2Module(client->GetReflectorModule());
+            }
+            else
+            {
+                // Native client: Task() already stamped rpt2 with either
+                // the DG-ID target (SQ in [10..10+NB_OF_MODULES)) or the
+                // client's current module (no DG-ID intent). Anything
+                // outside the valid module range A..(A+NB_OF_MODULES-1)
+                // — including the parser's 'G' sentinel or an unset ' '
+                // from an edge case where Task() couldn't resolve the
+                // client — is treated as "no valid destination stamped"
+                // and falls back to the client's current module.
+                char headerModule = Header->GetRpt2Module();
+                bool validModule = (headerModule >= 'A') &&
+                                   (headerModule < 'A' + NB_OF_MODULES);
+                if ( validModule &&
+                     (headerModule != client->GetReflectorModule()) )
+                {
+                    // DG-ID-driven module switch — log for operator visibility
+                    std::cout << "YSF client " << client->GetCallsign()
+                              << " linking on module " << headerModule
+                              << " (DG-ID)" << std::endl;
+                    client->SetReflectorModule(headerModule);
+                }
+                if ( !validModule )
+                {
+                    // Fall back so downstream routing has a real module letter
+                    Header->SetRpt2Module(client->GetReflectorModule());
+                }
+            }
 
             // save callsigns before OpenStream — OpenStream transfers Header
             // to the router queue where the router thread may delete it

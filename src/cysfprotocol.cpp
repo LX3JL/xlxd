@@ -141,7 +141,7 @@ void CYsfProtocol::RxTask(void)
                 char clientModule = ' ';
                 {
                     CPeers *peers = g_Reflector.GetPeers();
-                    isPeer = (peers->FindPeer(Ip, PROTOCOL_YSF) != NULL);
+                    isPeer = (peers->FindPeerByIpPort(Ip, PROTOCOL_YSF) != NULL);
                     g_Reflector.ReleasePeers();
                 }
 
@@ -157,15 +157,35 @@ void CYsfProtocol::RxTask(void)
                     g_Reflector.ReleaseClients();
                 }
 
-                // node linked and callsign muted?
-                if ( isPeer || g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_YSF, clientModule) )
+                // Peer traffic bypasses MayTransmit (peers are trusted
+                // interlinks, not subject to whitelist/blacklist/
+                // callsign-validity checks) but is still subject to
+                // the per-callsign loop block — without that, a
+                // peer-sourced echo loop on a single user callsign
+                // would never be stopped (MW0MWZ/xlxd production
+                // observation, May 2026). Non-peer traffic continues
+                // through the regular MayTransmit gate, which itself
+                // consults the loop block via IsLoopSuppressed.
+                if ( isPeer )
                 {
-                    // handle it
-                    OnDvHeaderPacketIn(Header, Ip);
+                    if ( g_GateKeeper.IsCallsignLoopBlocked(
+                            Header->GetMyCallsign(), "YSF peer") )
+                    {
+                        delete Header;
+                        Header = NULL;
+                    }
                 }
-                else
+                else if ( !g_GateKeeper.MayTransmit(
+                            Header->GetMyCallsign(), Ip,
+                            PROTOCOL_YSF, clientModule) )
                 {
                     delete Header;
+                    Header = NULL;
+                }
+
+                if ( Header != NULL )
+                {
+                    OnDvHeaderPacketIn(Header, Ip);
                 }
             }
             else if ( IsValidDvLastFramePacket(Ip, Fich, Buffer, Frames) )
@@ -179,7 +199,7 @@ void CYsfProtocol::RxTask(void)
         {
             // Check if this is a poll response from a YSF reflector peer we connected to
             CPeers *peers = g_Reflector.GetPeers();
-            CPeer *existingPeer = peers->FindPeer(Ip, PROTOCOL_YSF);
+            CPeer *existingPeer = peers->FindPeerByIpPort(Ip, PROTOCOL_YSF);
 
             if ( existingPeer != NULL )
             {
@@ -284,11 +304,11 @@ void CYsfProtocol::RxTask(void)
                 }
             }
         }
-        else if ( IsValidwirexPacket(Buffer, &Fich, &Callsign, &iWiresxCmd, &iWiresxArg) )
+        else if ( IsValidwirexPacket(Buffer, Ip, &Fich, &Callsign, &iWiresxCmd, &iWiresxArg) )
         {
             // Ignore Wires-X commands from YSF peers - only process from direct clients
             CPeers *peers = g_Reflector.GetPeers();
-            CPeer *peer = peers->FindPeer(Ip, PROTOCOL_YSF);
+            CPeer *peer = peers->FindPeerByIpPort(Ip, PROTOCOL_YSF);
             g_Reflector.ReleasePeers();
 
             if ( peer == NULL )
@@ -808,9 +828,11 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
     // DV header ?
     if ( Fich.getFI() == YSF_FI_HEADER )
     {
-        // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
-        
+        // Allocate a fresh stream-id for this new transmission. Releases
+        // any stale mapping for this source from a prior over that may
+        // still be draining; see AllocateNewStreamIdForSource().
+        uint32 uiStreamId = AllocateNewStreamIdForSource(Ip);
+
         // get header data
         CYSFPayload ysfPayload;
         if ( ysfPayload.processHeaderData((unsigned char *)&(Buffer.data()[35])) )
@@ -825,7 +847,7 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
             sz[YSF_CALLSIGN_LENGTH] = 0;
             // Get the module this peer is linked to
             CPeers *peers = g_Reflector.GetPeers();
-            CPeer *peer = peers->FindPeer(Ip, PROTOCOL_YSF);
+            CPeer *peer = peers->FindPeerByIpPort(Ip, PROTOCOL_YSF);
             char ysfModule = ' ';
             if ( peer != NULL && peer->GetNbClients() > 0 )
             {
@@ -833,8 +855,10 @@ bool CYsfProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CYSFFICH &Fich, co
             }
             g_Reflector.ReleasePeers();
 
-            CCallsign rpt1 = m_ReflectorCallsign;
-            rpt1.SetModule(ysfModule);
+            // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+            // See cnxdnprotocol.cpp for the rationale.
+            CCallsign rpt1 = csMY;
+            rpt1.SetModule('B');
             CCallsign rpt2 = m_ReflectorCallsign;
             rpt2.SetModule('G');
             
@@ -885,9 +909,11 @@ bool CYsfProtocol::IsValidDvFramePacket(const CIp &Ip, const CYSFFICH &Fich, con
     // is it DV frame ?
     if ( Fich.getFI() == YSF_FI_COMMUNICATIONS )
     {
-        // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
-        
+        // Use the active per-source mapping (set by the most recent
+        // header from this Ip). Falls back to the deterministic hash
+        // for orphan mid-stream packets, preserving late-entry buffering.
+        uint32 uiStreamId = LookupStreamIdForSource(Ip);
+
         // get DV frames
         uint8   ambe0[AMBEPLUS_SIZE];
         uint8   ambe1[AMBEPLUS_SIZE];
@@ -947,9 +973,18 @@ bool CYsfProtocol::IsValidDvLastFramePacket(const CIp &Ip, const CYSFFICH &Fich,
     // DV header ?
     if ( Fich.getFI() == YSF_FI_TERMINATOR )
     {
-        // get stream id
-        uint32 uiStreamId = IpToStreamId(Ip);
-        
+        // Use the active per-source mapping. Drop the mapping after we
+        // build the LastFramePacket so the next header arrival from this
+        // source allocates a fresh sid. NB: real YSF radios commonly
+        // emit 1-3 terminator FICH frames at end-of-transmission for
+        // redundancy. The first call here releases the mapping; the
+        // second/third terminators fall back to the deterministic hash
+        // (which won't match any open stream because OnDvLastFramePacketIn
+        // already closed it), so they route into the late-entry / cancel
+        // path in CProtocol::OnDvLastFramePacketIn and get dropped — no
+        // duplicate EoT can reach DCS egress.
+        uint32 uiStreamId = LookupStreamIdForSource(Ip);
+
         // get DV frames
         {
             uint8  uiAmbe[AMBE_SIZE];
@@ -961,7 +996,7 @@ bool CYsfProtocol::IsValidDvLastFramePacket(const CIp &Ip, const CYSFFICH &Fich,
         // check validity of packets
         if ( (frames[0] == NULL) || !(frames[0]->IsValid()) ||
              (frames[1] == NULL) || !(frames[1]->IsValid()) )
-            
+
         {
             delete frames[0];
             delete frames[1];
@@ -972,8 +1007,14 @@ bool CYsfProtocol::IsValidDvLastFramePacket(const CIp &Ip, const CYSFFICH &Fich,
         {
             valid = true;
         }
+
+        // The terminator frame consumed this source's sid mapping —
+        // drop it so the next header allocates fresh. Done unconditionally
+        // (regardless of frame validity) because a malformed terminator
+        // FICH still marks the end of this transmission from the source.
+        ReleaseStreamIdForSource(Ip);
     }
-    
+
     // done
     return valid;
 }
@@ -1196,7 +1237,7 @@ bool CYsfProtocol::EncodeDvLastPacket(const CDvHeaderPacket &Header, CBuffer *Bu
 ////////////////////////////////////////////////////////////////////////////////////////
 // Wires-X packet decoding helpers
 
-bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, CYSFFICH *Fich, CCallsign *Callsign, int *Cmd, int *Arg)
+bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, const CIp &Ip, CYSFFICH *Fich, CCallsign *Callsign, int *Cmd, int *Arg)
 {
     uint8 tag[] = { 'Y','S','F','D' };
     uint8 DX_REQ[]    = {0x5DU, 0x71U, 0x5FU};
@@ -1241,7 +1282,13 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, CYSFFICH *Fich, CCa
                         valid &= payload.readDataFRModeData2(&(Buffer.data()[35]), command + (Fich->getFN() - 1U) * 20U + 20U);
                     }
                 }
-                // check crc if end found
+                // check crc if end found.
+                // endMarkerPos is captured for downstream bounds checks:
+                // the response-code signature match below reads command[4]
+                // and must not run if the end marker is found at a position
+                // that would leave command[4] outside the CRC-validated
+                // region 0..endMarkerPos+1.
+                unsigned int endMarkerPos = 0U;
                 if ( Fich->getFN() == Fich->getFT() )
                 {
                     valid = false;
@@ -1252,7 +1299,10 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, CYSFFICH *Fich, CCa
                         {
                             unsigned char crc = CCRC::addCRC(command, i + 1U);
                             if (crc == command[i + 1U])
+                            {
                                 valid = true;
+                                endMarkerPos = i;
+                            }
                             break;
                         }
                     }
@@ -1276,14 +1326,124 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, CYSFFICH *Fich, CCa
                         // argument is start index of list
                        if ( *Arg > 0 )
                             (*Arg)--;
-                        // check if all or search
-                        if ( ::memcmp(command + 5U, "01", 2) == 0 )
+                        // ALL_REQ family — sub-code at command[5..6]
+                        // distinguishes the variant for "long form"
+                        // packets: "01" = ALL, "11" = SEARCH. Some Yaesu
+                        // radios also send a SHORT form of this prefix
+                        // with no sub-code at all (end marker lands
+                        // before command[6]). Production observation:
+                        // FTM-100D "LOCAL NEWS" uses the short form.
+                        //
+                        // Approach: try to match known sub-codes only
+                        // when bytes are within the CRC-validated region
+                        // (endMarkerPos >= 6). If no known sub-code
+                        // matches — for either reason (short form OR
+                        // unknown long-form sub-code) — fall into a
+                        // single unified diagnostic block that logs the
+                        // relevant bytes and drops via the UNKNOWN path.
+                        //
+                        // Pre-existing concern: the *Arg extraction at
+                        // command[7..9] earlier in this function has
+                        // the same endMarkerPos exposure for
+                        // endMarkerPos < 10. Not addressed here; scope
+                        // limited to closing the UB-on-*Cmd hole and
+                        // giving us diagnostic visibility on variants.
+                        bool subCodeRecognised = false;
+                        if ( endMarkerPos >= 6U )
                         {
-                             *Cmd = WIRESX_CMD_ALL_REQ;
+                            if ( ::memcmp(command + 5U, "01", 2) == 0 )
+                            {
+                                *Cmd = WIRESX_CMD_ALL_REQ;
+                                subCodeRecognised = true;
+                            }
+                            else if ( ::memcmp(command + 5U, "11", 2) == 0 )
+                            {
+                                *Cmd = WIRESX_CMD_SEARCH_REQ;
+                                subCodeRecognised = true;
+                            }
                         }
-                        else if ( ::memcmp(command + 5U, "11", 2) == 0 )
+
+                        if ( !subCodeRecognised )
                         {
-                             *Cmd = WIRESX_CMD_SEARCH_REQ;
+                            // -- BEGIN INSTRUMENTATION (temporary) --
+                            //
+                            // Diagnostic for any unrecognised ALL_REQ
+                            // family variant. Two distinct cases land
+                            // here, distinguished by the log trailer:
+                            //   - LONG FORM, unknown sub-code:
+                            //     endMarkerPos >= 6, command[5..6] is
+                            //     neither "01" nor "11". Log dumps the
+                            //     two sub-code bytes as " sub XX XX".
+                            //   - SHORT FORM, no sub-code at all:
+                            //     endMarkerPos < 6 (end marker arrived
+                            //     before command[6]). Log shows
+                            //     "(short form, endMarkerPos=N)" so the
+                            //     operator can see the exact packet
+                            //     shape. FTM-100D "LOCAL NEWS" lives
+                            //     here.
+                            //
+                            // Also closes a latent UB: previously *Cmd
+                            // could be returned uninitialised when the
+                            // sub-code dispatch fell through, and the
+                            // caller would construct CWiresxCmd with
+                            // garbage memory. The three "// KEEP" lines
+                            // at the end of this block close that hole.
+                            //
+                            // Removal plan when no longer needed:
+                            //   - Delete the peer-lookup block and the
+                            //     std::cout block (everything above the
+                            //     "// KEEP" lines).
+                            //   - KEEP the three "// KEEP" lines.
+                            //     Removing them reintroduces the UB.
+                            //   - OR replace the whole `if (!subCode...)`
+                            //     branch with proper sub-code dispatch
+                            //     once we've identified all variants.
+                            const char *origin = "direct client";
+                            char peerLabel[64];
+                            peerLabel[0] = '\0';
+                            {
+                                CPeers *peers = g_Reflector.GetPeers();
+                                CPeer *peer = peers->FindPeerByIpPort(Ip, PROTOCOL_YSF);
+                                if ( peer != NULL )
+                                {
+                                    char peerCs[CALLSIGN_LEN + 1];
+                                    peer->GetCallsign().GetCallsignString(peerCs);
+                                    ::snprintf(peerLabel, sizeof(peerLabel),
+                                               "YSF peer %s", peerCs);
+                                    origin = peerLabel;
+                                }
+                                g_Reflector.ReleasePeers();
+                            }
+                            char fromCs[CALLSIGN_LEN + 1];
+                            Callsign->GetCallsignString(fromCs);
+                            std::cout << "Wires-X command from " << fromCs
+                                      << " @ " << Ip
+                                      << " (" << origin << ") — code "
+                                      << std::hex << std::uppercase << std::setfill('0')
+                                      << std::setw(2) << (int)command[1] << " "
+                                      << std::setw(2) << (int)command[2] << " "
+                                      << std::setw(2) << (int)command[3]
+                                      << std::dec << std::nouppercase << std::setfill(' ');
+                            if ( endMarkerPos >= 6U )
+                            {
+                                // Long form — unknown sub-code bytes.
+                                std::cout << " sub "
+                                          << std::hex << std::uppercase << std::setfill('0')
+                                          << std::setw(2) << (int)command[5] << " "
+                                          << std::setw(2) << (int)command[6]
+                                          << std::dec << std::nouppercase << std::setfill(' ');
+                            }
+                            else
+                            {
+                                // Short form — end marker before command[6].
+                                std::cout << " (short form, endMarkerPos="
+                                          << endMarkerPos << ")";
+                            }
+                            std::cout << " (UNKNOWN, Dropped)" << std::endl;
+                            // -- END INSTRUMENTATION (logging) --
+                            *Cmd  = WIRESX_CMD_UNKNOWN;     // KEEP (UB-closure)
+                            *Arg  = 0;                       // KEEP (UB-closure)
+                            valid = false;                   // KEEP (UB-closure)
                         }
                      }
                     else if (::memcmp(command + 1U, CONN_REQ, 3U) == 0)
@@ -1297,7 +1457,96 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, CYSFFICH *Fich, CCa
                     }
                     else
                     {
-                        std::cout << "Wires-X unknown command" << std::endl;
+                        // All recognised request codes are handled above;
+                        // everything reaching this branch is diagnostic-only
+                        // and never processed. If a future Wires-X request
+                        // is added (e.g. CAT_REQ '5D 67 5F' from G4KLX), it
+                        // belongs in a new `else if` BEFORE this branch.
+                        //
+                        // Unrecognised command code at command[1..3], OR a
+                        // documented server-response code that should never
+                        // appear inbound (server responses are gateway->radio,
+                        // not radio->gateway — a client sending one means a
+                        // misconfigured peer, a relay loop, an RF bridge, a
+                        // probe, or a bug somewhere upstream). Either way
+                        // the packet is dropped — we never process unknown
+                        // codes, and server responses don't belong in radio-
+                        // to-gateway traffic.
+                        //
+                        // By the time we reach this branch the packet framing
+                        // is fully validated (size, YSFD tag, FICH, end
+                        // marker, CRC). The ONLY thing distinguishing this
+                        // from a recognised request is the command code
+                        // itself; everything else is known framing. The
+                        // argument area at command[5..] is intentionally NOT
+                        // dumped — for unknown / non-request codes its
+                        // layout is undefined.
+                        //
+                        // The log line tags the code as UNKNOWN by default,
+                        // or names the documented response (DX_RESP,
+                        // CONN/DISC_RESP, ALL_RESP) if the 4-byte signature
+                        // matches. Match includes the 0x26 marker at
+                        // command[4] so a coincidental 5D ?? 5F with a
+                        // different follow byte can't be mis-tagged as a
+                        // response. Marker bytes are from
+                        // g4klx/YSFClients/YSFGateway/WiresX.cpp.
+                        //
+                        // Peer-vs-client classification: look up the source
+                        // IP+port in the registered peer list. The caller
+                        // performs the same lookup immediately after we
+                        // return (to decide whether to enqueue or silently
+                        // ignore Wires-X from peers); doing it here just
+                        // attaches the context to the log line.
+                        static const uint8 DX_RESP[]   = {0x5DU, 0x51U, 0x5FU, 0x26U};
+                        static const uint8 CONN_RESP[] = {0x5DU, 0x41U, 0x5FU, 0x26U};
+                        static const uint8 ALL_RESP[]  = {0x5DU, 0x46U, 0x5FU, 0x26U};
+
+                        // Response signatures are 4 bytes; gate on
+                        // endMarkerPos so command[4] is always within the
+                        // CRC-validated initialised region. A degenerate
+                        // packet with the end marker at position < 4 cannot
+                        // be a real response anyway (the response framing
+                        // alone occupies command[1..4]), so refusing to
+                        // tag it as one is correct as well as safe.
+                        const char *cmdTag = "UNKNOWN";
+                        if ( endMarkerPos >= 4U )
+                        {
+                            if ( ::memcmp(command + 1U, DX_RESP, 4U) == 0 )
+                                cmdTag = "DX_RESP";
+                            else if ( ::memcmp(command + 1U, CONN_RESP, 4U) == 0 )
+                                cmdTag = "CONN/DISC_RESP";
+                            else if ( ::memcmp(command + 1U, ALL_RESP, 4U) == 0 )
+                                cmdTag = "ALL_RESP";
+                        }
+
+                        const char *origin = "direct client";
+                        char peerLabel[64];
+                        peerLabel[0] = '\0';
+                        {
+                            CPeers *peers = g_Reflector.GetPeers();
+                            CPeer *peer = peers->FindPeerByIpPort(Ip, PROTOCOL_YSF);
+                            if ( peer != NULL )
+                            {
+                                char peerCs[CALLSIGN_LEN + 1];
+                                peer->GetCallsign().GetCallsignString(peerCs);
+                                ::snprintf(peerLabel, sizeof(peerLabel),
+                                           "YSF peer %s", peerCs);
+                                origin = peerLabel;
+                            }
+                            g_Reflector.ReleasePeers();
+                        }
+                        char fromCs[CALLSIGN_LEN + 1];
+                        Callsign->GetCallsignString(fromCs);
+                        std::cout << "Wires-X command from " << fromCs
+                                  << " @ " << Ip
+                                  << " (" << origin << ") — code "
+                                  << std::hex << std::uppercase << std::setfill('0')
+                                  << std::setw(2) << (int)command[1] << " "
+                                  << std::setw(2) << (int)command[2] << " "
+                                  << std::setw(2) << (int)command[3]
+                                  << std::dec << std::nouppercase << std::setfill(' ')
+                                  << " (" << cmdTag << ", Dropped)"
+                                  << std::endl;
                         *Cmd = WIRESX_CMD_UNKNOWN;
                         *Arg = 0;
                         valid = false;
@@ -1370,11 +1619,86 @@ uint32 CYsfProtocol::CalcHash(const uint8 *buffer, int len) const
 ////////////////////////////////////////////////////////////////////////////////////////
 // uiStreamId helpers
 
-
-// uiStreamId helpers
 uint32 CYsfProtocol::IpToStreamId(const CIp &ip) const
 {
     return ip.GetAddr() ^ (uint32)(MAKEDWORD(ip.GetPort(), ip.GetPort()));
+}
+
+// Build the map key. (addr<<16)|port keeps the same source endpoint
+// keyed identically for header / voice / terminator frames within one
+// transmission, and distinguishes localhost peers using different
+// ephemeral ports.
+static inline uint64_t YsfSourceKey(const CIp &ip)
+{
+    return ((uint64_t)ip.GetAddr() << 16) | (uint64_t)(ip.GetPort() & 0xFFFFu);
+}
+
+// Allocate a fresh reflector-side stream-id for a NEW header arrival.
+// Pulls the nonce from the process-wide CProtocol::AllocateGlobalStreamIdNonce
+// — see cprotocol.cpp for the rationale (random seed at startup, shared
+// across protocols to avoid inter-protocol sid collisions). Defensively
+// retries if the candidate happens to collide with another live source's
+// mapped sid in THIS protocol's m_SourceStates (only possible across a
+// 65535-allocation wraparound where an earlier entry was never released
+// — bounded growth on dropped terminators, see header comment).
+uint32 CYsfProtocol::AllocateNewStreamIdForSource(const CIp &ip)
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+
+    const uint64_t key = YsfSourceKey(ip);
+
+    // Try up to 65535 attempts; in practice the first attempt almost
+    // always succeeds because the active-source set is small.
+    for (int attempts = 0; attempts < 65535; attempts++)
+    {
+        uint32 candidate = (uint32)AllocateGlobalStreamIdNonce();
+
+        bool collision = false;
+        for (const auto &entry : m_SourceStates)
+        {
+            if (entry.first != key && entry.second == candidate)
+            {
+                collision = true;
+                break;
+            }
+        }
+        if (!collision)
+        {
+            m_SourceStates[key] = candidate;
+            return candidate;
+        }
+    }
+
+    // Pathological fallback (would require 65535 simultaneous active
+    // sources within this protocol, which is impossible on a single
+    // UDP port). Fall back to the deterministic hash so we still
+    // produce SOMETHING valid.
+    uint32 fallback = IpToStreamId(ip);
+    m_SourceStates[key] = fallback;
+    return fallback;
+}
+
+// Look up the active sid for an inbound voice / terminator frame.
+// Falls back to the deterministic IpToStreamId() when no header has
+// been seen for this source — preserves the late-entry buffering path
+// in CProtocol::OnDvFramePacketIn for orphan mid-stream packets.
+uint32 CYsfProtocol::LookupStreamIdForSource(const CIp &ip) const
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+    auto it = m_SourceStates.find(YsfSourceKey(ip));
+    if (it != m_SourceStates.end())
+    {
+        return it->second;
+    }
+    return IpToStreamId(ip);
+}
+
+// Drop the IP→sid mapping after the terminator frame is constructed.
+// The next header from this source will allocate a fresh sid.
+void CYsfProtocol::ReleaseStreamIdForSource(const CIp &ip)
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+    m_SourceStates.erase(YsfSourceKey(ip));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1657,8 +1981,21 @@ bool CYsfProtocol::IsYsfPeerCallsign(const CCallsign &callsign) const
 
 CCallsignListItem *CYsfProtocol::FindYsfPeerByIp(CPeerCallsignList *list, const CIp &ip)
 {
-    // Search for a YSF peer matching this IP
-    // This is needed because multiple peers (YSF, NXDN) might share the same IP
+    // Search for a YSF peer matching this IP.
+    //
+    // Match on (address, port) when the interlink entry declares an explicit
+    // port (item->GetPort() != 0). This disambiguates two YSF peers sharing
+    // an IP address on different listening ports — the inbound source port
+    // for YSF is the peer reflector's listening port (server-style protocol),
+    // so comparing against the file-declared port routes each peer correctly.
+    //
+    // When the interlink entry has no explicit port, fall back to address-
+    // only matching (preserves the single-peer-per-IP behaviour that existed
+    // before this disambiguation was added). Operators who want multi-peer-
+    // per-IP must specify ports in xlxd.interlink.
+    //
+    // m_uiPort is host byte order (set via atoi at parse time); CIp::GetPort
+    // returns sin_port in network byte order — hence htons() at compare.
     for ( int i = 0; i < list->size(); i++ )
     {
         CCallsignListItem *item = &((list->data())[i]);
@@ -1666,10 +2003,13 @@ CCallsignListItem *CYsfProtocol::FindYsfPeerByIp(CPeerCallsignList *list, const 
         // Check if this is a YSF peer (callsign starts with "YSF")
         if ( IsYsfPeerCallsign(item->GetCallsign()) )
         {
-            // Check if IP matches
             if ( item->GetIp().GetAddr() == ip.GetAddr() )
             {
-                return item;
+                uint16 itemPort = item->GetPort();
+                if ( itemPort == 0 || ::htons(itemPort) == ip.GetPort() )
+                {
+                    return item;
+                }
             }
         }
     }

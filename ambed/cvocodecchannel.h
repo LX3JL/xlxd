@@ -30,6 +30,7 @@
 #include <queue>
 #include <vector>
 #include <thread>
+#include <chrono>
 #include <condition_variable>
 #include <atomic>
 #include "cpacketqueue.h"
@@ -37,6 +38,24 @@
 #include "cvoicepacket.h"
 #include "codec2/codec2.h"
 #include "imbe/imbe_vocoder.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+// PID FIFO desync-recovery constants
+//
+// Max age of a FIFO entry before PopPid prunes it as orphaned.
+// Healthy ambed RTT is 40-100 ms (max observed ~144 ms in production
+// captures); 500 ms is well above that and well below conversational
+// silences. After this many ms, the entry is assumed to correspond
+// to an input packet whose hardware response was dropped, and is
+// pruned to recover FIFO alignment.
+#define PID_FIFO_TIMEOUT_MS         500
+
+// Max FIFO occupancy before PushPid drops oldest. Bounds memory if
+// xlxd ever sustains input above DVStick throughput. 200 = 4 seconds
+// of frames at 50 fps; well above any realistic burst size (xlxd's
+// pre-codec buffer is paced at ~50 fps after replay, and YSF/NXDN
+// per-UDP burst sizes are 4-5 frames at most).
+#define PID_FIFO_MAX_DEPTH          200
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -79,6 +98,61 @@ public:
     CPacketQueue *GetVoiceQueue(void)       { m_QueueVoice.Lock(); return &m_QueueVoice; }
     void ReleaseVoiceQueue(void)            { m_QueueVoice.Unlock(); }
 
+    // PID preservation through the DVStick pipeline.
+    //
+    // The hardware response parser (CUsb3xxx*Interface::IsValidChannelPacket)
+    // creates a fresh CAmbePacket from raw USB bytes and has no way to
+    // recover the PID that was on the corresponding input packet — the
+    // PID is lost the moment the input packet is consumed by the USB
+    // write path. Without preservation, every output packet has PID=0
+    // and xlxd's PID-keyed response routing breaks (every response after
+    // the first looks like a stale duplicate).
+    //
+    // Approach: each CVocodecChannel holds a FIFO of (pid, pushedAt)
+    // entries. The USB interface pushes when consuming an input packet
+    // (decoder side for AMBE-input mode, encoder side for Codec2/IMBE-
+    // input modes) and pops when producing an output packet. The
+    // DVStick processes packets in FIFO order per physical channel, so
+    // pop order matches push order — pid round-trips correctly via
+    // FIFO pairing rather than via byte-in-the-packet preservation
+    // that the hardware protocol doesn't support.
+    //
+    // The pushedAt timestamp is used for desync recovery. If the
+    // hardware ever drops a packet (USB glitch, transient fault), the
+    // FIFO would be permanently off by one without intervention.
+    // Two protections:
+    //
+    //   - PopPid prunes orphaned entries (front older than
+    //     PID_FIFO_TIMEOUT_MS) before returning. This bounds the
+    //     mis-pairing window after a hardware drop to ~timeout
+    //     duration; without it, the desync would be permanent for
+    //     the rest of the stream. Mid-window mis-pairing is still
+    //     possible (a response arriving during the timeout window
+    //     pops the stale front entry); see Q1 trace in the design
+    //     review for why a tighter timeout doesn't help. 500 ms is
+    //     well above healthy ambed RTT (40-100 ms) and well below
+    //     conversational silences.
+    //
+    //   - PushPid caps FIFO occupancy (drops oldest if size >
+    //     PID_FIFO_MAX_DEPTH). Memory-safety belt; only fires under
+    //     pathological sustained input overrun.
+    //
+    // Drops are tracked separately for diagnostics — orphan drops
+    // (timeout-pruned) and overflow drops (cap-pruned) have different
+    // operational meanings.
+    //
+    // PopPid returns 0 if the FIFO is empty (matches the
+    // pre-fix default-PID behaviour and guarantees PopPid never
+    // crashes on an unexpected hardware response).
+    void   PushPid(uint8 pid);
+    uint8  PopPid(void);
+
+    // Diagnostic getters for the close-time stats line. Use .load()
+    // because the counters are atomic — see the m_PidFifo* declaration
+    // block below for the rationale.
+    uint32 GetPidFifoOrphanDrops(void) const   { return m_PidFifoOrphanDrops.load(); }
+    uint32 GetPidFifoOverflowDrops(void) const { return m_PidFifoOverflowDrops.load(); }
+
     // Codec2 queue (for software-encoded Codec2 data)
     void EnableCodec2(bool bEnable);
     bool HasCodec2Data(void);
@@ -113,6 +187,41 @@ protected:
     CPacketQueue        m_QueuePacketOut;
     // voice queue
     CPacketQueue        m_QueueVoice;
+
+    // PID preservation FIFO — see PushPid/PopPid comment above the
+    // public methods. Touched by the USB interface Task() thread
+    // (push on input consume, pop on output produce) and cleared by
+    // PurgeAllQueues from Open/Close paths on potentially other
+    // threads, so a dedicated mutex guards it.
+    //
+    // Each entry carries a pushedAt timestamp (steady_clock so an NTP
+    // wall-clock step doesn't prune the entire FIFO) for the
+    // desync-recovery logic in PushPid/PopPid.
+    struct PidEntry
+    {
+        uint8                                  pid;
+        std::chrono::steady_clock::time_point  pushedAt;
+    };
+    std::queue<PidEntry>   m_PidFifo;
+    std::mutex             m_PidFifoMutex;
+
+    // Desync drop counters. orphan = entries pruned at PopPid because
+    // they exceeded PID_FIFO_TIMEOUT_MS (the response that should have
+    // popped them never arrived — hardware drop). overflow = entries
+    // pruned at PushPid because the FIFO exceeded PID_FIFO_MAX_DEPTH
+    // (sustained input overrun, memory-safety belt). Reset by
+    // PurgeAllQueues so each stream gets a fresh accounting epoch.
+    //
+    // Atomic because the close-time capture path in CStream::Close
+    // reads these from a different thread than the USB Task() thread
+    // that increments them. Increments still happen under
+    // m_PidFifoMutex (the increment site is bracketed by the mutex
+    // we already hold for the FIFO operations), so the atomic
+    // operations don't add new synchronisation cost — they just
+    // make the cross-thread read well-defined under the C++ memory
+    // model.
+    std::atomic<uint32>    m_PidFifoOrphanDrops;
+    std::atomic<uint32>    m_PidFifoOverflowDrops;
     
     // settings
     int                 m_iSpeechGain;

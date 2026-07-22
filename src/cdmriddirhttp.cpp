@@ -23,6 +23,11 @@
 // ----------------------------------------------------------------------------
 
 #include <string.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <chrono>
 #include "main.h"
 #include "creflector.h"
 #include "cdmriddirhttp.h"
@@ -96,86 +101,144 @@ bool CDmridDirHttp::RefreshContent(const CBuffer &buffer)
 // httpd helpers
 
 #define DMRID_HTTPGET_SIZEMAX       (256)
+#define HTTPGET_CONNECT_TIMEOUT_SEC (10)
+#define HTTPGET_RW_TIMEOUT_SEC      (5)
+#define HTTPGET_TOTAL_TIMEOUT_SEC   (60)
+
+// Non-blocking connect with a bounded timeout. Returns true on success.
+// Leaves the socket in blocking mode on return.
+static bool HttpConnectWithTimeout(int sock, const struct sockaddr *addr, socklen_t addrlen, int timeoutSec)
+{
+    // Switch socket to non-blocking for the duration of connect()
+    int flags = ::fcntl(sock, F_GETFL, 0);
+    if ( flags < 0 ) return false;
+    if ( ::fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0 ) return false;
+
+    int rc = ::connect(sock, addr, addrlen);
+    if ( rc == 0 )
+    {
+        // Connected immediately (unlikely for TCP but valid)
+        ::fcntl(sock, F_SETFL, flags);
+        return true;
+    }
+    if ( errno != EINPROGRESS )
+    {
+        ::fcntl(sock, F_SETFL, flags);
+        return false;
+    }
+
+    // Wait for writability with our own timeout
+    fd_set wset;
+    FD_ZERO(&wset);
+    FD_SET(sock, &wset);
+    struct timeval tv;
+    tv.tv_sec = timeoutSec;
+    tv.tv_usec = 0;
+    rc = ::select(sock + 1, NULL, &wset, NULL, &tv);
+    if ( rc <= 0 )
+    {
+        // timeout or error
+        ::fcntl(sock, F_SETFL, flags);
+        return false;
+    }
+
+    // Check SO_ERROR to distinguish connected-successfully from async error
+    int soerr = 0;
+    socklen_t slen = sizeof(soerr);
+    if ( ::getsockopt(sock, SOL_SOCKET, SO_ERROR, &soerr, &slen) < 0 || soerr != 0 )
+    {
+        ::fcntl(sock, F_SETFL, flags);
+        return false;
+    }
+
+    // Restore blocking mode
+    ::fcntl(sock, F_SETFL, flags);
+    return true;
+}
 
 bool CDmridDirHttp::HttpGet(const char *hostname, const char *filename, int port, CBuffer *buffer)
 {
     bool ok = false;
     int sock_id;
-    
-    // open socket
-    if ( (sock_id = ::socket(AF_INET, SOCK_STREAM, 0)) >= 0 )
-    {
-        // get hostname address
-        struct sockaddr_in servaddr;
-        struct hostent *hp;
-        ::memset(&servaddr,0,sizeof(servaddr));
-        if( (hp = gethostbyname(hostname)) != NULL )
-        {
-            // dns resolved
-            ::memcpy((char *)&servaddr.sin_addr.s_addr, (char *)hp->h_addr, hp->h_length);
-            servaddr.sin_port = htons(port);
-            servaddr.sin_family = AF_INET;
-            
-            // connect
-            if ( ::connect(sock_id, (struct sockaddr *)&servaddr, sizeof(servaddr)) == 0)
-            {
-                // send the GET request
-                char request[DMRID_HTTPGET_SIZEMAX];
-                ::sprintf(request, "GET /%s HTTP/1.0\r\nFrom: %s\r\nUser-Agent: xlxd\r\n\r\n",
-                          filename, (const char *)g_Reflector.GetCallsign());
-                ::write(sock_id, request, strlen(request));
-                
-                // config receive timeouts
-                fd_set read_set;
-                struct timeval timeout;
-                timeout.tv_sec = 5;
-                timeout.tv_usec = 0;
-                FD_ZERO(&read_set);
-                FD_SET(sock_id, &read_set);
-                
-                // get the reply back
-                buffer->clear();
-                bool done = false;
-                do
-                {
-                    char buf[1440];
-                    ssize_t len = 0;
-                    select(sock_id+1, &read_set, NULL, NULL, &timeout);
-                    //if ( (ret > 0) || ((ret < 0) && (errno == EINPROGRESS)) )
-                    //if ( ret >= 0 )
-                    //{
-                    usleep(5000);
-                    len = read(sock_id, buf, 1440);
-                    if ( len > 0 )
-                    {
-                        buffer->Append((uint8 *)buf, (int)len);
-                        ok = true;
-                    }
-                    //}
-                    done = (len <= 0);
-                    
-                } while (!done);
-                buffer->Append((uint8)0);
-                
-                // and disconnect
-                close(sock_id);
-            }
-            else
-            {
-                std::cout << "Cannot establish connection with host " << hostname << std::endl;
-            }
-        }
-        else
-        {
-            std::cout << "Host " << hostname << " not found" << std::endl;
-        }
-        
-    }
-    else
+
+    if ( (sock_id = ::socket(AF_INET, SOCK_STREAM, 0)) < 0 )
     {
         std::cout << "Failed to open wget socket" << std::endl;
+        return false;
     }
-    
-    // done
+
+    // Apply per-operation send/receive timeouts so a peer that half-dies
+    // mid-transfer cannot wedge this thread forever. Without these, both
+    // ::write() and ::read() block indefinitely on a stalled socket.
+    struct timeval rwto;
+    rwto.tv_sec = HTTPGET_RW_TIMEOUT_SEC;
+    rwto.tv_usec = 0;
+    ::setsockopt(sock_id, SOL_SOCKET, SO_RCVTIMEO, &rwto, sizeof(rwto));
+    ::setsockopt(sock_id, SOL_SOCKET, SO_SNDTIMEO, &rwto, sizeof(rwto));
+
+    // Resolve hostname. gethostbyname has no configurable timeout; on Linux
+    // it respects /etc/resolv.conf's `timeout` and `attempts` options, so
+    // a misconfigured resolver can block ~15s. That is ugly but still
+    // bounded, and this runs on the background refresh thread so it does
+    // not affect voice routing.
+    struct sockaddr_in servaddr;
+    struct hostent *hp;
+    ::memset(&servaddr, 0, sizeof(servaddr));
+    if ( (hp = ::gethostbyname(hostname)) == NULL )
+    {
+        std::cout << "Host " << hostname << " not found" << std::endl;
+        ::close(sock_id);
+        return false;
+    }
+    ::memcpy((char *)&servaddr.sin_addr.s_addr, (char *)hp->h_addr, hp->h_length);
+    servaddr.sin_port = htons(port);
+    servaddr.sin_family = AF_INET;
+
+    // Bounded connect (avoids up-to-127s kernel TCP SYN retry block)
+    if ( !HttpConnectWithTimeout(sock_id, (struct sockaddr *)&servaddr, sizeof(servaddr), HTTPGET_CONNECT_TIMEOUT_SEC) )
+    {
+        std::cout << "Cannot establish connection with host " << hostname << std::endl;
+        ::close(sock_id);
+        return false;
+    }
+
+    // Send the GET request. SO_SNDTIMEO bounds the write() if the socket
+    // is wedged.
+    char request[DMRID_HTTPGET_SIZEMAX];
+    int requestLen = ::snprintf(request, sizeof(request),
+        "GET /%s HTTP/1.0\r\nHost: %s\r\nFrom: %s\r\nUser-Agent: xlxd\r\n\r\n",
+        filename, hostname, (const char *)g_Reflector.GetCallsign());
+    if ( requestLen > 0 && requestLen < (int)sizeof(request) )
+    {
+        ::write(sock_id, request, requestLen);
+    }
+
+    // Read response with a wall-clock overall deadline so a peer that
+    // dribbles bytes forever cannot stall us indefinitely either.
+    buffer->clear();
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::seconds(HTTPGET_TOTAL_TIMEOUT_SEC);
+    while ( std::chrono::steady_clock::now() < deadline )
+    {
+        char buf[1440];
+        ssize_t len = ::read(sock_id, buf, sizeof(buf));
+        if ( len > 0 )
+        {
+            buffer->Append((uint8 *)buf, (int)len);
+            ok = true;
+            continue;
+        }
+        if ( len == 0 )
+        {
+            // clean EOF from peer
+            break;
+        }
+        // len < 0 — error. EAGAIN/EWOULDBLOCK means the SO_RCVTIMEO fired
+        // mid-transfer; we bail rather than risk looping forever.
+        break;
+    }
+    buffer->Append((uint8)0);
+
+    ::close(sock_id);
     return ok;
 }

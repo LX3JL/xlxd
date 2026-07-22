@@ -103,13 +103,29 @@ void CDplusProtocol::RxTask(void)
                     g_Reflector.ReleasePeers();
                 }
 
-                if ( isPeer || g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DPLUS, Header->GetRpt2Module()) )
+                // Peer traffic bypasses MayTransmit by design, but is
+                // still subject to the per-callsign loop block — see
+                // cysfprotocol.cpp for the rationale.
+                if ( isPeer )
                 {
-                    OnDvHeaderPacketIn(Header, Ip);
+                    if ( g_GateKeeper.IsCallsignLoopBlocked(
+                            Header->GetMyCallsign(), "DPlus peer") )
+                    {
+                        delete Header;
+                        Header = NULL;
+                    }
                 }
-                else
+                else if ( !g_GateKeeper.MayTransmit(
+                            Header->GetMyCallsign(), Ip,
+                            PROTOCOL_DPLUS, Header->GetRpt2Module()) )
                 {
                     delete Header;
+                    Header = NULL;
+                }
+
+                if ( Header != NULL )
+                {
+                    OnDvHeaderPacketIn(Header, Ip);
                 }
             }
         }

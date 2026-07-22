@@ -115,6 +115,23 @@ protected:
     // stream handle helpers
     CPacketStream *GetStream(uint16, const CIp * = NULL);
     void CheckStreamsTimeout(void);
+
+    // shared per-transmission stream-id nonce generator
+    //
+    // YSF / NXDN / P25 cross-mode allocate fresh stream-ids on each new
+    // transmission (see e.g. cysfprotocol.cpp::AllocateNewStreamIdForSource).
+    // The nonce source is shared across ALL protocol instances so that:
+    //   1. Two different protocols can't allocate the same value for two
+    //      simultaneously-active transmissions on the same module — that
+    //      would put the same wire DCS sid on two consecutive cross-mode
+    //      streams from different sources, ghosting the gateway's stream
+    //      tracking the same way same-source rapid re-keys did.
+    //   2. The starting offset is randomised per xlxd run, so a gateway
+    //      that cached the previous run's last-used sid won't match the
+    //      first sid the new run hands out.
+    // Returns a non-zero uint16 each call. Atomic — safe to call from
+    // any thread without external locking.
+    static uint16 AllocateGlobalStreamIdNonce(void);
     
     // queue helper
     virtual void HandleQueue(void);

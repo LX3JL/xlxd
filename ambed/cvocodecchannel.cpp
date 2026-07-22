@@ -52,6 +52,11 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
     m_pImbe = NULL;
     m_pImbeThread = NULL;
     m_bImbeStopThread = false;
+
+    // PID FIFO desync drop counters — reset by PurgeAllQueues at
+    // every Open/Close so each stream gets a fresh accounting epoch.
+    m_PidFifoOrphanDrops = 0;
+    m_PidFifoOverflowDrops = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -532,6 +537,109 @@ void CVocodecChannel::PurgeAllQueues(void)
             m_ImbePcmQueue.pop();
         }
     }
+
+    // Clear PID-preservation FIFO and the desync drop counters.
+    // Important: any pids left in the FIFO here would mis-pair with
+    // future input/output once the channel re-opens, because the
+    // hardware response queue and FIFO push/pop would be one or more
+    // entries out of step. The counter reset gives each stream a
+    // fresh accounting epoch — the close-time stats line reports
+    // per-stream desync events, not cumulative since process start.
+    {
+        std::lock_guard<std::mutex> lock(m_PidFifoMutex);
+        while ( !m_PidFifo.empty() )
+        {
+            m_PidFifo.pop();
+        }
+        m_PidFifoOrphanDrops = 0;
+        m_PidFifoOverflowDrops = 0;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// PID preservation FIFO
+
+// Push a pid + timestamp pair. If the FIFO has reached its memory-
+// safety cap (PID_FIFO_MAX_DEPTH), drop the oldest entry first to
+// bound RAM growth under sustained input overrun. Logs a one-line
+// warning the first time overflow drops fire on this stream so an
+// operator notices it in real time, then stays silent until the
+// counters reset (PurgeAllQueues at next stream open/close).
+void CVocodecChannel::PushPid(uint8 pid)
+{
+    std::lock_guard<std::mutex> lock(m_PidFifoMutex);
+
+    while ( m_PidFifo.size() >= PID_FIFO_MAX_DEPTH )
+    {
+        m_PidFifo.pop();
+        if ( m_PidFifoOverflowDrops == 0 )
+        {
+            std::cout << "ambed WARNING: PID FIFO overflow drop on channel "
+                      << m_iChannelIn << "->" << m_iChannelOut
+                      << " (input rate exceeds DVStick throughput; further "
+                      << "drops on this stream will be silent until close)"
+                      << std::endl;
+        }
+        m_PidFifoOverflowDrops++;
+    }
+
+    PidEntry e;
+    e.pid = pid;
+    e.pushedAt = std::chrono::steady_clock::now();
+    m_PidFifo.push(e);
+}
+
+// Pop the front pid. Before returning, prune any front entries that
+// are older than PID_FIFO_TIMEOUT_MS — they're orphans whose
+// hardware response never arrived (DVStick drop, transient USB
+// fault). Without this the FIFO would be permanently off by one
+// after any hardware drop, causing every subsequent response to
+// pair with the wrong xlxd-side packet for the rest of the stream.
+//
+// Mid-window mis-pairing is still possible (a response arriving
+// during the timeout window pops the stale front entry). The
+// timeout bounds the window to ~PID_FIFO_TIMEOUT_MS rather than
+// preventing the mis-pair entirely; see the design review trace
+// for why a tighter timeout doesn't help. After the window, the
+// FIFO re-aligns and pairing is correct again.
+//
+// Returns 0 if the FIFO is empty (matches pre-fix default behaviour
+// — xlxd's lookup will miss and the response counts as "late",
+// audio for the would-be-paired packet is unaffected because it's
+// already left the jitter buffer).
+uint8 CVocodecChannel::PopPid(void)
+{
+    std::lock_guard<std::mutex> lock(m_PidFifoMutex);
+
+    auto now = std::chrono::steady_clock::now();
+    while ( !m_PidFifo.empty() )
+    {
+        auto ageMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now - m_PidFifo.front().pushedAt).count();
+        if ( ageMs <= PID_FIFO_TIMEOUT_MS )
+        {
+            break;
+        }
+        // Front entry is orphaned — prune it.
+        m_PidFifo.pop();
+        if ( m_PidFifoOrphanDrops == 0 )
+        {
+            std::cout << "ambed WARNING: PID FIFO orphan drop on channel "
+                      << m_iChannelIn << "->" << m_iChannelOut
+                      << " (DVStick dropped a packet's response; further "
+                      << "drops on this stream will be silent until close)"
+                      << std::endl;
+        }
+        m_PidFifoOrphanDrops++;
+    }
+
+    if ( m_PidFifo.empty() )
+    {
+        return 0;
+    }
+    uint8 pid = m_PidFifo.front().pid;
+    m_PidFifo.pop();
+    return pid;
 }
 
 

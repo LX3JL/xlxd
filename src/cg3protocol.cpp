@@ -109,6 +109,12 @@ bool CG3Protocol::Init(void)
 
 void CG3Protocol::Close(void)
 {
+    // Stop the base-class threads first. This sets m_bStopThread, which the
+    // helper threads below also observe in their loop conditions. Without
+    // this, m_bStopThread would stay false and the helper-thread joins
+    // below would block forever.
+    CProtocol::Close();
+
     if (m_pPresenceThread)
     {
         m_pPresenceThread->join();

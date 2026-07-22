@@ -80,7 +80,20 @@ public:
     
     // stream opening & closing
     CPacketStream *OpenStream(CDvHeaderPacket *, CClient *);
-    void CloseStream(CPacketStream *);
+    bool CloseStream(CPacketStream *);
+
+    // Codec presence accounting (used by OpenStream to decide whether
+    // a local transcode is required to fill missing codecs for the
+    // clients connected to a given module). Returns a bitmask
+    // (1 << CODEC_*) of codecs that at least one client on this
+    // module would consume. AMBE+ and AMBE+2 are always included as
+    // "core" codecs regardless of which clients are connected
+    // (operator policy — these always-on codecs cover D-Star and
+    // the DMR-family protocols which dominate cross-mode traffic).
+    // Codec2 is included iff there is at least one M17 client on
+    // the module; IMBE iff there is at least one P25 client.
+    // Caller MUST hold the Clients lock.
+    uint32 GetNeededCodecsOnModule(char module) const;
 
     // late entry support
     bool TryLateEntry(CDvHeaderPacket *, CClient *);

@@ -464,14 +464,24 @@ void CXlxProtocol::HandlePeerLinks(void)
 bool CXlxProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
+    bool lastheard = false;
     CCallsign peer;
-    
+
+    // Snapshot header fields for the Hearing() call at the end. OpenStream
+    // consumes the Header pointer on success (deletes it after copying into
+    // the stream), so we cannot safely dereference `Header` after that call.
+    // Every other protocol uses the same local-snapshot pattern — see
+    // e.g. cdmrmmdvmprotocol.cpp:365-370.
+    CCallsign myCallsign   = Header->GetMyCallsign();
+    CCallsign rpt1Callsign = Header->GetRpt1Callsign();
+    CCallsign rpt2Callsign = Header->GetRpt2Callsign();
+
     // todo: verify Packet.GetModuleId() is in authorized list of XLX of origin
     // todo: do the same for DVFrame and DVLAstFrame packets
 
     // tag packet as remote peer origin
     Header->SetRemotePeerOrigin();
-    
+
     // find the stream (match on both StreamId and IP to avoid false matches)
     CPacketStream *stream = GetStream(Header->GetStreamId(), &Ip);
     if ( stream == NULL )
@@ -481,34 +491,64 @@ bool CXlxProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_XLX, Header->GetRpt2Module());
         if ( client != NULL )
         {
+            // Snapshot the peer callsign BEFORE OpenStream — OpenStream may
+            // release and re-acquire the Clients lock during its transcoder
+            // handshake, after which `client` is not safe to dereference.
+            peer = client->GetCallsign();
+
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
             {
                 // keep the handle
                 m_Streams.push_back(stream);
                 newstream = true;
+                lastheard = true;
+                // OpenStream consumes the caller's pointer on success — null
+                // our local so the end-of-function cleanup doesn't double-free.
+                Header = NULL;
             }
             else if ( g_Reflector.TryLateEntry(Header, client) )
             {
                 Header = NULL;  // ownership transferred
+                // NOT setting lastheard here — matches pre-squash behavior,
+                // which skipped Hearing() on late-entry because its
+                // `if (Header != NULL)` guard was already false after the
+                // ownership transfer.
             }
-            // get origin
-            peer = client->GetCallsign();
+            else
+            {
+                // open and late-entry both failed — still counted as heard
+                // in the pre-squash code (Header still non-NULL at guard).
+                lastheard = true;
+            }
+        }
+        else
+        {
+            // no client found — pre-squash counted this as heard too
+            // (Header still non-NULL, peer default/empty).
+            lastheard = true;
         }
         // release
         g_Reflector.ReleaseClients();
     }
     else
     {
-        // stream already open
-        // skip packet, but tickle the stream
+        // stream already open — duplicate header, tickle the stream.
+        // Pre-squash counted this as heard (Header still non-NULL, peer
+        // default/empty because client lookup is skipped in this branch).
+        // Note this diverges from CDextraProtocol (parent) which skips
+        // Hearing() on duplicate headers — intentional XLX behavior so
+        // long transmissions through XLX peers keep their heard-list
+        // timestamp fresh. Hearing() deduplicates via CUser::operator==
+        // and falls through to HeardNow() on the existing entry.
         stream->Tickle();
+        lastheard = true;
     }
 
     // update last heard
-    if ( Header != NULL )
+    if ( lastheard )
     {
-        g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), Header->GetRpt1Callsign(), Header->GetRpt2Callsign(), peer);
+        g_Reflector.GetUsers()->Hearing(myCallsign, rpt1Callsign, rpt2Callsign, peer);
         g_Reflector.ReleaseUsers();
     }
 
@@ -517,16 +557,55 @@ bool CXlxProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
     {
         delete Header;
     }
-    
+
     // done
     return newstream;
+}
+
+// Reconcile a freshly-parsed XLX wire-frame packet's Has-flags with
+// what the source actually provides. The wire-frame parser memcpys
+// all reserved slots blindly; only the source client knows whether
+// those slots are authoritative. Two source types need different
+// treatment:
+//   - Native CXlxPeer (rev 0/1/2/3): all reserved slots authoritative,
+//     matching CXlxClient::GetAvailableCodecs().
+//   - CXlxDmrPeer (BM/FD/FS/PH): only AMBE+2 authoritative; the dstar
+//     slot is reserved by the rev-2 wire format but empty/stale.
+// GetClient(0) is sufficient because every client on the same peer
+// shares the same protocol revision (CXlxClient) or codec assignment
+// (CXlxDmrClient), so GetAvailableCodecs() returns the same mask
+// regardless of which module's client we read.
+// If the peer or its first client cannot be found (race during
+// disconnect, never seen in practice), Conform is skipped and the
+// default-false Has-flags from the constructor stand — the codec
+// stream will then fill every slot from the transcoder. Harmless
+// extra work, never silence.
+static void ConformXlxPacketToSource(CDvFramePacket *DvFrame, const CIp *Ip)
+{
+    if ( Ip == NULL )
+        return;
+    uint32 codecMask = 0U;
+    CPeers *peers = g_Reflector.GetPeers();
+    CPeer *peer = peers->FindPeer(*Ip, PROTOCOL_XLX);
+    if ( (peer != NULL) && (peer->GetNbClients() > 0) )
+    {
+        CClient *c = peer->GetClient(0);
+        if ( c != NULL )
+            codecMask = c->GetAvailableCodecs();
+    }
+    g_Reflector.ReleasePeers();
+    if ( codecMask != 0U )
+        DvFrame->ConformAvailableCodecs(codecMask);
 }
 
 void CXlxProtocol::OnDvFramePacketIn(CDvFramePacket *DvFrame, const CIp *Ip)
 {
     // tag packet as remote peer origin
     DvFrame->SetRemotePeerOrigin();
-    
+
+    // align Has-flags with the source's actual codec set
+    ConformXlxPacketToSource(DvFrame, Ip);
+
     // anc call base class
     CDextraProtocol::OnDvFramePacketIn(DvFrame, Ip);
 }
@@ -535,7 +614,11 @@ void CXlxProtocol::OnDvLastFramePacketIn(CDvLastFramePacket *DvFrame, const CIp 
 {
     // tag packet as remote peer origin
     DvFrame->SetRemotePeerOrigin();
-    
+
+    // align Has-flags with the source's actual codec set (CDvLastFramePacket
+    // inherits from CDvFramePacket so the same method applies)
+    ConformXlxPacketToSource(DvFrame, Ip);
+
     // anc call base class
     CDextraProtocol::OnDvLastFramePacketIn(DvFrame, Ip);
 }

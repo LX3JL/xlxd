@@ -71,6 +71,20 @@ public:
     virtual int GetProtocol(void) const                 { return PROTOCOL_NONE; }
     virtual int GetProtocolRevision(void) const         { return 0; }
     virtual int GetCodec(void) const                    { return CODEC_NONE; }
+    // Bitmask of codecs this client provides on the wire (one per
+    // CODEC_* bit position). Default = the single codec returned by
+    // GetCodec, expressed as a bitmask. Multi-codec source clients
+    // (XLX interlink peers in particular) override to return the
+    // actual set: rev 0/1 = AMBE+ only, rev 2 = AMBE+/AMBE+2,
+    // rev 3 = AMBE+/AMBE+2/Codec2. This is read by
+    // CReflector::OpenStream to decide whether the receiving side
+    // needs to engage AMBEd to fill missing codecs for the clients
+    // connected to the target module.
+    virtual uint32 GetAvailableCodecs(void) const
+    {
+        int c = GetCodec();
+        return (c == CODEC_NONE) ? 0U : (1U << c);
+    }
     virtual const char *GetProtocolName(void) const     { return "none"; }
     virtual bool IsNode(void) const                     { return false; }
     virtual bool IsPeer(void) const                     { return false; }

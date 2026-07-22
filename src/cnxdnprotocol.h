@@ -25,6 +25,7 @@
 #define cnxdnprotocol_h
 
 #include <cstring>
+#include <map>
 #include <mutex>
 #include "ctimepoint.h"
 #include "cprotocol.h"
@@ -109,6 +110,26 @@ protected:
     uint16_t CallsignToNxdnId(const CCallsign &) const;
 
     // uiStreamId helpers
+    //
+    // NXDN derives the reflector-side stream-id from the source endpoint.
+    // The stateless deterministic IpToStreamId() collides on rapid
+    // re-keys: when the same hotspot keys up before the previous stream's
+    // CloseStream() drain has finished (up to MAX_DRAIN_WAIT_MS = 2000ms),
+    // both transmissions share an internal id and the wire ends up
+    // carrying voice for the second over under the first stream-id with
+    // its EoT already emitted — multi-EoT bug. Fix: each new header
+    // allocates a fresh per-protocol stream-id and stores the IP→sid
+    // mapping; voice / terminator frames look up the active sid for
+    // their source. The deterministic IpToStreamId() is kept as a
+    // fallback for orphan mid-stream packets so existing late-entry
+    // buffering still works. See cysfprotocol.cpp for the same pattern.
+    //
+    // CProtocol::CheckStreamsTimeout does NOT clean m_SourceStates on
+    // stream timeout — only an explicit trailer drops the mapping. See
+    // cysfprotocol.h for the full discussion (same caveat applies).
+    uint32 AllocateNewStreamIdForSource(const CIp &);
+    uint32 LookupStreamIdForSource(const CIp &) const;
+    void   ReleaseStreamIdForSource(const CIp &);
     uint32 IpToStreamId(const CIp &) const;
 
 protected:
@@ -118,6 +139,12 @@ protected:
 
     // for queue header caches
     std::array<CNxdnStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
+
+    // per-source stream-id allocation (see comment above the helpers).
+    // sid values come from the process-wide
+    // CProtocol::AllocateGlobalStreamIdNonce.
+    mutable std::mutex                m_SourceStatesMutex;
+    std::map<uint64_t, uint32>        m_SourceStates;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

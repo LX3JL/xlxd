@@ -46,24 +46,38 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
+//
+// Per-class DSCP marking:
+//   Send()      → IP_TOS 0  (signalling: keepalives, logins, acks, disconnects)
+//   SendVoice() → IP_TOS DSCP_VALUE<<2  (voice flow: voice frames, headers, EoT)
+//
+// IP_TOS is a per-socket kernel attribute set via setsockopt. To avoid the
+// syscall on every packet, m_iCurrentTos caches the last value set; only a
+// class switch (voice→signalling or vice-versa) pays the syscall.
+//
+// Thread-safety assumption: each CUdpSocket is accessed from a single thread
+// (the owning protocol's Task thread). m_iCurrentTos is a plain int, safe
+// under single-writer access only. A future RX/TX thread split that puts
+// voice and signalling sends on different threads MUST add synchronisation
+// here (std::atomic<int>, or a mutex, or a per-thread cached TOS).
 
 class CUdpSocket
 {
 public:
     // constructor
     CUdpSocket();
-    
+
     // destructor
     ~CUdpSocket();
-    
+
     // open & close
     bool Open(uint16);
     void Close(void);
     int  GetSocket(void)        { return m_Socket; }
-    
+
     // read
     int Receive(CBuffer *, CIp *, int);
-    
+
     // write
     int Send(const CBuffer &, const CIp &);
     int Send(const CBuffer &, const CIp &, uint16);
@@ -81,11 +95,38 @@ public:
     int SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 port) { return Send(Buffer, Ip, port); }
     static void LogDscpStatus(void) {}
 #endif
-    
+
 protected:
     // data
     int                 m_Socket;
     struct sockaddr_in  m_SocketAddr;
+    int                 m_iCurrentTos = 0;  // last IP_TOS set on m_Socket.
+                                            // Zero matches a fresh socket's
+                                            // kernel default so the first
+                                            // SetTosIfChanged(0) is a no-op.
+    bool                m_bTosValid = true; // whether m_iCurrentTos reflects
+                                            // the kernel's real state. Cleared
+                                            // on setsockopt failure so the
+                                            // next SetTosIfChanged call
+                                            // retries the syscall regardless
+                                            // of what `tos` it sees. Using a
+                                            // separate flag (instead of a
+                                            // negative sentinel in m_iCurrentTos)
+                                            // avoids assumptions about what
+                                            // integer values the kernel
+                                            // rejects for IP_TOS — e.g. Linux
+                                            // historically masks `int` to
+                                            // `u8`, so -1 becomes 0xFF, a
+                                            // legal TOS value that would
+                                            // silently succeed on retry.
+
+private:
+    // Sets IP_TOS only when it differs from the cached value. Called by
+    // Send (tos=0) and SendVoice (tos=DSCP_VALUE<<2) before each sendto.
+    // A burst of voice frames or keepalives pays the setsockopt syscall
+    // once, not once per frame. Single-threaded access only — see class
+    // comment above.
+    void SetTosIfChanged(int tos);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

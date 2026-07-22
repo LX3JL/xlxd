@@ -24,9 +24,53 @@
 
 #include "main.h"
 #include <string.h>
+#include <chrono>
+#include <future>
+#include <random>
 #include "cprotocol.h"
 #include "cclients.h"
 #include "creflector.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+// thread join helper
+
+// Join a thread with a wall-clock timeout. On success, deletes the thread
+// and nulls the pointer. On timeout, logs a warning and calls std::terminate()
+// — a thread that cannot be stopped at shutdown means something is
+// deadlocked, and silently hanging the process is the worst possible outcome
+// (requires SIGKILL, prevents log flushing, prevents any post-mortem).
+// We deliberately do NOT detach: the thread still holds `this` and would
+// cause use-after-free after the destructor returns.
+static void JoinWithTimeout(std::thread *&t, int timeoutMs, const char *name)
+{
+    if ( t == NULL ) return;
+    if ( !t->joinable() )
+    {
+        delete t;
+        t = NULL;
+        return;
+    }
+
+    // Run the blocking join on a helper thread so we can bound the wait.
+    // `future` captures `t` by value; once this function returns (whether
+    // by completion or terminate), the helper either finishes or dies with
+    // the process.
+    std::thread *threadRef = t;
+    auto future = std::async(std::launch::async, [threadRef]() {
+        threadRef->join();
+    });
+
+    if ( future.wait_for(std::chrono::milliseconds(timeoutMs)) == std::future_status::ready )
+    {
+        delete t;
+        t = NULL;
+        return;
+    }
+
+    std::cerr << "FATAL: " << name << " thread did not exit within "
+              << timeoutMs << "ms — likely deadlocked; aborting" << std::endl;
+    std::terminate();
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -48,22 +92,14 @@ CProtocol::CProtocol()
 
 CProtocol::~CProtocol()
 {
-    // kill RX thread
+    // kill RX thread (bounded join — see JoinWithTimeout rationale)
     m_bStopThread = true;
-    if ( m_pThread != NULL )
-    {
-        m_pThread->join();
-        delete m_pThread;
-    }
+    JoinWithTimeout(m_pThread, 5000, "RX");
 
-    // kill TX thread
+    // kill TX thread (must notify CV to unblock a waiting TxTask)
     m_bStopTxThread = true;
     m_QueueCondVar.notify_one();
-    if ( m_pTxThread != NULL )
-    {
-        m_pTxThread->join();
-        delete m_pTxThread;
-    }
+    JoinWithTimeout(m_pTxThread, 5000, "TX");
 
     // empty queue — delete any remaining packets to prevent leak on shutdown
     m_Queue.Lock();
@@ -102,24 +138,14 @@ bool CProtocol::Init(void)
 
 void CProtocol::Close(void)
 {
-    // stop RX first — no new data enters the system
+    // stop RX first — no new data enters the system (bounded join)
     m_bStopThread = true;
-    if ( m_pThread != NULL )
-    {
-        m_pThread->join();
-        delete m_pThread;
-        m_pThread = NULL;
-    }
+    JoinWithTimeout(m_pThread, 5000, "RX");
 
-    // then stop TX — drain remaining packets and exit
+    // then stop TX — drain remaining packets and exit (bounded join)
     m_bStopTxThread = true;
     m_QueueCondVar.notify_one();
-    if ( m_pTxThread != NULL )
-    {
-        m_pTxThread->join();
-        delete m_pTxThread;
-        m_pTxThread = NULL;
-    }
+    JoinWithTimeout(m_pTxThread, 5000, "TX");
 }
 
 
@@ -311,6 +337,55 @@ CPacketStream *CProtocol::GetStream(uint16 uiStreamId, const CIp *Ip)
     }
     // done
     return stream;
+}
+
+uint16 CProtocol::AllocateGlobalStreamIdNonce(void)
+{
+    // One process-wide counter shared across every CProtocol-derived
+    // class. Seeded from std::random_device the first time this runs
+    // (Meyers-singleton style — guaranteed thread-safe initialisation
+    // under C++11). Per-protocol counters were rejected because two
+    // protocols starting from low values (e.g. NXDN sid 1, 2, 3 and
+    // P25 sid 1, 2, 3) can hand the SAME wire DCS sid to two different
+    // sources back-to-back if the gateway routes both onto the same
+    // egress module — exactly the cross-source-rapid-rekey bug we just
+    // fixed for same-source rapid rekeys, but inter-protocol.
+    //
+    // Random seed also avoids a "ghost match" against a gateway that
+    // cached the previous xlxd run's last-used sid: a fresh process
+    // starts somewhere in the 16-bit space chosen by the OS RNG, not
+    // at a fixed offset.
+    //
+    // Returns 1..65535 (skips 0 because CReflector::OpenStream rejects
+    // a zero stream-id at creflector.cpp:212).
+    static std::atomic<uint32_t> counter{
+        []()
+        {
+            std::random_device rd;
+            // Seed in [1, 65535]. Excluding 0 avoids the edge case
+            // where the very first ++counter dispenses sid 1 — the
+            // same value the pre-fix per-protocol counters always
+            // started at. Picking 0 would defeat the randomised-start
+            // benefit for the first allocation after each xlxd
+            // restart and re-create the original cross-protocol clash
+            // that motivated this whole design.
+            uint32_t seed = rd() & 0xFFFFu;
+            if (seed == 0) seed = 1;
+            return seed;
+        }()
+    };
+
+    uint32_t v = ++counter;
+    // Wrap to 16 bits and re-skip zero. Two ++counter calls handle the
+    // wraparound case where v lands exactly on 0x10000, 0x20000, ... —
+    // we read the low 16 bits, and if that's zero we increment again.
+    uint16_t out = (uint16_t)(v & 0xFFFFu);
+    if (out == 0)
+    {
+        out = (uint16_t)((++counter) & 0xFFFFu);
+        if (out == 0) out = 1;
+    }
+    return out;
 }
 
 void CProtocol::CheckStreamsTimeout(void)

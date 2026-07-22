@@ -916,9 +916,11 @@ bool CDmrmmdvmProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CDvHeaderPa
                 }
                 
                 // build DVHeader
+                // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+                // See cnxdnprotocol.cpp for the rationale.
                 CCallsign csMY = CCallsign("", uiSrcId);
-                CCallsign rpt1 = CCallsign("", uiRptrId);
-                rpt1.SetModule(MMDVM_MODULE_ID);
+                CCallsign rpt1 = CCallsign("", uiSrcId);
+                rpt1.SetModule('B');
                 CCallsign rpt2 = m_ReflectorCallsign;
                 rpt2.SetModule(DmrDstIdToModule(uiDstId));
                 

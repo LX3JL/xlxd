@@ -488,14 +488,26 @@ void CM17Protocol::CheckForMissedEOT(void)
 {
     // Timer-based abandoned-stream detection: no cross-thread stream state access.
     //
-    // The transcoder pipeline has up to ~300ms latency (160ms jitter buffer + AMBEd
-    // round-trip).  The real last frame takes that long to traverse the pipeline and
-    // arrive at HandleQueue, which then sets m_bStreamActive = false.  We therefore
-    // wait 500ms after the last sent wire packet before declaring the stream dead.
+    // Trigger condition: m_bStreamActive is still true AND no upstream DV
+    // frame (or last frame) has been observed on this module's output queue
+    // for MISSED_EOT_TIMEOUT seconds. The timestamp tracks upstream-side
+    // activity (see m_LastUpstreamActivityTime in cm17protocol.h for the
+    // full rationale — particularly why "M17 wire emit" was the wrong
+    // proxy and how it produced premature EOTs when ambed starved).
     //
-    // Normal close:  real last frame arrives within ~300ms, HandleQueue clears
+    // Sizing of MISSED_EOT_TIMEOUT: the transcoder pipeline has up to
+    // ~300 ms of latency (160 ms jitter buffer + ambed RTT). After upstream
+    // genuinely stops sending, the last DV frame takes that long to
+    // traverse the pipeline and arrive in HandleQueue, where it refreshes
+    // m_LastUpstreamActivityTime one final time and then (if it is the
+    // last frame) clears m_bStreamActive at line 735 — in which case
+    // this check can no longer fire at all.
+    //
+    // Normal close:  last frame arrives within ~300ms, HandleQueue clears
     //                m_bStreamActive before the 500ms window expires — timer never fires.
-    // Timeout/crash: frames stop arriving; 500ms later this fires synthetic EOT.
+    // Timeout/crash: upstream goes silent without a last frame; jitter drains
+    //                in ~160 ms, then this timer fires 500 ms later (~660 ms
+    //                after real silence) — well under STREAM_TIMEOUT (1.6 s).
     // New stream before timeout: the header branch in HandleQueue detects
     //                m_bStreamActive and calls SendSyntheticEOT first.
     static const double MISSED_EOT_TIMEOUT = 0.5;  // 500ms — must exceed worst-case
@@ -512,7 +524,7 @@ void CM17Protocol::CheckForMissedEOT(void)
         {
             std::lock_guard<std::mutex> lock(m_StreamsCache[i].m_Mutex);
             shouldSend = m_StreamsCache[i].m_bStreamActive &&
-                         m_StreamsCache[i].m_LastFrameSentTime.DurationSinceNow() > MISSED_EOT_TIMEOUT;
+                         m_StreamsCache[i].m_LastUpstreamActivityTime.DurationSinceNow() > MISSED_EOT_TIMEOUT;
         }
         if ( shouldSend )
         {
@@ -737,10 +749,31 @@ void CM17Protocol::HandleQueue(void)
                 }
             }
 
-            // update stream activity tracking
+            // Upstream activity timestamp — refresh on every DV-frame (and
+            // last-frame, which is a CDvFramePacket subclass so IsDvFrame()
+            // is true) regardless of whether ambed's Codec2 response arrived
+            // in time to produce wire bytes. The previous version gated this
+            // update on `buffer.size() > 0`, which conflated "M17 emitted
+            // wire bytes" with "upstream is still alive" — they diverge
+            // whenever the ambed pipeline starves, and the divergence
+            // caused premature synthetic-EOT firing mid-transmission. See
+            // the m_LastUpstreamActivityTime header comment for the full
+            // rationale. Headers are intentionally excluded: m_bStreamActive
+            // is still false at that point (set on first wire-emitted frame
+            // below) so CheckForMissedEOT can't fire on a header-only stream
+            // regardless of this timestamp.
+            if ( packet->IsDvFrame() )
+            {
+                m_StreamsCache[iModId].m_LastUpstreamActivityTime.Now();
+            }
+
+            // Stream-active flag — kept gated on wire-emission so the flag
+            // means "we told M17 listeners about this stream." Synthetic-EOT
+            // cleanup is only meaningful for streams listeners are following;
+            // a Codec2-empty stream that never emitted wire bytes doesn't
+            // need an EOT (listeners have no state machine to tear down).
             if ( buffer.size() > 0 )
             {
-                m_StreamsCache[iModId].m_LastFrameSentTime.Now();
                 if ( packet->IsDvFrame() && !packet->IsLastPacket() )
                 {
                     if ( !m_StreamsCache[iModId].m_bStreamActive )
@@ -917,8 +950,10 @@ bool CM17Protocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CDvHeaderPacket 
                 if ( srcOk && dstValid )
                 {
                     // build header
-                    CCallsign rpt1 = m_ReflectorCallsign;
-                    rpt1.SetModule(' ');
+                    // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+                    // See cnxdnprotocol.cpp for the rationale.
+                    CCallsign rpt1 = csSource;
+                    rpt1.SetModule('B');
                     CCallsign rpt2 = m_ReflectorCallsign;
                     rpt2.SetModule(' ');
 

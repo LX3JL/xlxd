@@ -78,25 +78,41 @@ public:
     // conversion
     void ConvertToDstarStruct(struct dstar_header *) const;
 
+    // CRC — recomputed over the 39 bytes before Crc (CCITT-16, init 0xFFFF)
+    // as specified by the D-Star protocol. Called automatically by the
+    // non-default constructors and by mutating setters below, so m_uiCrc is
+    // consistent with the current field values for any fully-constructed
+    // packet (default constructor leaves fields and CRC at zero — setting
+    // RPT2/suffix before other fields would compute a CRC over partial
+    // state, but no code path does that today). Protocols that emit the
+    // full 41-byte dstar_header (DExtra, DPlus, G3 terminal) therefore
+    // write a valid CRC on the wire, which strict-CRC receivers (real Icom
+    // hardware) require. DCS's encoder deliberately drops the last 2 bytes
+    // and replaces them with StreamId, so m_uiCrc goes unused there — no
+    // change on the DCS wire. XLX interlink doesn't emit a D-Star header.
+    void ComputeCrc(void);
+
     // get valid
     bool IsValid(void) const;
-    
+
     // get callsigns
     const CCallsign &GetUrCallsign(void) const      { return m_csUR; }
     const CCallsign &GetRpt1Callsign(void) const    { return m_csRPT1; }
     const CCallsign &GetRpt2Callsign(void) const    { return m_csRPT2; }
     const CCallsign &GetMyCallsign(void) const      { return m_csMY; }
-    
+
     // get modules
     char GetUrModule(void) const                    { return m_csUR.GetModule(); }
     char GetRpt1Module(void) const                  { return m_csRPT1.GetModule(); }
     char GetRpt2Module(void) const                  { return m_csRPT2.GetModule(); }
     char GetMyModule(void) const                    { return m_csMY.GetModule(); }
-    
-    // set callsigns
-    void SetRpt2Callsign(const CCallsign &cs)       { m_csRPT2 = cs; }
-    void SetRpt2Module(char c)                      { m_csRPT2.SetModule(c); }
-    void SetMySuffix(const char *sz)                { m_csMY.SetSuffix(sz); }
+
+    // set callsigns — any mutation invalidates the CRC, so each setter
+    // re-runs ComputeCrc() to keep m_uiCrc fresh. Cost is a 39-byte CCITT-16
+    // (microseconds); called at most ~3 times per transmission.
+    void SetRpt2Callsign(const CCallsign &cs)       { m_csRPT2 = cs; ComputeCrc(); }
+    void SetRpt2Module(char c)                      { m_csRPT2.SetModule(c); ComputeCrc(); }
+    void SetMySuffix(const char *sz)                { m_csMY.SetSuffix(sz); ComputeCrc(); }
     bool HasMySuffix(void) const                    { return m_csMY.HasSuffix(); }
     
     // operators

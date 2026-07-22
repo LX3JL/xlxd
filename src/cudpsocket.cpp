@@ -68,12 +68,19 @@ bool CUdpSocket::Open(uint16 uiPort)
         {
             fcntl(m_Socket, F_SETFL, O_NONBLOCK);
 
-            // set DSCP TOS once at socket open (avoids per-packet setsockopt in SendVoice)
-            if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
-            {
-                int tos = DSCP_VALUE << 2;
-                setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
-            }
+            // IP_TOS is now set per-class in Send / SendVoice via
+            // SetTosIfChanged(), not once at socket open. The prior
+            // blanket setsockopt here marked EVERY outgoing packet with
+            // the voice DSCP, including keepalives and logins, which
+            // defeated the purpose of QoS signalling.
+            //
+            // Reset the cached TOS state here too, in case a previously-
+            // closed socket is being re-opened in the same CUdpSocket.
+            // A fresh kernel socket has IP_TOS=0 and m_iCurrentTos=0 +
+            // m_bTosValid=true matches that state, so the first
+            // SetTosIfChanged(0) after open is a no-op cache hit.
+            m_iCurrentTos = 0;
+            m_bTosValid   = true;
 
             open = true;
         }
@@ -142,11 +149,83 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// write
+// TOS class switching — applied via per-class setsockopt with caching so
+// bursts of same-class sends pay the syscall only once per class switch.
+// IPv4 uses IP_TOS; a future IPv6 port would need IPV6_TCLASS alongside.
+//
+// Always called — even when DSCP_MARKING_ENABLE is 0. In the disabled build
+// SendVoice() is an inline alias for Send() (see cudpsocket.h), so every
+// send path routes through here with tos=0. m_iCurrentTos starts at 0 and
+// matches the kernel default for a fresh socket, so the first call is a
+// cache hit; every subsequent Send() is also a cache hit. Result in the
+// "DSCP disabled" build: zero setsockopt syscalls — not one per Send —
+// so the runtime cost of this indirection is nil.
+
+// One-shot failure log for SetTosIfChanged. Shared across all sockets:
+// a kernel that rejects an IP_TOS value will reject it for every socket,
+// so a single log line per process is enough to alert the operator.
+// Declared outside the DSCP_MARKING_ENABLE guard because SetTosIfChanged
+// is also called from Send() with tos=0 when DSCP marking is disabled.
+static std::atomic<bool> g_bTosErrorLogged(false);
+
+void CUdpSocket::SetTosIfChanged(int tos)
+{
+    if ( m_Socket == -1 ) return;
+    // Cache hit is valid only when we've confirmed the kernel actually
+    // accepted the value (m_bTosValid). After a setsockopt failure the
+    // cache doesn't reflect reality, and m_bTosValid being false forces
+    // a retry regardless of what `tos` we're called with.
+    if ( m_bTosValid && tos == m_iCurrentTos ) return;
+    // IPv6: use IPPROTO_IPV6 / IPV6_TCLASS on the v6 socket.
+    if ( setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) == 0 )
+    {
+        m_iCurrentTos = tos;
+        m_bTosValid   = true;
+        return;
+    }
+
+    // setsockopt failed. The kernel's IP_TOS is unchanged — still whatever
+    // the previous successful call (or the default 0) set it to. Mark the
+    // cache invalid so the next call — with any `tos` value — misses the
+    // cache check and retries the syscall. Do NOT encode the failure
+    // state in m_iCurrentTos via a negative sentinel: Linux historically
+    // masks the `int` argument to `u8` inside ip_setsockopt, so a value
+    // of -1 becomes 0xFF (a legal TOS byte) and the retry would silently
+    // succeed on that second call, leaving the wrong TOS on the wire
+    // with no further diagnostic.
+    int saved_errno = errno;
+    m_bTosValid = false;
+
+    // Log once per process on first failure. Common causes: bad socket
+    // state (EBADF), kernel seccomp/SELinux policy rejecting IP_TOS
+    // (EPERM), or an invalid value (EINVAL) — the last only possible
+    // if DSCP_VALUE was bypassed by the main.h static_assert somehow
+    // (e.g. direct call with out-of-range `tos`).
+    //
+    // strerror() is not thread-safe on all platforms, but the exchange()
+    // gate ensures at most one thread reaches this branch on first
+    // failure. A garbled first-failure log line is the worst outcome;
+    // strerror_r() would eliminate the theoretical race if this ever
+    // becomes a concern. All subsequent failures skip the log entirely.
+    if ( !g_bTosErrorLogged.exchange(true) )
+    {
+        std::cout << "Warning: setsockopt(IP_TOS=" << tos
+                  << ") failed: errno=" << saved_errno
+                  << " (" << ::strerror(saved_errno) << ") — "
+                  << "QoS marking may be wrong on this kernel; "
+                  << "subsequent calls will retry per-send" << std::endl;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// write — signalling (keepalives, logins, acks, disconnects).
+// DSCP 0 / best-effort so the voice class gets scheduled ahead of these
+// on any hop that respects DSCP.
 
 int CUdpSocket::Send(const CBuffer &Buffer, const CIp &Ip)
 {
     if ( m_Socket == -1 ) return -1;
+    SetTosIfChanged(0);
     CIp temp(Ip);
     return (int)::sendto(m_Socket,
            (void *)Buffer.data(), Buffer.size(),
@@ -156,6 +235,7 @@ int CUdpSocket::Send(const CBuffer &Buffer, const CIp &Ip)
 int CUdpSocket::Send(const char *Buffer, const CIp &Ip)
 {
     if ( m_Socket == -1 ) return -1;
+    SetTosIfChanged(0);
     CIp temp(Ip);
     return (int)::sendto(m_Socket,
            (void *)Buffer, ::strlen(Buffer),
@@ -165,6 +245,7 @@ int CUdpSocket::Send(const char *Buffer, const CIp &Ip)
 int CUdpSocket::Send(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
 {
     if ( m_Socket == -1 ) return -1;
+    SetTosIfChanged(0);
     CIp temp(Ip);
     temp.GetSockAddr()->sin_port = htons(destport);
     return (int)::sendto(m_Socket,
@@ -175,6 +256,7 @@ int CUdpSocket::Send(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
 int CUdpSocket::Send(const char *Buffer, const CIp &Ip, uint16 destport)
 {
     if ( m_Socket == -1 ) return -1;
+    SetTosIfChanged(0);
     CIp temp(Ip);
     temp.GetSockAddr()->sin_port = htons(destport);
     return (int)::sendto(m_Socket,
@@ -192,7 +274,7 @@ static std::atomic<bool> g_bDscpLogged(false);
 int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
 {
     if ( m_Socket == -1 ) return -1;
-    // DSCP TOS is set once at socket open — no per-call setsockopt needed
+    SetTosIfChanged(DSCP_VALUE << 2);   // voice class — marked DSCP_VALUE
 
     CIp temp(Ip);
     int result;
@@ -206,6 +288,7 @@ int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
         if ( result == -1 && saved_errno == EAGAIN && retries < 5 )
         {
             usleep(1000);  // 1ms backoff to let kernel flush send buffer
+            // TOS persists across retries — no need to re-call SetTosIfChanged.
             retries++;
         }
         else
@@ -220,7 +303,7 @@ int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
 int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
 {
     if ( m_Socket == -1 ) return -1;
-    // DSCP TOS is set once at socket open — no per-call setsockopt needed
+    SetTosIfChanged(DSCP_VALUE << 2);   // voice class — marked DSCP_VALUE
 
     CIp temp(Ip);
     temp.GetSockAddr()->sin_port = htons(destport);
@@ -250,13 +333,19 @@ void CUdpSocket::LogDscpStatus(void)
 {
     if ( !g_bDscpLogged )
     {
+        // DSCP_VALUE range is enforced at compile time by static_assert in
+        // main.h, so the invalid-range branch is unreachable in a correctly
+        // built binary. Kept for defence-in-depth against NDEBUG/asserts-
+        // disabled builds or a future refactor.
         if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
         {
-            std::cout << "Voice packets marked as DSCP " << DSCP_VALUE << std::endl;
+            std::cout << "Voice packets marked DSCP " << DSCP_VALUE
+                      << " (EF); signalling packets unmarked (BE)" << std::endl;
         }
         else
         {
-            std::cout << "Error: Invalid DSCP_VALUE " << DSCP_VALUE << " (must be 0-63), QoS disabled" << std::endl;
+            std::cout << "Error: Invalid DSCP_VALUE " << DSCP_VALUE
+                      << " (must be 0-63), QoS disabled" << std::endl;
         }
         g_bDscpLogged = true;
     }

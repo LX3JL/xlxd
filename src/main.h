@@ -50,7 +50,11 @@
 // global ------------------------------------------------------
 #define RUN_AS_DAEMON
 #define JSON_MONITOR
-// QoS - set DSCP/TOS on outgoing packets for network prioritization
+// QoS - set DSCP/TOS on outgoing packets for network prioritization.
+// Voice-flow packets (voice frames, headers, EoT) are marked DSCP_VALUE.
+// Signalling packets (keepalives, logins, acks, disconnects) are sent
+// unmarked (DSCP 0, best-effort) so networks treat them as background
+// control traffic and prioritise the voice class over them.
 // DSCP values: 0-63 (6 bits). Common choices for voice:
 //   46 (EF)  - Expedited Forwarding, highest priority voice
 //   34 (AF41)- Assured Forwarding class 4, high priority
@@ -58,6 +62,13 @@
 //   0        - Best effort (default, no priority)
 #define DSCP_MARKING_ENABLE             1                                   // 1 = enable, 0 = disable
 #define DSCP_VALUE                      46                                  // DSCP value (0-63)
+
+// Compile-time guard: a DSCP_VALUE outside 0-63 would shift into or
+// past the ECN bits of the TOS byte when written as (DSCP_VALUE << 2),
+// silently corrupting ECN signalling on every voice packet. Catch it
+// at build time rather than surprising an operator at runtime.
+static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
+              "DSCP_VALUE must be in range 0-63 (6 bits of the TOS byte)");
 
 // debug -------------------------------------------------------
 //#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL

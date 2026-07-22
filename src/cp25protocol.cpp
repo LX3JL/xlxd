@@ -105,7 +105,7 @@ void CP25Protocol::RxTask(void)
                     bool peerExists = false;
                     {
                         CPeers *peers = g_Reflector.GetPeers();
-                        CPeer *existingPeer = peers->FindPeer(Ip, PROTOCOL_P25);
+                        CPeer *existingPeer = peers->FindPeerByIpPort(Ip, PROTOCOL_P25);
                         if ( existingPeer != NULL )
                         {
                             existingPeer->Alive();
@@ -238,7 +238,7 @@ void CP25Protocol::OnLduPacketIn(const CBuffer &Buffer, const CIp &Ip, bool isFi
 
     {
         CPeers *peers = g_Reflector.GetPeers();
-        CPeer *peer = peers->FindPeer(Ip, PROTOCOL_P25);
+        CPeer *peer = peers->FindPeerByIpPort(Ip, PROTOCOL_P25);
         if ( peer != NULL )
         {
             peerFound = true;
@@ -260,8 +260,43 @@ void CP25Protocol::OnLduPacketIn(const CBuffer &Buffer, const CIp &Ip, bool isFi
         return;
     }
 
-    uint32 uiStreamId = IpToStreamId(Ip);
     uint8 cmd = Buffer.data()[0];
+
+    // Lock order: Peers (acquired/released above for the peer check) →
+    // m_SourceStatesMutex (taken inside the Allocate/Lookup helpers).
+    // No reflector lock is held here at the call sites below, but if a
+    // future change adds one, do NOT take m_SourceStatesMutex first and
+    // then call into the reflector — that would invert this order and
+    // risk deadlock with the OnTerminatorPacketIn path which holds Peers
+    // while calling Lookup/Release.
+    //
+    // Allocate / look up the reflector-side stream-id. P25 is unlike
+    // NXDN/YSF here — it has no explicit start-of-transmission frame
+    // type. LDU1 (containing Voice1..Voice9) and LDU2 alternate every
+    // ~180 ms throughout the transmission, so LDU1_VOICE1 fires every
+    // 360 ms even mid-transmission. Allocating a fresh sid on every
+    // LDU1_VOICE1 (the previous behaviour) cut a single P25
+    // transmission into many short substreams — each new sid opened
+    // a new xlxd stream that expired without a TDU. That spammed the
+    // gatekeeper's strike-based loop-detector log line on every
+    // physical transmission. (Note: that strike accumulation does
+    // NOT actually block P25 TX — see the IsCallsignLoopBlocked
+    // check on header construction below, which is what enforces
+    // the block for P25 today.) So allocate ONLY when there is no
+    // active mapping for this source (true start-of-transmission);
+    // otherwise reuse the existing mapping (mid-transmission LDU1
+    // cycle). The mapping is released by OnTerminatorPacketIn when
+    // the TDU arrives, so the next LDU1_VOICE1 after a TDU is
+    // correctly recognised as a new transmission.
+    uint32 uiStreamId;
+    if ( cmd == P25_REC_LDU1_VOICE1 && !HasActiveStreamIdForSource(Ip) )
+    {
+        uiStreamId = AllocateNewStreamIdForSource(Ip);
+    }
+    else
+    {
+        uiStreamId = LookupStreamIdForSource(Ip);
+    }
 
     // Extract IMBE frame based on record type
     uint8 uiImbe[P25_IMBE_SIZE];
@@ -341,8 +376,10 @@ void CP25Protocol::OnLduPacketIn(const CBuffer &Buffer, const CIp &Ip, bool isFi
                 csMY.SetCallsign(szCallsign);
             }
 
-            CCallsign rpt1 = m_ReflectorCallsign;
-            rpt1.SetModule(module);
+            // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+            // See cnxdnprotocol.cpp for the rationale.
+            CCallsign rpt1 = csMY;
+            rpt1.SetModule('B');
             CCallsign rpt2 = m_ReflectorCallsign;
             rpt2.SetModule('G');
 
@@ -356,6 +393,34 @@ void CP25Protocol::OnLduPacketIn(const CBuffer &Buffer, const CIp &Ip, bool isFi
                 std::lock_guard<std::mutex> lock(m_StreamsCache[iModId].m_Mutex);
                 pendingCopy.swap(m_StreamsCache[iModId].m_PendingFrames);
                 m_StreamsCache[iModId].m_bPendingHeader = false;
+            }
+
+            // Per-callsign loop block. P25 has no MayTransmit call in
+            // its path (peer-only protocol, peer link is trusted), so
+            // this is the sole enforcement point. Without it the
+            // gatekeeper's strike accumulation for P25 is dead state.
+            // Synthetic callsigns from P25IdToCallsign / the "P<TG>"
+            // fallback are stable per-source, so the strike-counter
+            // and per-callsign map work the same as for YSF/NXDN.
+            if ( g_GateKeeper.IsCallsignLoopBlocked(csMY, "P25 peer") )
+            {
+                // Drop header, pending frames (already swapped out of
+                // m_PendingFrames), and the current Voice5 frame.
+                //
+                // Release the per-source stream-id mapping so the next
+                // LDU1_VOICE1 from this source re-allocates a fresh
+                // SID and re-enters this code path (rather than taking
+                // the LookupStreamIdForSource branch and feeding
+                // frames into OnDvFramePacketIn with no open stream,
+                // which would orphan them silently). On block expiry,
+                // the first LDU after the expiry then opens cleanly.
+                ReleaseStreamIdForSource(Ip);
+                delete header;
+                for (size_t i = 0; i < pendingCopy.size(); i++)
+                {
+                    delete pendingCopy[i];
+                }
+                return;
             }
 
             OnDvHeaderPacketIn(header, Ip);
@@ -391,8 +456,13 @@ void CP25Protocol::OnLduPacketIn(const CBuffer &Buffer, const CIp &Ip, bool isFi
 
 void CP25Protocol::OnTerminatorPacketIn(const CIp &Ip)
 {
+    // Lock order: Peers → m_SourceStatesMutex. Lookup and Release are
+    // called below while the Peers lock acquired here is still held.
+    // Same caveat as OnLduPacketIn — do not call into the reflector
+    // from inside the Allocate/Lookup/Release helpers, since that would
+    // invert this order.
     CPeers *peers = g_Reflector.GetPeers();
-    CPeer *peer = peers->FindPeer(Ip, PROTOCOL_P25);
+    CPeer *peer = peers->FindPeerByIpPort(Ip, PROTOCOL_P25);
 
     if ( peer != NULL )
     {
@@ -409,7 +479,7 @@ void CP25Protocol::OnTerminatorPacketIn(const CIp &Ip)
             m_StreamsCache[iModId].ClearPendingFrames();
         }
 
-        uint32 uiStreamId = IpToStreamId(Ip);
+        uint32 uiStreamId = LookupStreamIdForSource(Ip);
         CPacketStream *stream = GetStream(uiStreamId);
         if ( stream != NULL )
         {
@@ -417,10 +487,20 @@ void CP25Protocol::OnTerminatorPacketIn(const CIp &Ip)
             ::memset(emptyImbe, 0, sizeof(emptyImbe));
             CDvLastFramePacket *lastFrame = new CDvLastFramePacket(emptyImbe, uiStreamId, (uint8)0, (uint8)0, (uint8)0);
 
+            // Drop the IP→sid mapping unconditionally — the next
+            // start-of-transmission (LDU1 Voice1) from this source will
+            // allocate a fresh sid. Done before releasing peers so we
+            // can't take the OnDvLastFramePacketIn path with a stale
+            // mapping if peers-release races with another inbound TDU.
+            ReleaseStreamIdForSource(Ip);
+
             g_Reflector.ReleasePeers();
             OnDvLastFramePacketIn(lastFrame, &Ip);
             return;
         }
+        // No matching stream — still release the mapping so a duplicate
+        // TDU doesn't leave a stale sid pinned for this source.
+        ReleaseStreamIdForSource(Ip);
     }
     g_Reflector.ReleasePeers();
 }
@@ -1115,7 +1195,11 @@ bool CP25Protocol::IsP25PeerCallsign(const CCallsign &callsign) const
 
 CCallsignListItem *CP25Protocol::FindP25PeerByIp(CPeerCallsignList *list, const CIp &ip)
 {
-    // Search for a P25 peer matching this IP
+    // Search for a P25 peer matching this IP. Port-aware disambiguation —
+    // see FindYsfPeerByIp in cysfprotocol.cpp for the full rationale.
+    // Briefly: if the interlink entry declares an explicit port, match
+    // (address, port); otherwise fall back to address-only for backward
+    // compatibility with single-peer-per-IP configurations.
     for ( int i = 0; i < list->size(); i++ )
     {
         CCallsignListItem *item = &((list->data())[i]);
@@ -1123,10 +1207,13 @@ CCallsignListItem *CP25Protocol::FindP25PeerByIp(CPeerCallsignList *list, const 
         // Check if this is a P25 peer (callsign starts with "P25" + digit)
         if ( IsP25PeerCallsign(item->GetCallsign()) )
         {
-            // Check if IP matches
             if ( item->GetIp().GetAddr() == ip.GetAddr() )
             {
-                return item;
+                uint16 itemPort = item->GetPort();
+                if ( itemPort == 0 || ::htons(itemPort) == ip.GetPort() )
+                {
+                    return item;
+                }
             }
         }
     }
@@ -1198,4 +1285,87 @@ uint32 CP25Protocol::IpToStreamId(const CIp &ip) const
 {
     // XOR port into both halves to distinguish localhost peers on different ports
     return ip.GetAddr() ^ (uint32)(MAKEDWORD(ip.GetPort(), ip.GetPort()));
+}
+
+// Build the map key. (addr<<16)|port keeps the same source endpoint
+// keyed identically for header / voice / TDU frames within one
+// transmission, and distinguishes localhost peers using different
+// ephemeral ports.
+static inline uint64_t P25SourceKey(const CIp &ip)
+{
+    return ((uint64_t)ip.GetAddr() << 16) | (uint64_t)(ip.GetPort() & 0xFFFFu);
+}
+
+// Allocate a fresh reflector-side stream-id for a NEW transmission
+// (LDU1 Voice1). Uses the process-wide CProtocol::AllocateGlobalStreamIdNonce
+// — see cprotocol.cpp for the rationale (random seed at startup,
+// shared across protocols to avoid inter-protocol sid collisions).
+// The per-protocol collision-against-m_SourceStates check is kept as
+// defence-in-depth for the rare wrap-around case.
+uint32 CP25Protocol::AllocateNewStreamIdForSource(const CIp &ip)
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+
+    const uint64_t key = P25SourceKey(ip);
+
+    for (int attempts = 0; attempts < 65535; attempts++)
+    {
+        uint32 candidate = (uint32)AllocateGlobalStreamIdNonce();
+
+        bool collision = false;
+        for (const auto &entry : m_SourceStates)
+        {
+            if (entry.first != key && entry.second == candidate)
+            {
+                collision = true;
+                break;
+            }
+        }
+        if (!collision)
+        {
+            m_SourceStates[key] = candidate;
+            return candidate;
+        }
+    }
+
+    // Pathological fallback (would need 65535 simultaneous active sources).
+    uint32 fallback = IpToStreamId(ip);
+    m_SourceStates[key] = fallback;
+    return fallback;
+}
+
+// Look up the active sid for a non-Voice1 LDU frame or a TDU. Falls
+// back to the deterministic IpToStreamId() when no header has been
+// seen for this source — preserves the late-entry buffering path in
+// CProtocol::OnDvFramePacketIn for orphan mid-stream packets.
+uint32 CP25Protocol::LookupStreamIdForSource(const CIp &ip) const
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+    auto it = m_SourceStates.find(P25SourceKey(ip));
+    if (it != m_SourceStates.end())
+    {
+        return it->second;
+    }
+    return IpToStreamId(ip);
+}
+
+// Test whether this source has an active stream-id mapping (i.e. a
+// transmission is currently in progress and its sid hasn't been
+// released by a TDU yet). Used by the LDU1_VOICE1 dispatch above to
+// distinguish a true start-of-transmission (no active mapping → fresh
+// allocate) from a mid-transmission LDU1 cycle (active mapping →
+// reuse existing sid). See the dispatch comment in OnLduPacketIn for
+// the full rationale.
+bool CP25Protocol::HasActiveStreamIdForSource(const CIp &ip) const
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+    return m_SourceStates.find(P25SourceKey(ip)) != m_SourceStates.end();
+}
+
+// Drop the IP→sid mapping after the TDU is processed. The next LDU1
+// Voice1 from this source will allocate a fresh sid.
+void CP25Protocol::ReleaseStreamIdForSource(const CIp &ip)
+{
+    std::lock_guard<std::mutex> lock(m_SourceStatesMutex);
+    m_SourceStates.erase(P25SourceKey(ip));
 }

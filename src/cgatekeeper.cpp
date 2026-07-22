@@ -467,6 +467,57 @@ bool CGateKeeper::ReportStreamClose(char module, const CCallsign &myCallsign, ui
     return shouldDisconnect;
 }
 
+bool CGateKeeper::IsCallsignLoopBlocked(const CCallsign &myCallsign, const char *peerDescr)
+{
+    // Pure-read of m_LoopPenalties: is there an active block window for
+    // this callsign right now? Used by the peer-traffic header gate
+    // where MayTransmit is bypassed by design.
+    //
+    // Distinct from IsLoopSuppressed: this method does NOT touch
+    // m_bBlockLogged or emit a "TX block expired" log. Those concerns
+    // belong to the MayTransmit path. Here we only emit a rate-limited
+    // "dropping incoming header" log so the operator can see which
+    // user callsign was dropped via which interlink.
+    std::lock_guard<std::mutex> lock(m_LoopMutex);
+
+    auto it = m_LoopPenalties.find(myCallsign);
+    if ( it == m_LoopPenalties.end() )
+    {
+        return false;
+    }
+
+    // DurationSinceNow returns (now - m_BlockUntil). Negative ⇒ block is
+    // in the future (still active). Positive ⇒ block already expired.
+    if ( it->second.m_BlockUntil.DurationSinceNow() >= 0 )
+    {
+        return false;
+    }
+
+    // Block is active. Rate-limit the drop log so a sustained loop
+    // doesn't drown the system journal. CTimePoint default-constructs
+    // to now(), not the epoch — so the m_bDropEverLogged bool gates
+    // the first emission; subsequent emissions gate on the elapsed
+    // time since the last log.
+    bool shouldLog = !it->second.m_bDropEverLogged ||
+                     it->second.m_LastDropLogged.DurationSinceNow() >= LOOP_DROP_LOG_RATE_LIMIT_SEC;
+    if ( shouldLog )
+    {
+        double secsLeft = -it->second.m_BlockUntil.DurationSinceNow();
+        std::cout << "Loop block: dropping incoming header from "
+                  << myCallsign << " (block expires in "
+                  << (int)secsLeft << "s";
+        if ( peerDescr != NULL )
+        {
+            std::cout << " via " << peerDescr;
+        }
+        std::cout << ")" << std::endl;
+        it->second.m_LastDropLogged.Now();
+        it->second.m_bDropEverLogged = true;
+    }
+
+    return true;
+}
+
 bool CGateKeeper::IsLoopSuppressed(const CCallsign &myCallsign, char module)
 {
     std::lock_guard<std::mutex> lock(m_LoopMutex);

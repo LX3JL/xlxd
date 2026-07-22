@@ -85,13 +85,23 @@ void CPeers::AddPeer(CPeer *peer)
         // append peer to reflector peer list
         m_Peers.push_back(peer);
 
-        // Warn if multiple peers share the same IP AND protocol (would conflict in FindPeer)
+        // Warn if multiple peers share the same FULL ENDPOINT (IP+port)
+        // and protocol — those would conflict regardless of which
+        // FindPeer variant is used. Two peers on the same IP but
+        // different ports are legitimate for YSF/NXDN/P25 (handled by
+        // FindPeerByIpPort); two peers on the same IP for an IP-only
+        // protocol (DExtra/DPlus/DCS/XLX/M17) would conflict in
+        // FindPeer(Ip, Protocol) but CPeer::operator== should have
+        // deduped them already at the top of AddPeer. So the only
+        // remaining same-endpoint case here is a genuine bug — keep
+        // the warning.
         for ( int j = 0; j < (int)m_Peers.size() - 1; j++ )
         {
-            if ( (m_Peers[j]->GetIp().GetAddr() == peer->GetIp().GetAddr()) &&
+            if ( (m_Peers[j]->GetIp() == peer->GetIp()) &&
                  (m_Peers[j]->GetProtocol() == peer->GetProtocol()) )
             {
-                std::cout << "WARNING: Multiple " << peer->GetProtocolName() << " peers from same host - "
+                std::cout << "WARNING: Multiple " << peer->GetProtocolName() << " peers at "
+                          << peer->GetIp() << " - "
                           << m_Peers[j]->GetCallsign() << " and " << peer->GetCallsign()
                           << " will conflict in peer lookups" << std::endl;
             }
@@ -172,11 +182,38 @@ CPeer *CPeers::FindPeer(const CIp &Ip, int Protocol)
 {
     CPeer *peer = NULL;
 
-    // find peer by address only (ignore port - ports may differ due to NAT or
-    // stored port vs response port differences in peer connection handshakes)
+    // Find peer by address only (ignore port — ports may differ due to NAT
+    // or stored-port vs response-port differences in peer connection
+    // handshakes). Appropriate for protocols where a single peer per IP
+    // per protocol is the operational model (DExtra/DPlus/DCS/XLX/M17).
+    // For protocols where two peers can legitimately share an IP on
+    // different listening ports (YSF/NXDN/P25), use FindPeerByIpPort()
+    // instead.
     for ( int i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
     {
         if ( (m_Peers[i]->GetIp().GetAddr() == Ip.GetAddr())  && (m_Peers[i]->GetProtocol() == Protocol))
+        {
+            peer = m_Peers[i];
+        }
+    }
+
+    // done
+    return peer;
+}
+
+CPeer *CPeers::FindPeerByIpPort(const CIp &Ip, int Protocol)
+{
+    CPeer *peer = NULL;
+
+    // Find peer by full endpoint (address AND port) plus protocol. Used
+    // by YSF / NXDN / P25 where peers listen on well-known ports
+    // declared in the interlink file and the protocols' server-style
+    // semantics guarantee inbound source-port == peer listening port.
+    // CIp::operator== compares family + address + port — exactly the
+    // full-endpoint match we want.
+    for ( int i = 0; (i < m_Peers.size()) && (peer == NULL); i++ )
+    {
+        if ( (m_Peers[i]->GetIp() == Ip) && (m_Peers[i]->GetProtocol() == Protocol) )
         {
             peer = m_Peers[i];
         }

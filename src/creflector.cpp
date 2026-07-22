@@ -198,187 +198,356 @@ void CReflector::Stop(void)
 CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client)
 {
     CPacketStream *retStream = NULL;
-    
-    // clients MUST have bee locked by the caller
-    // so we can freely access it within the fuction
-    
+
+    // Caller MUST hold the Clients lock. This function may TEMPORARILY
+    // release it during the transcoder handshake (see Phase 2 below). On
+    // return the Clients lock is always re-acquired, but the `client`
+    // pointer passed in may have been freed if the client's keepalive
+    // expired mid-handshake — DO NOT dereference it after this returns.
+    // Existing callers only use `client` on the failure path (via
+    // TryLateEntry), which runs when we return NULL BEFORE the release/
+    // re-acquire cycle, so they are safe.
+
     // check sid is not NULL
-    if ( DvHeader->GetStreamId() != 0 )
+    if ( DvHeader->GetStreamId() == 0 )
     {
-        // check if client is valid candidate
-        if ( m_Clients.IsClient(client) && !client->IsAMaster() )
+        return NULL;
+    }
+
+    // check if client is valid candidate
+    if ( !m_Clients.IsClient(client) || client->IsAMaster() )
+    {
+        return NULL;
+    }
+
+    // check if no stream with same streamid already open (prevent loops)
+    if ( IsStreamOpen(DvHeader) )
+    {
+        std::cout << "Detected stream loop on module " << DvHeader->GetRpt2Module()
+                  << " for client " << client->GetCallsign()
+                  << " with sid " << DvHeader->GetStreamId() << std::endl;
+        return NULL;
+    }
+
+    // get the module's queue
+    char module = DvHeader->GetRpt2Module();
+    CPacketStream *stream = GetStream(module);
+    if ( stream == NULL )
+    {
+        return NULL;
+    }
+
+    // ----- Phase 1: reserve the stream (stream lock + Clients lock held) -----
+    uint8 inputCodec = CODEC_NONE;
+    uint32 transcodeSourceCodecs = 0U;
+    uint32 neededCodecs = 0U;
+    bool opened = false;
+    stream->Lock();
+    if ( stream->Open(*DvHeader, client) )
+    {
+        // mark client as master so it can't be deleted
+        client->SetMasterOfModule(module);
+        client->Heard();
+        retStream = stream;
+
+        // The header is deferred — it stays in m_DvHeader with
+        // m_bHasPendingHeader set, and AttachCodecStream() below emits
+        // a fresh copy to the base queue just before draining the
+        // pre-codec buffer. Keeps header → first-voice timing tight on
+        // the wire (~<50ms gap) instead of the ~1-1.3s gap the old
+        // immediate-push produced while AMBEd negotiated a channel.
+
+        inputCodec = stream->GetInputCodec();
+        // Capture the source's full codec set (single-codec for native
+        // protocols, multi-codec for XLX interlink peers) and what
+        // clients on this module need. Both reads need the Clients lock,
+        // which the caller holds across this whole Phase 1 block, so we
+        // do them here before releasing for Phase 2.
+        transcodeSourceCodecs = client->GetAvailableCodecs();
+        neededCodecs          = GetNeededCodecsOnModule(module);
+        opened = true;
+
+        if ( client->IsPeer() )
         {
-            // check if no stream with same streamid already open
-            // to prevent loops
-            if ( !IsStreamOpen(DvHeader) )
-            {
-                // get the module's queue
-                char module = DvHeader->GetRpt2Module();
-                CPacketStream *stream = GetStream(module);
-                if ( stream != NULL )
-                {
-                    // lock it
-                    stream->Lock();
-                    // is it available ?
-                    if ( stream->Open(*DvHeader, client) )
-                    {
-                        // stream open, mark client as master
-                        // so that it can't be deleted
-                        client->SetMasterOfModule(module);
+            std::cout << "Opening stream on module " << module << " for "
+                      << DvHeader->GetMyCallsign() << " via " << client->GetCallsign()
+                      << " with sid " << DvHeader->GetStreamId() << std::endl;
+        }
+        else
+        {
+            std::cout << "Opening stream on module " << module << " for "
+                      << DvHeader->GetMyCallsign() << " on " << client->GetCallsign()
+                      << " with sid " << DvHeader->GetStreamId() << std::endl;
+        }
+        OnStreamOpen(stream->GetUserCallsign());
+    }
+    stream->Unlock();
 
-                        // update last heard time
-                        client->Heard();
-                        retStream = stream;
+    if ( !opened )
+    {
+        return NULL;
+    }
 
-                        // and push header packet
-                        stream->Push(DvHeader);
+    // Header ownership: on success Open() copied the header into m_DvHeader
+    // by value. The caller's pointer is no longer needed here — previously
+    // stream->Push(DvHeader) transferred it into the queue and the queue
+    // would delete it on drain. Since we no longer push at Phase 1, we
+    // must delete it ourselves to keep the caller-visible contract
+    // unchanged ("on success, OpenStream consumes the pointer").
+    delete DvHeader;
+    DvHeader = NULL;
 
-                        // report
-                        if ( client->IsPeer() )
-                        {
-                            std::cout << "Opening stream on module " << module << " for "
-                                      << DvHeader->GetMyCallsign() << " via " << client->GetCallsign()
-                                      << " with sid " << DvHeader->GetStreamId() << std::endl;
-                        }
-                        else
-                        {
-                            std::cout << "Opening stream on module " << module << " for "
-                                      << DvHeader->GetMyCallsign() << " on " << client->GetCallsign()
-                                      << " with sid " << DvHeader->GetStreamId() << std::endl;
-                        }
+    // ----- Phase 2: negotiate transcoder WITHOUT holding reflector locks -----
+    // g_Transcoder.GetStream() blocks up to ~1050ms waiting for AMBEd. With
+    // Clients released, other protocol threads can continue processing voice
+    // frames, keepalives, and new connects in parallel.
+    //
+    // Voice frames arriving for THIS stream during the negotiation are
+    // buffered in the stream's pre-codec ring buffer (by CPacketStream::Push
+    // under the stream lock) and replayed through the transcoder in Phase 3.
+    ReleaseClients();
 
-                        // notify
-                        g_Reflector.OnStreamOpen(stream->GetUserCallsign());
-
-                    }
-                    // unlock now
-                    stream->Unlock();
-                }
-            }
-            else
-            {
-                // report
-                std::cout << "Detected stream loop on module " << DvHeader->GetRpt2Module() << " for client " << client->GetCallsign()
-                          << " with sid " << DvHeader->GetStreamId() << std::endl;
-            }
+    // Decide whether a transcode is required. We engage AMBEd iff a
+    // codec needed by some client on the module is NOT already
+    // provided by the source's wire frame. Single-codec sources
+    // (D-Star/DMR/YSF/NXDN/M17/P25 native) almost always trigger the
+    // transcode because the always-on AMBE+/AMBE+2 baseline can't
+    // both be satisfied by a single native codec. XLX peers may or
+    // may not trigger depending on which codecs the rev carries vs
+    // which clients are connected to the module:
+    //   - rev 3 + only D-Star/DMR/YSF/NXDN: no transcode (AMBE+ and
+    //     AMBE+2 both in wire frame; no M17/P25 demand)
+    //   - rev 3 + M17 client: no transcode (Codec2 in wire frame)
+    //   - rev 3 + P25 client: transcode (IMBE missing — this is the
+    //     P25-over-XLX bug this design fixes)
+    //   - rev 1/2 + M17 or P25 client: transcode (whichever optional
+    //     codec is missing)
+    //
+    // Source-codec preference when multiple are available:
+    //   AMBE+2 > AMBE+ > Codec2 > IMBE
+    // (most-common cross-mode pairing first; IMBE only as input if
+    // it's literally the only thing available, which would only
+    // happen for native P25 sources).
+    uint8 transcodeInputCodec = CODEC_NONE;
+    if ( transcodeSourceCodecs != 0U )
+    {
+        const uint32 missing = neededCodecs & ~transcodeSourceCodecs;
+        if ( missing != 0U )
+        {
+            // Pick the preferred source codec from what's available.
+            if      ( transcodeSourceCodecs & (1U << CODEC_AMBE2PLUS) ) transcodeInputCodec = CODEC_AMBE2PLUS;
+            else if ( transcodeSourceCodecs & (1U << CODEC_AMBEPLUS)  ) transcodeInputCodec = CODEC_AMBEPLUS;
+            else if ( transcodeSourceCodecs & (1U << CODEC_CODEC2)    ) transcodeInputCodec = CODEC_CODEC2;
+            else if ( transcodeSourceCodecs & (1U << CODEC_IMBE)      ) transcodeInputCodec = CODEC_IMBE;
         }
     }
-    
-    // done
+    // Backward-compat fallback: if the inputCodec from the stream is
+    // non-NONE (native single-codec source) but our new logic didn't
+    // request a transcode (shouldn't happen given the always-on
+    // AMBE+/AMBE+2 baseline, but defence-in-depth), keep the prior
+    // behaviour of engaging the transcoder with the native codec.
+    // Avoids any chance of regression for paths that worked before.
+    if ( transcodeInputCodec == CODEC_NONE && inputCodec != CODEC_NONE )
+    {
+        transcodeInputCodec = inputCodec;
+    }
+
+    CCodecStream *codecStream = NULL;
+    if ( transcodeInputCodec != CODEC_NONE )
+    {
+        codecStream = g_Transcoder.GetStream(stream, transcodeInputCodec);
+    }
+
+    // ----- Phase 3: attach the codec stream (stream lock only) -----
+    // AttachCodecStream handles the case where CloseStream fired during
+    // Phase 2 (it releases the codec stream and drops buffered frames).
+    stream->Lock();
+    stream->AttachCodecStream(codecStream);
+    stream->Unlock();
+
+    // Re-acquire Clients for the caller. The `client` parameter may now be
+    // stale (see contract comment at top); the caller must not dereference
+    // it. The reflector's ReleaseStreamOwner path handles stale owner
+    // pointers on the stream itself.
+    GetClients();
+
     return retStream;
 }
 
-void CReflector::CloseStream(CPacketStream *stream)
+bool CReflector::CloseStream(CPacketStream *stream)
 {
     //
-    if ( stream != NULL )
+    if ( stream == NULL )
     {
-        // Wait for the transcoder pipeline to drain before closing.
-        // Call IsEmpty() WITHOUT holding the stream lock to avoid ABBA deadlock:
-        // the drain loop would hold stream lock then acquire codec lock (via
-        // CCodecStream::IsEmpty), while CCodecStream::Task() holds codec lock
-        // then acquires stream lock (for jitter buffer release).
-        // The only writer to the stream queue at this point is CCodecStream::Task()
-        // returning transcoded packets — no router traffic since we're at end of
-        // transmission. A momentary read-race on the queue is benign: at worst we
-        // poll one extra 10ms cycle.
-        static const int MAX_DRAIN_WAIT_MS = 2000;  // 2 second max wait
-        static const int DRAIN_POLL_MS = 10;
-        int waitedMs = 0;
-        bool bEmpty = false;
-        do
-        {
-            bEmpty = stream->IsEmpty();
-            if ( !bEmpty && waitedMs < MAX_DRAIN_WAIT_MS )
-            {
-                CTimePoint::TaskSleepFor(DRAIN_POLL_MS);
-                waitedMs += DRAIN_POLL_MS;
-            }
-        } while (!bEmpty && waitedMs < MAX_DRAIN_WAIT_MS);
+        return false;
+    }
 
-        if ( !bEmpty )
+    // Serialise CloseStream on this stream. The old design relied on
+    // a single-caller invariant for the drain-loop's lock-free read of
+    // m_CodecStream, but that invariant can break when e.g. the
+    // RouterThread's orphan-close path races with a protocol's
+    // OnDvLastFramePacketIn close path on the same stream. If another
+    // thread is already closing this stream, bail out — there is
+    // nothing useful for us to do and proceeding would race on
+    // m_CodecStream. Return false so the caller knows it was a no-op
+    // (the RouterThread relies on this to suppress a log-spam loop
+    // while the other closer is still draining).
+    if ( !stream->TryBeginClose() )
+    {
+        return false;
+    }
+
+    // Wait for the transcoder pipeline to drain before closing.
+    // Call IsEmpty() WITHOUT holding the stream lock to avoid ABBA deadlock:
+    // the drain loop would hold stream lock then acquire codec lock (via
+    // CCodecStream::IsEmpty), while CCodecStream::Task() holds codec lock
+    // then acquires stream lock (for jitter buffer release).
+    //
+    // After the ambed-decoupling rework (jitter buffer releases packets
+    // on a fixed 20 ms cadence regardless of ambed state), the drain
+    // proceeds at one packet per JITTER_BUFFER_FRAME_MS once the source
+    // stops pushing — so worst-case wall-clock is roughly the jitter
+    // buffer occupancy × 20 ms. Steady-state occupancy is ~8 frames
+    // (~160 ms); a burst-at-close pathology can leave up to ~50 frames
+    // (~1000 ms). The 2000 ms cap is the safety bound for the
+    // pathological case; it's not normally reached.
+    //
+    // The stall-detection logic that used to live here was specifically
+    // for the pre-rework architecture where ambed could wedge the
+    // pipeline indefinitely (packets piled in m_LocalQueue, never
+    // released). With ambed now structurally optional in the audio
+    // path, "stall" is no longer a possible state — the jitter timer
+    // always advances. So the drain reduces to: "wait until empty, or
+    // until the absolute cap as a hard safety bound."
+    static const int MAX_DRAIN_WAIT_MS = 2000;
+    static const int DRAIN_POLL_MS = 10;
+
+    int  waitedMs = 0;
+    bool bEmpty = false;
+
+    while ( waitedMs < MAX_DRAIN_WAIT_MS )
+    {
+        bEmpty = stream->IsEmpty();
+        if ( bEmpty ) break;
+
+        CTimePoint::TaskSleepFor(DRAIN_POLL_MS);
+        waitedMs += DRAIN_POLL_MS;
+    }
+
+    if ( !bEmpty )
+    {
+        // Reached the absolute cap. The pathological case where this
+        // can fire today is a Phase-2 OpenStream burst that leaves >100
+        // frames queued, which exceeds the cap's release budget. Log
+        // for diagnosis; the destructor will drop the remaining
+        // packets and the per-CCodecStream warning line will quantify
+        // the loss.
+        std::cout << "Warning: CloseStream drain hit " << MAX_DRAIN_WAIT_MS
+                  << "ms cap, some packets may be lost" << std::endl;
+    }
+
+    // Snapshot what we need under the stream + clients locks, then
+    // release both before calling into the GateKeeper. This keeps the
+    // GateKeeper LoopMutex completely outside the Clients lock scope
+    // (eliminates a Clients → LoopMutex ordering that other paths must
+    // avoid forever) without sacrificing correctness: the snapshot holds
+    // everything ReportStreamClose needs, and the client pointer is
+    // nulled under the stream lock so no one can dereference it after.
+    GetClients();
+    stream->Lock();
+
+    CClient *client = stream->GetOwnerClient();
+    CClient *clientToDisconnect = NULL;
+    bool        hadClient = false;
+    char        module = ' ';
+    CCallsign   userCallsign;
+    uint32_t    packetCount = 0;
+    bool        clientIsPeer = false;
+    if ( client != NULL )
+    {
+        hadClient = true;
+        module = GetStreamModule(stream);
+        userCallsign = stream->GetUserCallsign();
+        packetCount = stream->GetPacketCount();
+        clientIsPeer = client->IsPeer();
+
+        // client no longer a master
+        client->NotAMaster();
+
+        // Capture the pointer for potential loop-disconnect below, then
+        // NULL it under the stream lock so no other thread can
+        // dereference it after we release the clients lock.
+        // GetOwnerIp() uses the cached copy set at Open() time.
+        if ( !clientIsPeer )
         {
-            std::cout << "Warning: CloseStream drain timeout, some transcoded packets may be lost" << std::endl;
+            clientToDisconnect = client;
         }
-        
-        // lock clients
+        stream->SetOwnerClient(NULL);
+    }
+
+    // release clients
+    ReleaseClients();
+
+    // unlock before closing
+    // to avoid double lock in associated
+    // codecstream close/thread-join
+    stream->Unlock();
+
+    // Call GateKeeper and post notifications without any reflector
+    // locks held. ReportStreamClose takes the GateKeeper LoopMutex;
+    // keeping that outside the Clients lock means any future path that
+    // needs Clients while holding LoopMutex will not deadlock here.
+    bool shouldDisconnect = false;
+    if ( hadClient )
+    {
+        shouldDisconnect = g_GateKeeper.ReportStreamClose(
+            module,
+            userCallsign,
+            packetCount,
+            clientIsPeer
+        );
+
+        g_Reflector.OnStreamClose(userCallsign);
+
+        std::cout << "Closing stream of module " << module << std::endl;
+    }
+
+    // close stream — resets state and releases transcoder stream
+    stream->Close();
+
+    // now safe to disconnect the looping client
+    if ( shouldDisconnect && clientToDisconnect != NULL )
+    {
         GetClients();
-        
-        // lock stream
-        stream->Lock();
-
-        // get and check the master
-        CClient *client = stream->GetOwnerClient();
-        CClient *clientToDisconnect = NULL;
-        if ( client != NULL )
+        if ( m_Clients.IsClient(clientToDisconnect) )
         {
-            // report to gatekeeper for loop detection
-            char module = GetStreamModule(stream);
-            bool shouldDisconnect = g_GateKeeper.ReportStreamClose(
-                module,
-                stream->GetUserCallsign(),
-                stream->GetPacketCount(),
-                client->IsPeer()
-            );
-
-            // client no longer a master
-            client->NotAMaster();
-
-            // notify
-            g_Reflector.OnStreamClose(stream->GetUserCallsign());
-
-            std::cout << "Closing stream of module " << module << std::endl;
-
-            // mark for disconnect after stream is fully closed
-            if ( shouldDisconnect && !client->IsPeer() )
-            {
-                clientToDisconnect = client;
-            }
-
-            // NULL the client pointer now (under stream lock) so no other
-            // thread can dereference it after we release the clients lock.
-            // GetOwnerIp() uses the cached copy set at Open() time.
-            stream->SetOwnerClient(NULL);
+            std::cout << "Loop detection: removing client " << clientToDisconnect->GetCallsign() << std::endl;
+            m_Clients.RemoveClient(clientToDisconnect);
         }
-
-        // release clients
         ReleaseClients();
+    }
 
-        // unlock before closing
-        // to avoid double lock in associated
-        // codecstream close/thread-join
-        stream->Unlock();
-
-        // close stream — resets state and releases transcoder stream
-        stream->Close();
-
-        // now safe to disconnect the looping client
-        if ( clientToDisconnect != NULL )
+    // check for pending late entry on this module
+    int moduleIdx = -1;
+    for ( int i = 0; i < (int)m_Streams.size(); i++ )
+    {
+        if ( &m_Streams[i] == stream )
         {
-            GetClients();
-            if ( m_Clients.IsClient(clientToDisconnect) )
-            {
-                std::cout << "Loop detection: removing client " << clientToDisconnect->GetCallsign() << std::endl;
-                m_Clients.RemoveClient(clientToDisconnect);
-            }
-            ReleaseClients();
-        }
-
-        // check for pending late entry on this module
-        int moduleIdx = -1;
-        for ( int i = 0; i < (int)m_Streams.size(); i++ )
-        {
-            if ( &m_Streams[i] == stream )
-            {
-                moduleIdx = i;
-                break;
-            }
-        }
-        if ( moduleIdx >= 0 )
-        {
-            PromotePendingEntry(moduleIdx);
+            moduleIdx = i;
+            break;
         }
     }
+    if ( moduleIdx >= 0 )
+    {
+        PromotePendingEntry(moduleIdx);
+    }
+
+    // release the close serialization — the next CloseStream on this
+    // stream is now permitted to run (after the next Open() cycle, the
+    // stream is no longer "closing").
+    stream->EndClose();
+
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -531,8 +700,24 @@ void CReflector::PromotePendingEntry(int moduleIdx)
         client->SetMasterOfModule(GetModuleLetter(moduleIdx));
         client->Heard();
 
-        // push a copy of the header to the stream
-        stream->Push(new CDvHeaderPacket(*(pending.GetHeader())));
+        // The header is emitted by AttachCodecStream() below via the new
+        // m_bHasPendingHeader mechanism (set inside Open()). We previously
+        // did an explicit stream->Push(new CDvHeaderPacket(...)) here, but
+        // that produces a duplicate header on the base queue now that
+        // AttachCodecStream also emits one — double-open on D-Star receivers,
+        // wasted bandwidth on others. Rely on AttachCodecStream for the
+        // single authoritative emission.
+
+        // Complete the two-phase open. Late-entry promotion runs under the
+        // Clients lock and cannot afford a blocking AMBEd handshake here, so
+        // we attach a NULL codec stream with transcodeRequested=false to
+        // suppress the spurious "ambed unavailable" warning. AttachCodecStream
+        // emits the deferred header, clears m_bCodecPending, and routes any
+        // buffered pre-codec frames straight to the stream queue. Cross-mode
+        // transcoding is unavailable for late-entry streams — acceptable
+        // because the promotion itself already implies we lost the start of
+        // the transmission.
+        stream->AttachCodecStream(NULL, /*transcodeRequested=*/false);
 
         stream->Unlock();
 
@@ -626,19 +811,30 @@ void CReflector::RouterThread(CReflector *This, CPacketStream *streamIn)
             // Safety net: if stream is open but expired (no packets for
             // STREAM_TIMEOUT), close it. This catches promoted late-entry
             // streams that aren't tracked in any protocol's m_Streams.
+            //
+            // CloseStream may be a no-op if another thread (e.g. the
+            // protocol's CheckStreamsTimeout path) already grabbed the
+            // close serialisation via TryBeginClose. In that case the
+            // other thread is still draining the stream, so it stays
+            // IsOpen() && IsExpired() until that drain completes — if
+            // we logged unconditionally and skipped the sleep we'd burn
+            // a CPU spinning on the same orphan. Only log when we
+            // actually performed the close, and always sleep so the
+            // loop can't spin regardless of outcome.
             streamIn->Lock();
             bool orphaned = streamIn->IsOpen() && streamIn->IsExpired();
             streamIn->Unlock();
             if ( orphaned )
             {
-                std::cout << "Router: closing expired stream on module " << (char)uiModuleId << std::endl;
-                This->CloseStream(streamIn);
+                if ( This->CloseStream(streamIn) )
+                {
+                    std::cout << "Router: closed expired stream on module " << (char)uiModuleId << std::endl;
+                }
             }
-            else
-            {
-                // wait a bit
-                CTimePoint::TaskSleepFor(10);
-            }
+            // wait a bit (always — even after a close, to keep this
+            // loop from busy-waiting on a stream another thread is
+            // draining)
+            CTimePoint::TaskSleepFor(10);
         }
     }
 }
@@ -835,6 +1031,51 @@ CPacketStream *CReflector::GetStream(char module)
         stream = &(m_Streams[i]);
     }
     return stream;
+}
+
+// Walk the (already-locked) Clients list and assemble the set of
+// codecs that any client on this module would consume. AMBE+ and
+// AMBE+2 are unconditionally included — they are operator-mandated
+// "core" codecs (D-Star and DMR/YSF/NXDN families respectively),
+// and OpenStream's gap-fill logic relies on them always being
+// present in the needed set so any source that doesn't provide
+// them triggers a local transcode. Codec2 and IMBE are added
+// on demand based on which client protocols are actually present.
+// Mid-stream client joins are explicitly out of scope per the
+// operator's policy — a client joining after stream-open hears
+// silence on a needed-but-not-decided codec until the next TX.
+uint32 CReflector::GetNeededCodecsOnModule(char module) const
+{
+    uint32 needed = (1U << CODEC_AMBEPLUS) | (1U << CODEC_AMBE2PLUS);
+
+    for ( int i = 0; i < m_Clients.GetSize(); i++ )
+    {
+        // const_cast is the lesser evil here: CClients::GetClient is
+        // not const-qualified (pre-existing API limitation), but we
+        // only read from the returned client and we already hold the
+        // Clients lock (caller contract). If GetClient gains a const
+        // overload later, drop this cast.
+        const CClient *cl = const_cast<CClients &>(m_Clients).GetClient(i);
+        if ( cl == NULL )
+            continue;
+        if ( cl->GetReflectorModule() != module )
+            continue;
+        switch ( cl->GetProtocol() )
+        {
+            case PROTOCOL_M17:
+                needed |= (1U << CODEC_CODEC2);
+                break;
+            case PROTOCOL_P25:
+                needed |= (1U << CODEC_IMBE);
+                break;
+            default:
+                // D-Star (DEXTRA/DPLUS/DCS/G3), DMR (MMDVM/PLUS),
+                // YSF, NXDN, XLX, IMRS — covered by the always-on
+                // AMBE+/AMBE+2 baseline.
+                break;
+        }
+    }
+    return needed;
 }
 
 void CReflector::ReleaseStreamOwner(CClient *client)

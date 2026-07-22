@@ -53,7 +53,7 @@ CXlxClient::CXlxClient(const CXlxClient &client)
 int CXlxClient::GetCodec(void) const
 {
     int codec;
-    
+
     switch ( GetProtocolRevision() )
     {
         case XLX_PROTOCOL_REVISION_0:
@@ -67,6 +67,30 @@ int CXlxClient::GetCodec(void) const
             break;
     }
     return codec;
+}
+
+// XLX interlink wire frames carry multiple codecs at once:
+//   rev 0/1: AMBE+ only
+//   rev 2  : AMBE+ + AMBE+2 (D-Star + DMR)
+//   rev 3  : AMBE+ + AMBE+2 + Codec2 (D-Star + DMR + M17)
+// No XLX rev carries IMBE — P25 audio on cross-XLX flows must be
+// transcoded locally on the receiving side via AMBEd. The
+// available-codecs bitmask is read by CReflector::OpenStream to
+// compute what's missing vs what's needed on the target module and
+// decide whether to engage the local transcoder.
+uint32 CXlxClient::GetAvailableCodecs(void) const
+{
+    switch ( GetProtocolRevision() )
+    {
+        case XLX_PROTOCOL_REVISION_0:
+        case XLX_PROTOCOL_REVISION_1:
+        default:
+            return (1U << CODEC_AMBEPLUS);
+        case XLX_PROTOCOL_REVISION_2:
+            return (1U << CODEC_AMBEPLUS) | (1U << CODEC_AMBE2PLUS);
+        case XLX_PROTOCOL_REVISION_3:
+            return (1U << CODEC_AMBEPLUS) | (1U << CODEC_AMBE2PLUS) | (1U << CODEC_CODEC2);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

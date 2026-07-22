@@ -95,9 +95,19 @@ public:
     bool            m_bHasOwner;
     bool            m_bStreamActive;        // true after first voice frame sent, false after EOT
 
-    // Timer tracking last wire packet sent on this module; used by CheckForMissedEOT
-    // to detect abandoned streams without touching cross-thread stream state.
-    CTimePoint      m_LastFrameSentTime;
+    // Timer tracking last upstream DV-frame / last-frame received for this
+    // module's M17 output path. Used by CheckForMissedEOT to detect
+    // abandoned streams without touching cross-thread stream state.
+    //
+    // NOT "last M17 wire packet sent" — that was the previous (broken)
+    // semantic which conflated "M17 emitted wire bytes" with "upstream
+    // still alive." When the ambed pipeline starves (Codec2 responses
+    // don't arrive in time), M17 emits no wire bytes for those packets
+    // but the upstream stream is still very much alive — using wire-emit
+    // as the liveness proxy then fired a spurious synthetic EOT mid-
+    // transmission, tearing down the stream while listeners were still
+    // expecting audio. See HandleQueue for the corrected update site.
+    CTimePoint      m_LastUpstreamActivityTime;
 
     // Stats for on-demand transcoding (AMBE -> Codec2 for M17 listeners)
     uint32          m_uiPacketsIn;          // total DV frames received

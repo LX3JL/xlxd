@@ -236,8 +236,17 @@ void CUsb3xxxInterface::Task(void)
                 Channel = GetChannelWithChannelOut(iCh);
                 if ( Channel != NULL )
                 {
-                    Queue = Channel->GetPacketQueueOut();
+                    // Restore the PID that was on the corresponding input
+                    // packet — the hardware response carries channel and
+                    // codec data but not the original pid, so we recover
+                    // it from the per-channel FIFO populated when the
+                    // input packet was consumed (see input-side push
+                    // below in this same Task() loop). FIFO ordering
+                    // matches because the DVStick processes packets
+                    // sequentially per physical channel.
                     CAmbePacket *clone = new CAmbePacket(AmbePacket);
+                    clone->SetPid(Channel->PopPid());
+                    Queue = Channel->GetPacketQueueOut();
                     Queue->push(clone);
                     Channel->ReleasePacketQueueOut();
                 }
@@ -297,6 +306,14 @@ void CUsb3xxxInterface::Task(void)
                     // get packet
                     CAmbePacket *Packet = (CAmbePacket *)Queue->front();
                     Queue->pop();
+                    // PID-preservation push: capture the pid before the
+                    // packet heads into the USB write path (where it
+                    // gets freed). The matching pop happens above when
+                    // the encoder-side hardware response arrives, so
+                    // the pid round-trips correctly via the per-channel
+                    // FIFO instead of via packet bytes (which the DVStick
+                    // protocol doesn't preserve).
+                    Channel->PushPid(Packet->GetPid());
                     // this is first step of transcoding
                     // a fresh new packet to be transcoded is showing up
                     // post it to relevant channel decoder

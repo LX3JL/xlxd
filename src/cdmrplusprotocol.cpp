@@ -569,9 +569,11 @@ bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffe
             uint32 uiSrcId; ::memcpy(&uiSrcId, &Buffer.data()[68], sizeof(uint32)); uiSrcId &= 0x00FFFFFF;
 
             // build DVHeader
+            // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+            // See cnxdnprotocol.cpp for the rationale.
             CCallsign csMY =  CCallsign("", uiSrcId);
             CCallsign rpt1 = CCallsign("", uiSrcId);
-            rpt1.SetModule(DMRPLUS_MODULE_ID);
+            rpt1.SetModule('B');
             CCallsign rpt2 = m_ReflectorCallsign;
             rpt2.SetModule(DmrDstIdToModule(uiDstId));
             uint32 uiStreamId = IpToStreamId(Ip);

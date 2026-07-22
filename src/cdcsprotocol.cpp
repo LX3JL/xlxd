@@ -29,6 +29,7 @@
 #include "cdcsprotocol.h"
 #include "cdcspeer.h"
 #include "cdcspeerclient.h"
+#include "cdstarslowdata.h"
 #include "creflector.h"
 #include "cgatekeeper.h"
 #include "cpeers.h"
@@ -118,7 +119,27 @@ void CDcsProtocol::RxTask(void)
                     g_Reflector.ReleasePeers();
                 }
 
-                if ( isPeer || g_GateKeeper.MayTransmit(Header->GetMyCallsign(), Ip, PROTOCOL_DCS, Header->GetRpt2Module()) )
+                // Peer traffic bypasses MayTransmit by design, but is
+                // still subject to the per-callsign loop block — see
+                // cysfprotocol.cpp for the rationale. Drop both Header
+                // and Frame atomically if the gate rejects.
+                bool dropPacket = false;
+                if ( isPeer )
+                {
+                    if ( g_GateKeeper.IsCallsignLoopBlocked(
+                            Header->GetMyCallsign(), "DCS peer") )
+                    {
+                        dropPacket = true;
+                    }
+                }
+                else if ( !g_GateKeeper.MayTransmit(
+                            Header->GetMyCallsign(), Ip,
+                            PROTOCOL_DCS, Header->GetRpt2Module()) )
+                {
+                    dropPacket = true;
+                }
+
+                if ( !dropPacket )
                 {
                     // capture DCS text field (bytes 62-99) for outgoing packet reconstruction
                     if ( Buffer.size() >= 100 )
@@ -1069,14 +1090,67 @@ void CDcsProtocol::EncodeDvPacket(const CDvHeaderPacket &Header, const CDvFrameP
     Buffer->Append((uint8)((iSeq >> 0) & 0xFF));
     Buffer->Append((uint8)((iSeq >> 8) & 0xFF));
     Buffer->Append((uint8)((iSeq >> 16) & 0xFF));
-    Buffer->Append((uint8)0x01);
-    Buffer->Append((uint8)0x00, 38);    // DCS text field — overwritten by HandleQueue with cached source data
+    Buffer->Append((uint8)0x01);           // [61] DCS format marker
+    Buffer->Append((uint8)0x00, 38);       // [62-99] text field default fill
+
+    // DCS format compliance: byte 63 MUST be 0x21 (text field separator)
+    // and bytes 64-83 carry the 20-char text message. Native DCS voice
+    // frames captured on the wire always have these set; xlxd's cross-
+    // mode egress used to leave bytes 62-99 zeroed, and at least one
+    // strict downstream (Icom g2_link → RP2C) rejects such frames as
+    // malformed DCS — native plays, cross-mode silent.
+    //
+    // Written unconditionally so every DCS voice frame we emit is well-
+    // formed regardless of source protocol. On the DCS-source path,
+    // HandleQueue's m_bHasDcsTail overwrite later replaces bytes 58-99
+    // verbatim with the cached source tail — that tail has 0x21 at the
+    // matching offset (CDcsStreamCacheItem constructor), so format
+    // compliance is preserved; text content gets replaced with the
+    // source radio's actual slow-data text.
+    //
+    // ReplaceAt is the idiomatic codebase method for in-place byte
+    // patching — it bounds-checks and avoids raw data() manipulation.
+    char text[DSTAR_SLOW_DATA_TEXT_LEN];
+    CDStarSlowData::ComposeText(Header, text);
+    Buffer->ReplaceAt(63, (uint8)0x21);
+    Buffer->ReplaceAt(64, (const uint8 *)text, DSTAR_SLOW_DATA_TEXT_LEN);
 }
 
 void CDcsProtocol::EncodeDvLastPacket(const CDvHeaderPacket &Header, const CDvFramePacket &DvFrame, uint32 iSeq, CBuffer *Buffer) const
 {
     EncodeDvPacket(Header, DvFrame, iSeq, Buffer);
     (Buffer->data())[45] |= 0x40;
+
+    // Spec-compliant D-Star EoT pattern in the AMBE (bytes 46-54) and
+    // DVDATA (bytes 55-57) fields. DExtra and DPlus achieve this with a
+    // static tag2[] array on egress (cdextraprotocol.cpp:1083,
+    // cdplusprotocol.cpp:1189) — DCS historically only set the 0x40 EoT
+    // bit and left the AMBE/DVDATA fields carrying whatever bytes the
+    // upstream pipeline produced.
+    //
+    // For native D-Star → DCS this was already correct (the source
+    // radio's spec-compliant EoT bytes flowed through unchanged), so the
+    // override below is a no-op rewrite of identical bytes. For cross-
+    // mode → DCS the AMBE field had non-deterministic transcoder output
+    // (AMBEd's response to feeding the source's EoT pattern through DVSI
+    // as if it were audio) and the DVDATA field carried mid-cycle slow-
+    // data content (header-sync element fragment or filler), neither
+    // matching the spec EoT marker. The override replaces both with the
+    // standard pattern.
+    //
+    // Bytes:
+    //   46-54  AMBE     = 55 C8 7A 00 00 00 00 00 00  (D-Star RF burst
+    //                    termination M-sequence + 6 silence bytes)
+    //   55-57  DVDATA   = 25 1A C6  (wire bytes; plaintext 55 55 55,
+    //                    the slow-data idle filler / EoT pattern)
+    //
+    // The 0x40 EoT bit on byte 45 (set above) remains the protocol-level
+    // signal DCS clients gate on; this override brings the AMBE/DVDATA
+    // fields into JARL spec compliance for strict-decoder downstreams.
+    static const uint8 eotAmbe[]   = { 0x55, 0xC8, 0x7A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    static const uint8 eotDvData[] = { 0x25, 0x1A, 0xC6 };
+    Buffer->ReplaceAt(46, eotAmbe,   (int)sizeof(eotAmbe));
+    Buffer->ReplaceAt(55, eotDvData, (int)sizeof(eotDvData));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

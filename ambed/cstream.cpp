@@ -359,6 +359,63 @@ void CStream::Close(void)
             waitedMs += DRAIN_POLL_MS;
         }
     }
+    // Plain AMBE input mode (hardware-native transcoding): drain the DVSI
+    // pipeline before stopping the thread and closing the channel. Without
+    // this, frames still inside the hardware at close time were lost when
+    // CVocodecChannel::Close → PurgeAllQueues() fired below — observable as
+    // "N packets lost at stream close" / "drain stalled" warnings on the
+    // xlxd side, cutting 20–40ms off the tail of the audio.
+    //
+    // Symmetric with the IMBE/Codec2 drain above but sized for the AMBE
+    // hardware path: no intermediate PCM voice queue (the VocodecChannel's
+    // PacketQueueIn feeds the USB pump thread directly), HW latency
+    // observed in the 15–65ms range so the 100ms cap has comfortable
+    // headroom. Phase 3 also waits on m_pStagedPacket because AMBE streams
+    // with secondary Codec2/IMBE outputs (M17/P25 cross-mode listeners)
+    // stage the hardware packet in Task() while the software encoder
+    // catches up — we must not stop the thread until that last packet
+    // has been sent.
+    else if ( m_VocodecChannel != NULL )
+    {
+        const int MAX_DRAIN_MS    = 500;
+        const int DRAIN_POLL_MS   = 10;
+        const int HW_LATENCY_MS   = 100;
+        int waitedMs = 0;
+
+        // Phase 1: wait for the packet-in queue (packets xlxd sent that
+        // the USB pump hasn't yet handed to the DVSI hardware) to drain.
+        // The pump thread is an independent consumer of this queue; the
+        // Task thread only writes to it.
+        while ( waitedMs < MAX_DRAIN_MS )
+        {
+            CPacketQueue *qIn = m_VocodecChannel->GetPacketQueueIn();
+            bool empty = qIn->empty();
+            m_VocodecChannel->ReleasePacketQueueIn();
+            if ( empty ) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(DRAIN_POLL_MS));
+            waitedMs += DRAIN_POLL_MS;
+        }
+
+        // Phase 2: hard sleep for DVSI DSP latency. Frames already inside
+        // the hardware pipeline need wall-clock time to emerge — we cannot
+        // poll our way out of this, the hardware is asynchronous.
+        std::this_thread::sleep_for(std::chrono::milliseconds(HW_LATENCY_MS));
+
+        // Phase 3: wait for the packet-out queue (transcoded AMBE from HW,
+        // awaiting forwarding to xlxd) to drain AND for any staged packet
+        // to be sent. The Task thread is still running during this wait
+        // and is what pops from the queue and sends via m_Socket.SendVoice().
+        waitedMs = 0;
+        while ( waitedMs < MAX_DRAIN_MS )
+        {
+            CPacketQueue *qOut = m_VocodecChannel->GetPacketQueueOut();
+            bool empty = qOut->empty();
+            m_VocodecChannel->ReleasePacketQueueOut();
+            if ( empty && (m_pStagedPacket == NULL) ) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(DRAIN_POLL_MS));
+            waitedMs += DRAIN_POLL_MS;
+        }
+    }
 
     // Stop thread — must complete before any pointer nulling below
     m_bStopThread = true;
@@ -368,6 +425,28 @@ void CStream::Close(void)
 
     // Close socket
     m_Socket.Close();
+
+    // Capture PID-FIFO desync drop counts BEFORE closing the channels —
+    // CVocodecChannel::Close calls PurgeAllQueues which resets the
+    // counters. We want to report the values that accumulated during
+    // this stream's lifetime, not 0.
+    uint32 totalOrphanDrops = 0;
+    uint32 totalOverflowDrops = 0;
+    if ( m_VocodecChannel != NULL )
+    {
+        totalOrphanDrops += m_VocodecChannel->GetPidFifoOrphanDrops();
+        totalOverflowDrops += m_VocodecChannel->GetPidFifoOverflowDrops();
+    }
+    if ( m_EncoderChannel1 != NULL )
+    {
+        totalOrphanDrops += m_EncoderChannel1->GetPidFifoOrphanDrops();
+        totalOverflowDrops += m_EncoderChannel1->GetPidFifoOverflowDrops();
+    }
+    if ( m_EncoderChannel2 != NULL )
+    {
+        totalOrphanDrops += m_EncoderChannel2->GetPidFifoOrphanDrops();
+        totalOverflowDrops += m_EncoderChannel2->GetPidFifoOverflowDrops();
+    }
 
     // Close and null vocodec channels
     if ( m_VocodecChannel != NULL )
@@ -403,6 +482,18 @@ void CStream::Close(void)
 
     // Report
     std::cout << m_iLostPackets << " of " << m_iTotalPackets << " packets lost" << std::endl;
+
+    // PID-FIFO desync summary. Only logged when non-zero — healthy
+    // deployments produce nothing (avoids log spam). Real-time
+    // first-occurrence warnings are emitted from PushPid/PopPid in
+    // CVocodecChannel; this is the per-stream cumulative summary.
+    if ( totalOrphanDrops > 0 || totalOverflowDrops > 0 )
+    {
+        std::cout << "PID FIFO desync summary: "
+                  << totalOrphanDrops << " orphan drops, "
+                  << totalOverflowDrops << " overflow drops"
+                  << std::endl;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -611,6 +702,17 @@ void CStream::TaskCodec2Input(void)
             CVoicePacket *voicePacket2 = new CVoicePacket(pcmBytes2, 320);
             voicePacket2->SetChannel(m_EncoderChannel2->GetChannelOut());
 
+            // PID-preservation: push the input packet's PID into both
+            // encoder channels' FIFOs so the matching pops in the USB
+            // interface (when the AMBE responses arrive from hardware)
+            // can re-attach the correct PID to the output packets. The
+            // response builder below uses packet1->GetPid() for the
+            // outbound response, so channel 1's pid is the one that
+            // matters; channel 2's is pushed for symmetry / future-
+            // proofing in case any future code path reads packet2's pid.
+            m_EncoderChannel1->PushPid(uiPid);
+            m_EncoderChannel2->PushPid(uiPid);
+
             // Push to encoder channel 1 (AMBE+)
             queue1 = m_EncoderChannel1->GetVoiceQueue();
             queue1->push(voicePacket1);
@@ -763,6 +865,14 @@ void CStream::TaskImbeInput(void)
 
             CVoicePacket *voicePacket2 = new CVoicePacket(pcmBytes2, 320);
             voicePacket2->SetChannel(m_EncoderChannel2->GetChannelOut());
+
+            // PID-preservation: push the input packet's PID into both
+            // encoder channels' FIFOs so the matching pops in the USB
+            // interface (when the AMBE responses arrive from hardware)
+            // can re-attach the correct PID. Same rationale as
+            // TaskCodec2Input above.
+            m_EncoderChannel1->PushPid(uiPid);
+            m_EncoderChannel2->PushPid(uiPid);
 
             // Push to encoder channel 1 (AMBE+)
             queue1 = m_EncoderChannel1->GetVoiceQueue();

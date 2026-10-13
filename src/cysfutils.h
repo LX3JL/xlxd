@@ -44,6 +44,9 @@ public:
     static void DecodeVD2Vchs(uint8 *, uint8 **);
     static void DecodeVD2Vch(uint8 *, uint8 *);
     static void EncodeVD2Vch(uint8 *, uint8 *);
+
+    // gain adjustment
+    static void AdjustAmbeGain(uint8 *ambe, float db_adj);
     
 protected:
     // data

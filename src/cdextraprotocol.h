@@ -25,11 +25,36 @@
 #ifndef cdextraprotocol_h
 #define cdextraprotocol_h
 
+#include <map>
+#include <mutex>
 #include "ctimepoint.h"
 #include "cprotocol.h"
 #include "cdvheaderpacket.h"
 #include "cdvframepacket.h"
 #include "cdvlastframepacket.h"
+#include "cdextrapeer.h"
+#include "cdextrapeerclient.h"
+#include "cpeercallsignlist.h"
+#include <vector>
+
+////////////////////////////////////////////////////////////////////////////////////////
+// defines
+
+#define DEXTRA_CLIENT_CACHE_REFRESH_INTERVAL   1.0    // seconds between cache refresh
+
+////////////////////////////////////////////////////////////////////////////////////////
+// pending ack structure for delayed connection acknowledgments
+
+struct CDextraPendingAck
+{
+    CIp         m_Ip;
+    CCallsign   m_Callsign;
+    char        m_ToLinkModule;
+    int         m_ProtRev;
+    CTimePoint  m_CreatedTime;
+    double      m_DelaySeconds;     // random delay before sending ack
+    bool        m_bAccepted;        // true = send ack, false = send nack
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -58,10 +83,27 @@
 class CDextraStreamCacheItem
 {
 public:
-    CDextraStreamCacheItem()     {}
+    CDextraStreamCacheItem()     { m_uiOutboundStreamId = 0; m_bHasOwner = false; }
     ~CDextraStreamCacheItem()    {}
-    
+
+    std::mutex      m_Mutex;        // protects fields from RX/TX thread races
     CDvHeaderPacket m_dvHeader;
+    uint16          m_uiOutboundStreamId;
+    CIp             m_OwnerIp;
+    bool            m_bHasOwner;
+};
+
+// Client cache item for reducing lock contention in HandleQueue
+class CDextraClientCacheItem
+{
+public:
+    CDextraClientCacheItem()     { m_bInitialized = false; }
+    ~CDextraClientCacheItem()    {}
+
+    std::vector<CIp>    m_ClientIps;        // IPs of non-master clients on this module
+    CTimePoint          m_LastRefresh;      // When cache was last refreshed
+    std::mutex          m_Mutex;            // Protects cache access from race conditions
+    bool                m_bInitialized;     // Track if cache has ever been populated
 };
 
 class CDextraProtocol : public CProtocol
@@ -76,19 +118,37 @@ public:
     // initialization
     bool Init(void);
     
-    // task
-    void Task(void);
+    // split-thread mode
+    bool UsesSplitThreads(void) const { return true; }
+    void RxTask(void);
+    void TxTask(void);
 
 protected:
     // queue helper
     void HandleQueue(void);
+    void RefreshClientCache(int iModId);
+    void SendToModuleClients(int iModId, const CBuffer &buffer, int repeatCount, bool hasOwner, const CIp &ownerIp);
+
+    // pending ack helpers
+    void HandlePendingAcks(void);
 
     // keepalive helpers
     void HandleKeepalives(void);
 
+    // XRF peer helpers
+    void HandleDextraPeerLinks(void);
+    void HandleDextraPeerKeepalives(void);
+    void HandleDextraPeerConnectionStates(void);
+    bool IsXrfPeerCallsign(const CCallsign &) const;
+    void EncodeConnectPacket(CBuffer *, const CCallsign &, char, char);
+    bool IsValidConnectAckPacket(const CBuffer &);
+
+    // echo detection helper
+    bool IsEchoOfOutboundStream(uint16 streamId, const CIp &ip);
+
     // stream helpers
     bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &);
-    
+
     // packet decoding helpers
     bool                IsValidConnectPacket(const CBuffer &, CCallsign *, char *, int *);
     bool                IsValidDisconnectPacket(const CBuffer &, CCallsign *);
@@ -96,7 +156,7 @@ protected:
     CDvHeaderPacket     *IsValidDvHeaderPacket(const CBuffer &);
     CDvFramePacket      *IsValidDvFramePacket(const CBuffer &);
     CDvLastFramePacket  *IsValidDvLastFramePacket(const CBuffer &);
-    
+
     // packet encoding helpers
     void                EncodeKeepAlivePacket(CBuffer *);
     void                EncodeConnectAckPacket(CBuffer *, int);
@@ -106,13 +166,38 @@ protected:
     bool                EncodeDvHeaderPacket(const CDvHeaderPacket &, CBuffer *) const;
     bool                EncodeDvFramePacket(const CDvFramePacket &, CBuffer *) const;
     bool                EncodeDvLastFramePacket(const CDvLastFramePacket &, CBuffer *) const;
-    
+
 protected:
     // time
     CTimePoint          m_LastKeepaliveTime;
-    
+
+    // for XRF peer handling
+    CTimePoint          m_LastDextraPeerLinkTime;
+    CTimePoint          m_LastDextraPeerKeepaliveTime;
+
     // for queue header caches
     std::array<CDextraStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
+
+    // periodic cleanup timer
+    CTimePoint                                           m_LastCleanupCheck;
+
+    // client cache for reducing lock contention
+    std::array<CDextraClientCacheItem, NB_OF_MODULES>    m_ClientCache;
+
+    // pending connection acks (for staggered ack timing)
+    std::vector<CDextraPendingAck>   m_PendingAcks;
+    std::mutex                       m_PendingAcksMutex;
+
+    // progressive ignore for persistent invalid connect attempts
+    struct CRejectTracker
+    {
+        int         m_nCount;
+        int         m_nStrike;
+        double      m_dIgnoreDuration;
+        CTimePoint  m_IgnoreStart;
+        CRejectTracker() : m_nCount(0), m_nStrike(0), m_dIgnoreDuration(0.0) {}
+    };
+    std::map<uint32, CRejectTracker>  m_RejectTrackers;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

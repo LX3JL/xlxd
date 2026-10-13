@@ -65,7 +65,7 @@ if (!class_exists('Peer'))       require_once("./pgs/class.peer.php");
 if (!class_exists('Interlink'))  require_once("./pgs/class.interlink.php");
 
 // Validate 'show' parameter
-$allowed_pages = ['users', 'repeaters', 'liveircddb', 'peers', 'modules', 'reflectors', 'traffic'];
+$allowed_pages = ['users', 'repeaters', 'liveircddb', 'peers', 'modules', 'reflectors', 'traffic', 'ysfpeers', 'nxdnpeers', 'p25peers'];
 if (!isset($_GET['show'])) {
     $_GET['show'] = '';
 } elseif (!in_array($_GET['show'], $allowed_pages, true)) {
@@ -91,6 +91,25 @@ $Reflector->SetPIDFile($Service['PIDFile']);
 $Reflector->SetXMLFile($Service['XMLFile']);
 
 $Reflector->LoadXML();
+
+// Pre-parse peer reflector data so nav menu can show live counts.
+// Results are reused by the page files (they check isset() before re-parsing).
+require_once('./pgs/parse_journal_peers.php');
+
+$YSFPeers = [];
+if (!empty($PageOptions['YSFPeerPage']['Show'])) {
+    $YSFPeers = ParseJournalPeers($PageOptions['YSFPeerPage']);
+}
+
+$NXDNPeers = [];
+if (!empty($PageOptions['NXDNPeerPage']['Show'])) {
+    $NXDNPeers = ParseJournalPeers($PageOptions['NXDNPeerPage']);
+}
+
+$P25Peers = [];
+if (!empty($PageOptions['P25PeerPage']['Show'])) {
+    $P25Peers = ParseJournalPeers($PageOptions['P25PeerPage']);
+}
 
 if ($CallingHome['Active']) { 
    
@@ -166,13 +185,23 @@ else {
    <link rel="icon" href="./favicon.ico" type="image/vnd.microsoft.icon"><?php
 
    if ($PageOptions['PageRefreshActive']) {
+      // Build refresh URL preserving show and page parameters
+      $refreshParams = array();
+      if (!empty($_GET['show'])) {
+         $refreshParams[] = 'show=' . urlencode($_GET['show']);
+      }
+      if (!empty($_GET['page']) && intval($_GET['page']) > 1) {
+         $refreshParams[] = 'page=' . intval($_GET['page']);
+      }
+      $refreshUrl = './index.php' . (!empty($refreshParams) ? '?' . implode('&', $refreshParams) : '');
+
       echo '
    <script src="./js/jquery-1.12.4.min.js"></script>
    <script>
       var PageRefresh;
-      
+
       function ReloadPage() {
-         $.get("./index.php'.((!empty($_GET['show'])) ? '?show='.urlencode($_GET['show']) : '').'", function(data) {
+         $.get("'.addslashes($refreshUrl).'", function(data) {
             var BodyStart = data.indexOf("<bo"+"dy");
             var BodyEnd = data.indexOf("</bo"+"dy>");
             if ((BodyStart >= 0) && (BodyEnd > BodyStart)) {
@@ -211,10 +240,37 @@ else {
                <td><a href="./index.php" class="menulink<?php if ($_GET['show'] == '') { echo 'active'; } ?>">Users / Modules</a></td>
 <td><a href="./index.php?show=repeaters" class="menulink<?php if ($_GET['show'] == 'repeaters') { echo 'active'; } ?>">Repeaters / Nodes (<?php echo intval($Reflector->NodeCount()); ?>)</a></td>
 <td><a href="./index.php?show=peers" class="menulink<?php if ($_GET['show'] == 'peers') { echo 'active'; } ?>">Peers (<?php echo intval($Reflector->PeerCount()); ?>)</a></td>
+               <?php
+
+               if (!empty($PageOptions['YSFPeerPage']['Show'])) {
+                   echo '
+               <td><a href="./index.php?show=ysfpeers" class="menulink';
+                   if ($_GET['show'] == 'ysfpeers') { echo 'active'; }
+                   echo '">' . sanitize_output($PageOptions['YSFPeerPage']['PageTitle'])
+                       . ' (' . intval(count($YSFPeers)) . ')</a></td>';
+               }
+
+               if (!empty($PageOptions['NXDNPeerPage']['Show'])) {
+                   echo '
+               <td><a href="./index.php?show=nxdnpeers" class="menulink';
+                   if ($_GET['show'] == 'nxdnpeers') { echo 'active'; }
+                   echo '">' . sanitize_output($PageOptions['NXDNPeerPage']['PageTitle'])
+                       . ' (' . intval(count($NXDNPeers)) . ')</a></td>';
+               }
+
+               if (!empty($PageOptions['P25PeerPage']['Show'])) {
+                   echo '
+               <td><a href="./index.php?show=p25peers" class="menulink';
+                   if ($_GET['show'] == 'p25peers') { echo 'active'; }
+                   echo '">' . sanitize_output($PageOptions['P25PeerPage']['PageTitle'])
+                       . ' (' . intval(count($P25Peers)) . ')</a></td>';
+               }
+
+               ?>
                <td><a href="./index.php?show=modules" class="menulink<?php if ($_GET['show'] == 'modules') { echo 'active'; } ?>">Modules list</a></td>
                <td><a href="./index.php?show=reflectors" class="menulink<?php if ($_GET['show'] == 'reflectors') { echo 'active'; } ?>">Reflectors list</a></td>
                <?php
-               
+
                if ($PageOptions['Traffic']['Show']) {
                    echo '
                <td><a href="./index.php?show=traffic" class="menulink';
@@ -227,7 +283,7 @@ else {
                    if ($_GET['show'] == 'liveircddb') { echo 'active'; }
                    echo '">D-Star live</a></td>';
               }
-               
+
                ?>
             </tr>
           </table>
@@ -253,6 +309,9 @@ else {
       case 'modules'    : require_once("./pgs/modules.php"); break;
       case 'reflectors' : require_once("./pgs/reflectors.php"); break;
       case 'traffic'		: require_once("./pgs/traffic.php"); break;
+      case 'ysfpeers'   : require_once("./pgs/ysfpeers.php"); break;
+      case 'nxdnpeers'  : require_once("./pgs/nxdnpeers.php"); break;
+      case 'p25peers'   : require_once("./pgs/p25peers.php"); break;
       default           : require_once("./pgs/users.php");
    }
 

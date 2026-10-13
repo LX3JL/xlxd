@@ -1,3 +1,28 @@
+xlx db v2.4.6
+M17 Protocol Support and Repeaters Page Pagination
+
+- "pgs/class.node.php"
+  * Added 'M17' to allowed protocols list
+
+- "pgs/class.peer.php"
+  * Added 'M17' to allowed protocols list
+
+- "pgs/functions.php"
+  * Added 'M17' to validate_protocol() allowed list
+
+- "pgs/modules.php"
+  * Added M17 column to modules table showing connection format (M17-XXX M)
+
+- "pgs/repeaters.php"
+  * Added pagination support for Repeaters/Nodes page
+  * Replaces hard limit with paginated display
+  * Shows "Showing X-Y of Z nodes" with page navigation
+  * Supports First/Prev/Next/Last navigation and page number links
+
+- "index.php"
+  * Updated auto-refresh to preserve page parameter during pagination
+  * Prevents returning to page 1 on each refresh cycle
+
 xlx db v2.4.5
 Fix liveircddb page broken by CSP security headers
 

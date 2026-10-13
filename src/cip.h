@@ -56,6 +56,11 @@ public:
     // operator
     bool operator ==(const CIp &) const;
     operator const char *() const;
+
+    // comparison helper for loop prevention
+    // For localhost: compares IP + port (to distinguish local services)
+    // For remote: compares only IP (to handle NAT port changes)
+    bool IsSamePeerAs(const CIp &) const;
     
 protected:
     // data

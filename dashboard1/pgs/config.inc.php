@@ -17,7 +17,7 @@ $VNStat      = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';	// Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.4.5';		// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.4.6';		// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;		// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';		// Page refresh time in miliseconds
@@ -75,12 +75,27 @@ $VNStat['Interfaces'][0]['Name']                     = 'eth0';
 $VNStat['Interfaces'][0]['Address']                  = 'eth0';
 $VNStat['Binary']                                    = '/usr/bin/vnstat';
 
-/*   
-include an extra config file for people who dont like to mess with shipped config.ing.php   
-this makes updating dashboard from git a little bit easier   
-*/   
-if (file_exists("../config.inc.php")) {   
-    include ("../config.inc.php");  
+$PageOptions['YSFPeerPage'] = array();
+$PageOptions['YSFPeerPage']['Show']           = false;                   // Enable/disable the YSF Peers page
+$PageOptions['YSFPeerPage']['ServiceUnit']    = 'YSFReflector.service'; // systemd unit name to query via journalctl
+$PageOptions['YSFPeerPage']['PageTitle']      = 'YSF Peers';
+
+$PageOptions['NXDNPeerPage'] = array();
+$PageOptions['NXDNPeerPage']['Show']           = false;                    // Enable/disable the NXDN Peers page
+$PageOptions['NXDNPeerPage']['ServiceUnit']    = 'NXDNReflector.service'; // systemd unit name to query via journalctl
+$PageOptions['NXDNPeerPage']['PageTitle']      = 'NXDN Peers';
+
+$PageOptions['P25PeerPage'] = array();
+$PageOptions['P25PeerPage']['Show']           = false;                    // Enable/disable the P25 Peers page
+$PageOptions['P25PeerPage']['ServiceUnit']    = 'P25Reflector.service';  // systemd unit name to query via journalctl
+$PageOptions['P25PeerPage']['PageTitle']      = 'P25 Peers';
+
+/*
+include an extra config file for people who dont like to mess with shipped config.ing.php
+this makes updating dashboard from git a little bit easier
+*/
+if (file_exists("../config.inc.php")) {
+    include ("../config.inc.php");
 }
 
 ?>

@@ -88,4 +88,24 @@ CIp::operator const char *() const
     return ::inet_ntoa(m_Addr.sin_addr);
 }
 
+bool CIp::IsSamePeerAs(const CIp &ip) const
+{
+    // First check if addresses match
+    if ( m_Addr.sin_addr.s_addr != ip.m_Addr.sin_addr.s_addr )
+    {
+        return false;  // Different IPs, definitely different peers
+    }
+
+    // Same IP address - check if it's localhost
+    if ( ntohl(m_Addr.sin_addr.s_addr) == INADDR_LOOPBACK )
+    {
+        // Localhost: also compare ports to distinguish local services
+        // (multiple reflectors on same host use different ports)
+        return (m_Addr.sin_port == ip.m_Addr.sin_port);
+    }
+
+    // Remote IP: same address is enough (handle NAT port changes)
+    return true;
+}
+
 

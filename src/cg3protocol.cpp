@@ -33,6 +33,13 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
+// macOS compatibility - ICMP_DEST_UNREACH is named differently
+#if defined(__APPLE__) && defined(__MACH__)
+#ifndef ICMP_DEST_UNREACH
+#define ICMP_DEST_UNREACH ICMP_UNREACH
+#endif
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // operation
@@ -102,6 +109,12 @@ bool CG3Protocol::Init(void)
 
 void CG3Protocol::Close(void)
 {
+    // Stop the base-class threads first. This sets m_bStopThread, which the
+    // helper threads below also observe in their loop conditions. Without
+    // this, m_bStopThread would stay false and the helper-thread joins
+    // below would block forever.
+    CProtocol::Close();
+
     if (m_pPresenceThread)
     {
         m_pPresenceThread->join();
@@ -185,7 +198,7 @@ void CG3Protocol::PresenceTask(void)
 
             if (m_GwAddress == 0)
             {
-                Buffer.Append(*(uint32 *)m_ConfigSocket.GetLocalAddr()); 
+                { uint32 addr; ::memcpy(&addr, m_ConfigSocket.GetLocalAddr(), sizeof(uint32)); Buffer.Append(addr); } 
             }
             else
             {
@@ -338,7 +351,7 @@ void CG3Protocol::ConfigTask(void)
 
                 if (m_GwAddress == 0)
                 {
-                    Buffer.Append(*(uint32 *)m_ConfigSocket.GetLocalAddr()); 
+                    { uint32 addr; ::memcpy(&addr, m_ConfigSocket.GetLocalAddr(), sizeof(uint32)); Buffer.Append(addr); } 
                 }
                 else
                 {
@@ -372,13 +385,18 @@ void CG3Protocol::IcmpTask(void)
 
                 int index = -1;
                 CClient *client = NULL;
+                std::vector<CClient *> toRemove;
                 while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
                 {
                     CIp ClientIp = client->GetIp();
                     if (ClientIp.GetAddr() == Ip.GetAddr())
                     {
-                        clients->RemoveClient(client);
+                        toRemove.push_back(client);
                     }
+                }
+                for ( size_t i = 0; i < toRemove.size(); i++ )
+                {
+                    clients->RemoveClient(toRemove[i]);
                 }
                 g_Reflector.ReleaseClients();
         }
@@ -492,44 +510,50 @@ void CG3Protocol::Task(void)
 
 void CG3Protocol::HandleQueue(void)
 {
+    // drain queue into local vector
+    std::vector<CPacket *> packets;
     m_Queue.Lock();
     while ( !m_Queue.empty() )
     {
-        // supress host checks
+        // suppress host checks during streaming
         m_LastKeepaliveTime.Now();
 
-        // get the packet
-        CPacket *packet = m_Queue.front();
+        packets.push_back(m_Queue.front());
         m_Queue.pop();
-        
+    }
+    m_Queue.Unlock();
+
+    // process packets without holding queue lock
+    for ( size_t pi = 0; pi < packets.size(); pi++ )
+    {
+        CPacket *packet = packets[pi];
+
         // encode it
         CBuffer buffer;
         if ( EncodeDvPacket(*packet, &buffer) )
         {
-            // and push it to all our clients linked to the module and who are not streaming in
+            // push to all clients linked to the module and who are not streaming in
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
             while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
             {
-                // is this client busy ?
                 if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
                 {
-                    // not busy, send the packet
+                    // G3 headers sent 5x for reliability
                     int n = packet->IsDvHeader() ? 5 : 1;
                     for ( int i = 0; i < n; i++ )
                     {
-                        m_Socket.Send(buffer, client->GetIp());
+                        m_Socket.SendVoice(buffer, client->GetIp());
                     }
                 }
             }
             g_Reflector.ReleaseClients();
         }
-        
+
         // done
         delete packet;
     }
-    m_Queue.Unlock();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -546,17 +570,22 @@ void CG3Protocol::HandleKeepalives(void)
     CClients *clients = g_Reflector.GetClients();
     int index = -1;
     CClient *client = NULL;
+    std::vector<CClient *> toRemove;
     while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
     {
         if (!client->IsAlive())
         {
-            clients->RemoveClient(client);
+            toRemove.push_back(client);
         }
         else
         {
             // send keepalive packet
             m_Socket.Send(keepalive, client->GetIp());
         }
+    }
+    for ( size_t i = 0; i < toRemove.size(); i++ )
+    {
+        clients->RemoveClient(toRemove[i]);
     }
     g_Reflector.ReleaseClients();
 }
@@ -615,20 +644,33 @@ bool CG3Protocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
                 // get client callsign
                 via = client->GetCallsign();
 
+                // save header callsigns before OpenStream — OpenStream transfers
+                // Header into the router queue, where the router thread may delete it
+                CCallsign myCallsign(Header->GetMyCallsign());
+                CCallsign rpt2Callsign(Header->GetRpt2Callsign());
+
                 // and try to open the stream
                 if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
                 {
-                    // keep the handle
+                    // keep the handle — Header ownership transferred to stream
                     m_Streams.push_back(stream);
                     newstream = true;
+                    Header = NULL;
+                }
+                else if ( g_Reflector.TryLateEntry(Header, client) )
+                {
+                    Header = NULL;  // ownership transferred
                 }
 
                 // update last heard
-                g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
-                g_Reflector.ReleaseUsers();
+                if ( newstream )
+                {
+                    g_Reflector.GetUsers()->Hearing(myCallsign, via, rpt2Callsign);
+                    g_Reflector.ReleaseUsers();
+                }
 
                 // delete header if needed
-                if ( !newstream )
+                if ( Header != NULL )
                 {
                     delete Header;
                 }
@@ -711,7 +753,7 @@ CDvLastFramePacket *CG3Protocol::IsValidDvLastFramePacket(const CBuffer &Buffer)
     {
         // create packet
         dvframe = new CDvLastFramePacket((struct dstar_dvframe *)&(Buffer.data()[15]),
-                                         *((uint16 *)&(Buffer.data()[12])), Buffer.data()[14]);
+                                         *((uint16 *)&(Buffer.data()[12])), Buffer.data()[14] & 0x1F);
         // check validity of packet
         if ( !dvframe->IsValid() )
         {
@@ -797,13 +839,18 @@ void CG3Protocol::NeedReload(void)
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
+            std::vector<CClient *> toRemove;
             while ( (client = clients->FindNextClient(PROTOCOL_G3, &index)) != NULL )
             {
                 char module = client->GetReflectorModule();
                 if (!strchr(m_Modules.c_str(), module) && !strchr(m_Modules.c_str(), '*'))
                 {
-                    clients->RemoveClient(client);
+                    toRemove.push_back(client);
                 }
+            }
+            for ( size_t i = 0; i < toRemove.size(); i++ )
+            {
+                clients->RemoveClient(toRemove[i]);
             }
             g_Reflector.ReleaseClients();
         }

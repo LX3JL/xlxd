@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include <string.h>
+#include <netinet/in.h>
 #include "cudpsocket.h"
 
 
@@ -169,4 +170,67 @@ int CUdpSocket::Send(const char *Buffer, const CIp &Ip, uint16 destport)
                          0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+// write - voice packets with DSCP marking
+
+#if (DSCP_MARKING_ENABLE == 1)
+static bool g_bDscpLogged = false;
+
+int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
+{
+    if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
+    {
+        int tos = DSCP_VALUE << 2;
+        setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+    }
+
+    CIp temp(Ip);
+    int result = (int)::sendto(m_Socket,
+           (void *)Buffer.data(), Buffer.size(),
+           0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
+
+    // Reset TOS for non-voice packets
+    int tos = 0;
+    setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+
+    return result;
+}
+
+int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
+{
+    if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
+    {
+        int tos = DSCP_VALUE << 2;
+        setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+    }
+
+    CIp temp(Ip);
+    temp.GetSockAddr()->sin_port = htons(destport);
+    int result = (int)::sendto(m_Socket,
+                         (void *)Buffer.data(), Buffer.size(),
+                         0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
+
+    // Reset TOS for non-voice packets
+    int tos = 0;
+    setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+
+    return result;
+}
+
+void CUdpSocket::LogDscpStatus(void)
+{
+    if ( !g_bDscpLogged )
+    {
+        if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
+        {
+            std::cout << "Voice packets marked as DSCP " << DSCP_VALUE << std::endl;
+        }
+        else
+        {
+            std::cout << "Error: Invalid DSCP_VALUE " << DSCP_VALUE << " (must be 0-63), QoS disabled" << std::endl;
+        }
+        g_bDscpLogged = true;
+    }
+}
+#endif
 

@@ -17,7 +17,7 @@ class Peer {
     
     // Validate protocol
     $Protocol = trim($Protocol);
-    $allowed_protocols = ['DPlus', 'DExtra', 'DCS', 'DMR', 'YSF', 'DEXTRA', 'DPLUS', 'XLX'];
+    $allowed_protocols = ['DPlus', 'DExtra', 'DCS', 'DMR', 'YSF', 'DEXTRA', 'DPLUS', 'XLX', 'M17', 'NXDN', 'P25'];
     $this->Protocol = in_array($Protocol, $allowed_protocols, true) ? $Protocol : 'Unknown';
     
     $this->ConnectTime   = ParseTime($ConnectTime);

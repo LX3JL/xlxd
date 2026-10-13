@@ -140,22 +140,34 @@ void CDmrplusProtocol::Task(void)
                 CClients *clients = g_Reflector.GetClients();
                 CClient *client = clients->FindClient(Callsign, Ip, PROTOCOL_DMRPLUS);
                 // client already connected ?
+                bool bNewClientRejected = false;
                 if ( client == NULL )
                 {
-                    std::cout << "DMRplus connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
-                    
-                    // create the client
-                    CDmrplusClient *newclient = new CDmrplusClient(Callsign, Ip, ToLinkModule);
-                    
-                    // and append
-                    clients->AddClient(newclient);
+                    // new connection — validate module before linking
+                    if ( g_Reflector.IsValidModule(ToLinkModule) )
+                    {
+                        std::cout << "DMRplus connect packet for module " << ToLinkModule << " from " << Callsign << " at " << Ip << std::endl;
+                        CDmrplusClient *newclient = new CDmrplusClient(Callsign, Ip, ToLinkModule);
+                        clients->AddClient(newclient);
+                    }
+                    else
+                    {
+                        std::cout << "DMRplus connect rejected: invalid module from " << Callsign << " at " << Ip << std::endl;
+                        bNewClientRejected = true;
+                    }
                 }
                 else
                 {
                     client->Alive();
                 }
-                // and done
                 g_Reflector.ReleaseClients();
+
+                // NACK if new client was rejected due to invalid module
+                if ( bNewClientRejected )
+                {
+                    EncodeConnectNackPacket(&Buffer);
+                    m_Socket.Send(Buffer, Ip);
+                }
             }
             else
             {
@@ -208,9 +220,18 @@ void CDmrplusProtocol::Task(void)
 bool CDmrplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
-    
-    // find the stream
-    CPacketStream *stream = GetStream(Header->GetStreamId());
+
+    // set default suffix if not already set
+    if ( !Header->HasMySuffix() )
+    {
+        Header->SetMySuffix("DMR");
+    }
+
+    // find the stream (match on both StreamId and IP to avoid false matches)
+    CCallsign myCallsign;
+    CCallsign rpt1Callsign;
+    CCallsign rpt2Callsign;
+    CPacketStream *stream = GetStream(Header->GetStreamId(), &Ip);
     if ( stream == NULL )
     {
         // no stream open yet, open a new one
@@ -218,12 +239,23 @@ bool CDmrplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_DMRPLUS);
         if ( client != NULL )
         {
+            // save callsigns before OpenStream — OpenStream transfers Header
+            // to the router queue where the router thread may delete it
+            myCallsign = Header->GetMyCallsign();
+            rpt1Callsign = Header->GetRpt1Callsign();
+            rpt2Callsign = Header->GetRpt2Callsign();
+
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
             {
-                // keep the handle
+                // keep the handle — Header ownership transferred to stream
                 m_Streams.push_back(stream);
                 newstream = true;
+                Header = NULL;
+            }
+            else if ( g_Reflector.TryLateEntry(Header, client) )
+            {
+                Header = NULL;  // ownership transferred
             }
         }
         // release
@@ -236,14 +268,18 @@ bool CDmrplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip
         stream->Tickle();
         // and delete packet
         delete Header;
+        Header = NULL;
     }
-    
+
     // update last heard
-    g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), Header->GetRpt1Callsign(), Header->GetRpt2Callsign());
-    g_Reflector.ReleaseUsers();
-    
+    if ( newstream )
+    {
+        g_Reflector.GetUsers()->Hearing(myCallsign, rpt1Callsign, rpt2Callsign);
+        g_Reflector.ReleaseUsers();
+    }
+
     // delete header if needed
-    if ( !newstream )
+    if ( Header != NULL )
     {
         delete Header;
     }
@@ -256,19 +292,102 @@ bool CDmrplusProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip
 ////////////////////////////////////////////////////////////////////////////////////////
 // queue helper
 
+void CDmrplusProtocol::RefreshClientCache(int iModId)
+{
+    // bounds check
+    if ( iModId < 0 || iModId >= NB_OF_MODULES )
+    {
+        return;
+    }
+
+    // Check freshness under cache lock, release before acquiring Clients lock
+    {
+        std::lock_guard<std::mutex> lock(m_ClientCache[iModId].m_Mutex);
+        if ( m_ClientCache[iModId].m_bInitialized &&
+             m_ClientCache[iModId].m_LastRefresh.DurationSinceNow() < DMRPLUS_CLIENT_CACHE_REFRESH_INTERVAL )
+        {
+            return;  // Cache is still fresh
+        }
+    }
+
+    // Scan clients WITHOUT holding cache lock
+    char moduleId = 'A' + iModId;
+    std::vector<CIp> freshIps;
+
+    CClients *clients = g_Reflector.GetClients();
+    int index = -1;
+    CClient *client = NULL;
+    while ( (client = clients->FindNextClient(PROTOCOL_DMRPLUS, &index)) != NULL )
+    {
+        if ( !client->IsAMaster() && (client->GetReflectorModule() == moduleId) )
+        {
+            freshIps.push_back(client->GetIp());
+        }
+    }
+    g_Reflector.ReleaseClients();
+
+    // Write results under cache lock
+    std::lock_guard<std::mutex> lock(m_ClientCache[iModId].m_Mutex);
+    m_ClientCache[iModId].m_ClientIps.swap(freshIps);
+    m_ClientCache[iModId].m_LastRefresh.Now();
+    m_ClientCache[iModId].m_bInitialized = true;
+}
+
+void CDmrplusProtocol::SendToModuleClients(int iModId, const CBuffer &buffer, uint16 streamId)
+{
+    // bounds check
+    if ( iModId < 0 || iModId >= NB_OF_MODULES )
+    {
+        return;
+    }
+
+    // refresh cache if needed
+    RefreshClientCache(iModId);
+
+    // send to cached clients (cache mutex is TX-thread-only, safe to hold during sends)
+    std::lock_guard<std::mutex> lock(m_ClientCache[iModId].m_Mutex);
+    for ( const CIp &ip : m_ClientCache[iModId].m_ClientIps )
+    {
+        // skip the stream owner to prevent audio echo back to transmitter
+        if ( m_StreamsCache[iModId].m_bHasOwner &&
+             m_StreamsCache[iModId].m_uiOutboundStreamId == streamId &&
+             m_StreamsCache[iModId].m_OwnerIp == ip )
+        {
+            continue;
+        }
+        m_Socket.SendVoice(buffer, ip);
+    }
+}
+
 void CDmrplusProtocol::HandleQueue(void)
 {
-    
+    // drain queue quickly while holding lock
+    std::vector<CPacket *> packets;
+    packets.reserve(100);
+
     m_Queue.Lock();
     while ( !m_Queue.empty() )
     {
-        // get the packet
-        CPacket *packet = m_Queue.front();
+        packets.push_back(m_Queue.front());
         m_Queue.pop();
-        
+    }
+    m_Queue.Unlock();
+
+    // process packets without holding queue lock
+    for ( size_t i = 0; i < packets.size(); i++ )
+    {
+        CPacket *packet = packets[i];
+
         // get our sender's id
         int iModId = g_Reflector.GetModuleIndex(packet->GetModuleId());
-        
+
+        // bounds check
+        if ( iModId < 0 || iModId >= NB_OF_MODULES )
+        {
+            delete packet;
+            continue;
+        }
+
         // encode
         CBuffer buffer;
 
@@ -279,7 +398,25 @@ void CDmrplusProtocol::HandleQueue(void)
             // this relies on queue feeder setting valid module id
             m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
             m_StreamsCache[iModId].m_uiSeqId = 4;
-            
+            m_StreamsCache[iModId].m_uiOutboundStreamId = packet->GetStreamId();
+            // capture stream owner IP for send-time exclusion
+            m_StreamsCache[iModId].m_bHasOwner = false;
+            CPacketStream *stream = g_Reflector.GetStream(packet->GetModuleId());
+            if ( stream != NULL )
+            {
+                stream->Lock();
+                if ( stream->IsOpen() && stream->GetStreamId() == packet->GetStreamId() )
+                {
+                    const CIp *ownerIp = stream->GetOwnerIp();
+                    if ( ownerIp != NULL )
+                    {
+                        m_StreamsCache[iModId].m_OwnerIp = *ownerIp;
+                        m_StreamsCache[iModId].m_bHasOwner = true;
+                    }
+                }
+                stream->Unlock();
+            }
+
             // encode it
             EncodeDvHeaderPacket((const CDvHeaderPacket &)*packet, &buffer);
         }
@@ -307,58 +444,17 @@ void CDmrplusProtocol::HandleQueue(void)
                 default:
                     break;
             }
-            
+
         }
-        
+
         // send it
         if ( buffer.size() > 0 )
         {
-            // and push it to all our clients linked to the module and who are not streaming in
-            CClients *clients = g_Reflector.GetClients();
-            int index = -1;
-            CClient *client = NULL;
-            while ( (client = clients->FindNextClient(PROTOCOL_DMRPLUS, &index)) != NULL )
-            {
-                // is this client busy ?
-                if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
-                {
-                    // no, send the packet
-                    m_Socket.Send(buffer, client->GetIp());
-                }
-            }
-            g_Reflector.ReleaseClients();
-            
-            // debug
-            //buffer.DebugDump(g_Reflector.m_DebugFile);
+            SendToModuleClients(iModId, buffer, packet->GetStreamId());
         }
 
         // done
         delete packet;
-    }
-    m_Queue.Unlock();
-}
-
-void CDmrplusProtocol::SendBufferToClients(const CBuffer &buffer, uint8 module)
-{
-    if ( buffer.size() > 0 )
-    {
-        // and push it to all our clients linked to the module and who are not streaming in
-        CClients *clients = g_Reflector.GetClients();
-        int index = -1;
-        CClient *client = NULL;
-        while ( (client = clients->FindNextClient(PROTOCOL_DMRPLUS, &index)) != NULL )
-        {
-            // is this client busy ?
-            if ( !client->IsAMaster() && (client->GetReflectorModule() == module) )
-            {
-                // no, send the packet
-                m_Socket.Send(buffer, client->GetIp());
-            }
-        }
-        g_Reflector.ReleaseClients();
-        
-        // debug
-        //buffer.DebugDump(g_Reflector.m_DebugFile);
     }
 }
 
@@ -376,6 +472,7 @@ void CDmrplusProtocol::HandleKeepalives(void)
     CClients *clients = g_Reflector.GetClients();
     int index = -1;
     CClient *client = NULL;
+    std::vector<CClient *> toRemove;
     while ( (client = clients->FindNextClient(PROTOCOL_DMRPLUS, &index)) != NULL )
     {
         // is this client busy ?
@@ -391,12 +488,16 @@ void CDmrplusProtocol::HandleKeepalives(void)
             //CBuffer disconnect;
             //EncodeDisconnectPacket(&disconnect, client);
             //m_Socket.Send(disconnect, client->GetIp());
-            
-            // remove it
+
+            // collect for removal after loop
             std::cout << "DMRplus client " << client->GetCallsign() << " keepalive timeout" << std::endl;
-            clients->RemoveClient(client);
+            toRemove.push_back(client);
         }
-        
+
+    }
+    for ( size_t i = 0; i < toRemove.size(); i++ )
+    {
+        clients->RemoveClient(toRemove[i]);
     }
     g_Reflector.ReleaseClients();
 }
@@ -418,6 +519,9 @@ bool CDmrplusProtocol::IsValidConnectPacket(const CBuffer &Buffer, CCallsign *ca
         ::memcpy(sz, &Buffer.data()[8], 4);
         sz[4] = 0;
         *reflectormodule = DmrDstIdToModule(atoi(sz));
+        // Allow ' ' for reflectormodule — DMR Plus uses the same packet format
+        // for both connect and keepalive. Keepalives may carry a TG that doesn't
+        // map to a valid module. The module is validated downstream for new links.
         valid = (callsign->IsValid() && (std::isupper(*reflectormodule) || (*reflectormodule == ' ')) );
         if ( !valid)
         {
@@ -461,13 +565,15 @@ bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffe
             // more frames details
             //uint8 uiSeqId = Buffer.data()[4];
             //uint8 uiVoiceSeq = (Buffer.data()[18] & 0x0F) - 7; // aka slot type
-            uint32 uiDstId = *(uint32 *)(&Buffer.data()[64]) & 0x00FFFFFF;
-            uint32 uiSrcId = *(uint32 *)(&Buffer.data()[68]) & 0x00FFFFFF;
+            uint32 uiDstId; ::memcpy(&uiDstId, &Buffer.data()[64], sizeof(uint32)); uiDstId &= 0x00FFFFFF;
+            uint32 uiSrcId; ::memcpy(&uiSrcId, &Buffer.data()[68], sizeof(uint32)); uiSrcId &= 0x00FFFFFF;
 
             // build DVHeader
+            // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+            // See cnxdnprotocol.cpp for the rationale.
             CCallsign csMY =  CCallsign("", uiSrcId);
             CCallsign rpt1 = CCallsign("", uiSrcId);
-            rpt1.SetModule(DMRPLUS_MODULE_ID);
+            rpt1.SetModule('B');
             CCallsign rpt2 = m_ReflectorCallsign;
             rpt2.SetModule(DmrDstIdToModule(uiDstId));
             uint32 uiStreamId = IpToStreamId(Ip);
@@ -477,6 +583,8 @@ bool CDmrplusProtocol::IsValidDvHeaderPacket(const CIp &Ip, const CBuffer &Buffe
             valid = (*Header)->IsValid();
             if ( !valid )
             {
+                if ( DmrDstIdToModule(uiDstId) == ' ' )
+                    std::cout << "DMRplus voice packet dropped: invalid TG " << uiDstId << " from DMR ID " << uiSrcId << std::endl;
                 delete *Header;
                 *Header = NULL;
             }
@@ -694,7 +802,7 @@ void CDmrplusProtocol::EncodeDvLastPacket
 
 void CDmrplusProtocol::SwapEndianess(uint8 *buffer, int len) const
 {
-    for ( int i = 0; i < len; i += 2 )
+    for ( int i = 0; i + 1 < len; i += 2 )
     {
         uint8 t = buffer[i];
         buffer[i] = buffer[i+1];

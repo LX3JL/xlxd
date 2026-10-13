@@ -32,6 +32,9 @@
 #include "cysfprotocol.h"
 #include "cg3protocol.h"
 #include "cimrsprotocol.h"
+#include "cm17protocol.h"
+#include "cnxdnprotocol.h"
+#include "cp25protocol.h"
 #include "cprotocols.h"
 
 
@@ -114,6 +117,21 @@ bool CProtocols::Init(void)
         delete m_Protocols[8];
         m_Protocols[8] = new CImrsProtocol;
         ok &= m_Protocols[8]->Init();
+
+        // create and initialize M17
+        delete m_Protocols[9];
+        m_Protocols[9] = new CM17Protocol;
+        ok &= m_Protocols[9]->Init();
+
+        // create and initialize NXDN (peer-only)
+        delete m_Protocols[10];
+        m_Protocols[10] = new CNxdnProtocol;
+        ok &= m_Protocols[10]->Init();
+
+        // create and initialize P25 (peer-only)
+        delete m_Protocols[11];
+        m_Protocols[11] = new CP25Protocol;
+        ok &= m_Protocols[11]->Init();
     }
     m_Mutex.unlock();
    

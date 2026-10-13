@@ -25,6 +25,8 @@
 #ifndef cdmrmmdvmprotocol_h
 #define cdmrmmdvmprotocol_h
 
+#include <vector>
+#include <mutex>
 #include "ctimepoint.h"
 #include "cprotocol.h"
 #include "cdvheaderpacket.h"
@@ -46,23 +48,41 @@
 // DMRMMDVM Module ID
 #define MMDVM_MODULE_ID             'B'
 
+// Client cache refresh interval in seconds
+#define DMRMMDVM_CLIENT_CACHE_REFRESH_INTERVAL   1.0
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
 class CDmrmmdvmStreamCacheItem
 {
 public:
-    CDmrmmdvmStreamCacheItem()     {}
+    CDmrmmdvmStreamCacheItem()     { m_uiSeqId = 0; m_uiLastSubid = 0; m_uiOutboundStreamId = 0; m_bHasOwner = false; }
     ~CDmrmmdvmStreamCacheItem()    {}
-    
+
     CDvHeaderPacket m_dvHeader;
     CDvFramePacket  m_dvFrame0;
     CDvFramePacket  m_dvFrame1;
-    
+
     uint8  m_embeddedLC[16];
     uint8  m_uiSeqId;
+    uint8  m_uiLastSubid;          // tracks triplet position (0=none, 1=frame0 cached, 2=frame0+1 cached)
+    uint16 m_uiOutboundStreamId;
+    CIp    m_OwnerIp;
+    bool   m_bHasOwner;
 };
 
+class CDmrmmdvmClientCacheItem
+{
+public:
+    CDmrmmdvmClientCacheItem()     { m_bInitialized = false; }
+    ~CDmrmmdvmClientCacheItem()    {}
+
+    std::vector<CIp>    m_ClientIps;
+    CTimePoint          m_LastRefresh;
+    std::mutex          m_Mutex;
+    bool                m_bInitialized;
+};
 
 class CDmrmmdvmProtocol : public CProtocol
 {
@@ -82,7 +102,11 @@ public:
 protected:
     // queue helper
     void HandleQueue(void);
-    
+
+    // client cache helpers
+    void RefreshClientCache(int iModId);
+    void SendToModuleClients(int iModId, const CBuffer &buffer, uint16 streamId);
+
     // keepalive helpers
     void HandleKeepalives(void);
     
@@ -133,7 +157,10 @@ protected:
     
     // for queue header caches
     std::array<CDmrmmdvmStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
-    
+
+    // for client caching - avoids repeated GetClients() lock/unlock per packet
+    std::array<CDmrmmdvmClientCacheItem, NB_OF_MODULES>    m_ClientCache;
+
     // for authentication
     uint32              m_uiAuthSeed;
 };

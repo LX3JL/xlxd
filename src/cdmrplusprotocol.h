@@ -25,6 +25,8 @@
 #ifndef cdmrplusprotocol_h
 #define cdmrplusprotocol_h
 
+#include <vector>
+#include <mutex>
 #include "ctimepoint.h"
 #include "cprotocol.h"
 #include "cdvheaderpacket.h"
@@ -37,22 +39,39 @@
 // DMR Plus Module ID
 #define DMRPLUS_MODULE_ID       'B'
 
+// Client cache refresh interval in seconds
+#define DMRPLUS_CLIENT_CACHE_REFRESH_INTERVAL   1.0
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
 class CDmrplusStreamCacheItem
 {
 public:
-    CDmrplusStreamCacheItem()     { m_uiSeqId = 0x77; }
+    CDmrplusStreamCacheItem()     { m_uiSeqId = 0x77; m_uiOutboundStreamId = 0; m_bHasOwner = false; }
     ~CDmrplusStreamCacheItem()    {}
-    
+
     CDvHeaderPacket m_dvHeader;
     CDvFramePacket  m_dvFrame0;
     CDvFramePacket  m_dvFrame1;
-    
+
     uint8   m_uiSeqId;
+    uint16  m_uiOutboundStreamId;
+    CIp     m_OwnerIp;
+    bool    m_bHasOwner;
 };
 
+class CDmrplusClientCacheItem
+{
+public:
+    CDmrplusClientCacheItem()     { m_bInitialized = false; }
+    ~CDmrplusClientCacheItem()    {}
+
+    std::vector<CIp>    m_ClientIps;
+    CTimePoint          m_LastRefresh;
+    std::mutex          m_Mutex;
+    bool                m_bInitialized;
+};
 
 class CDmrplusProtocol : public CProtocol
 {
@@ -72,8 +91,11 @@ public:
 protected:
     // queue helper
     void HandleQueue(void);
-    void SendBufferToClients(const CBuffer &, uint8);
-    
+
+    // client cache helpers
+    void RefreshClientCache(int iModId);
+    void SendToModuleClients(int iModId, const CBuffer &buffer, uint16 streamId);
+
     // keepalive helpers
     void HandleKeepalives(void);
     
@@ -116,6 +138,9 @@ protected:
     
     // for queue header caches
     std::array<CDmrplusStreamCacheItem, NB_OF_MODULES>    m_StreamsCache;
+
+    // for client caching - avoids repeated GetClients() lock/unlock per packet
+    std::array<CDmrplusClientCacheItem, NB_OF_MODULES>    m_ClientCache;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

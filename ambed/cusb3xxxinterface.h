@@ -134,6 +134,8 @@ protected:
     int                         m_iChannelFifolLevel;
     CTimePoint                  m_SpeechFifoLevelTimeout;
     CTimePoint                  m_ChannelFifoLevelTimeout;
+    char                        m_rawRxBuf[2 * USB3XXX_MAXPACKETSIZE];
+    int                         m_nRxBufLen;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

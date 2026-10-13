@@ -1,6 +1,8 @@
 //
-//  cbmpeer.cpp
+//  cysfpeer.cpp
 //  xlxd
+//
+//  Created for YSF Reflector peering support
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,39 +24,44 @@
 #include "main.h"
 #include <string.h>
 #include "creflector.h"
-#include "cbmpeer.h"
-#include "cbmclient.h"
+#include "cysfpeer.h"
+#include "cysfpeerclient.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-
-CBmPeer::CBmPeer()
+CYsfPeer::CYsfPeer()
 {
+    m_uiYsfId = 0;
 }
 
-CBmPeer::CBmPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
+CYsfPeer::CYsfPeer(const CCallsign &callsign, const CIp &ip, char *modules, const CVersion &version)
 : CPeer(callsign, ip, modules, version)
 {
-    std::cout << "Adding BM peer" << std::endl;
-    
-    // and construct all xlx clients
-    for ( int i = 0; i < ::strlen(modules); i++ )
+    m_uiYsfId = 0;
+
+    std::cout << "Adding YSF peer" << std::endl;
+
+    // YSF reflectors only support a single module (they are single-room)
+    // Create one client for the single bridged module
+    if ( modules != NULL && ::strlen(modules) >= 1 )
     {
-        // create
-        CBmClient *client = new CBmClient(callsign, ip, modules[i]);
-        // and append to vector
+        // Only use the first module character (validation ensures single module)
+        char module = modules[0];
+        CYsfPeerClient *client = new CYsfPeerClient(callsign, ip, module);
         m_Clients.push_back(client);
     }
 }
 
-CBmPeer::CBmPeer(const CBmPeer &peer)
+CYsfPeer::CYsfPeer(const CYsfPeer &peer)
 : CPeer(peer)
 {
+    m_uiYsfId = peer.m_uiYsfId;
+
     for ( int i = 0; i < peer.m_Clients.size(); i++ )
     {
-        CBmClient *client = new CBmClient((const CBmClient &)*(peer.m_Clients[i]));
+        CYsfPeerClient *client = new CYsfPeerClient((const CYsfPeerClient &)*(peer.m_Clients[i]));
         // grow vector capacity if needed
         if ( m_Clients.capacity() == m_Clients.size() )
         {
@@ -62,30 +69,25 @@ CBmPeer::CBmPeer(const CBmPeer &peer)
         }
         // and append
         m_Clients.push_back(client);
-        
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// destructors
+// destructor
 
-CBmPeer::~CBmPeer()
+CYsfPeer::~CYsfPeer()
 {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // status
 
-bool CBmPeer::IsAlive(void) const
+bool CYsfPeer::IsAlive(void) const
 {
-    return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
+    return (m_LastKeepaliveTime.DurationSinceNow() < YSF_PEER_KEEPALIVE_TIMEOUT);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-// revision helper
-
-int CBmPeer::GetProtocolRevision(const CVersion &version)
+void CYsfPeer::Alive(void)
 {
-    return XLX_PROTOCOL_REVISION_2;
+    m_LastKeepaliveTime.Now();
 }
-

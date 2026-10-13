@@ -38,12 +38,15 @@ class CPeerCallsignList : public CCallsignList
 public:
     // constructor
     CPeerCallsignList() {};
-    
+
     // destructor
     virtual ~CPeerCallsignList() {};
-    
+
     // file io
     bool LoadFromFile(const char *);
+
+    // find by IP
+    CCallsignListItem *FindListItemByIp(const CIp &);
 };
 
 

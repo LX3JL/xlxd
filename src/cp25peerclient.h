@@ -1,9 +1,8 @@
 //
-//  cbmclient.h
+//  cp25peerclient.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 20/01/2017.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created for P25 Reflector peering support
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,44 +21,38 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cbmclient_h
-#define cbmclient_h
-
+#ifndef cp25peerclient_h
+#define cp25peerclient_h
 
 #include "cclient.h"
-#include "cxlxclient.h"
-
-////////////////////////////////////////////////////////////////////////////////////////
-// define
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CBmClient : public CClient
+class CP25PeerClient : public CClient
 {
 public:
     // constructors
-    CBmClient();
-    CBmClient(const CCallsign &, const CIp &, char = ' ');
-    CBmClient(const CBmClient &);
-    
+    CP25PeerClient();
+    CP25PeerClient(const CCallsign &, const CIp &, char = ' ');
+    CP25PeerClient(const CP25PeerClient &);
+
     // destructor
-    virtual ~CBmClient() {};
-    
+    virtual ~CP25PeerClient() {};
+
     // identity
-    int GetProtocol(void) const                 { return PROTOCOL_XLX; }
-    int GetProtocolRevision(void) const         { return XLX_PROTOCOL_REVISION_2; }
-    const char *GetProtocolName(void) const     { return "XLX"; }
-    int GetCodec(void) const                    { return CODEC_AMBE2PLUS; }
+    int GetProtocol(void) const                 { return PROTOCOL_P25; }
+    int GetProtocolRevision(void) const         { return 0; }
+    const char *GetProtocolName(void) const     { return "P25"; }
+    int GetCodec(void) const                    { return CODEC_IMBE; }
     bool IsPeer(void) const                     { return true; }
-    
+
     // status
     bool IsAlive(void) const;
-    
+
     // reporting
     void WriteXml(std::ofstream &) {}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cbmclient_h */
+#endif /* cp25peerclient_h */

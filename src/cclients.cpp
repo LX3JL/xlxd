@@ -63,14 +63,14 @@ void CClients::AddClient(CClient *client)
     for ( int i = 0; (i < m_Clients.size()) && !found; i++ )
     {
         found = (*client == *m_Clients[i]);
-        // if found, just do nothing
-        // so *client keep pointing on a valid object
-        // on function return
+        // if found, refresh the existing client's keepalive time
+        // (reconnecting clients should not timeout immediately)
         if ( found )
         {
+            m_Clients[i]->Alive();
             // delete new one
             delete client;
-            //std::cout << "Adding existing client " << client->GetCallsign() << " at " << client->GetIp() << std::endl;
+            //std::cout << "Refreshing existing client " << m_Clients[i]->GetCallsign() << " at " << m_Clients[i]->GetIp() << std::endl;
         }
     }
     

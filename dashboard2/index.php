@@ -78,6 +78,25 @@ $Reflector->SetXMLFile($Service['XMLFile']);
 
 $Reflector->LoadXML();
 
+// Pre-parse journal data for co-located peer reflectors so the nav menu can
+// display live counts.  Each page file checks isset() before re-parsing.
+require_once('./pgs/parse_journal_peers.php');
+
+$YSFPeers = [];
+if (!empty($PageOptions['YSFPeerPage']['Show'])) {
+    $YSFPeers = ParseJournalPeers($PageOptions['YSFPeerPage']);
+}
+
+$NXDNPeers = [];
+if (!empty($PageOptions['NXDNPeerPage']['Show'])) {
+    $NXDNPeers = ParseJournalPeers($PageOptions['NXDNPeerPage']);
+}
+
+$P25Peers = [];
+if (!empty($PageOptions['P25PeerPage']['Show'])) {
+    $P25Peers = ParseJournalPeers($PageOptions['P25PeerPage']);
+}
+
 if ($CallingHome['Active']) {
 
     $CallHomeNow = false;
@@ -222,6 +241,18 @@ if ($CallingHome['Active']) {
                         )</a></li>
                 <li<?php echo ($_GET['show'] == "peers") ? ' class="active"' : ''; ?>><a href="./index.php?show=peers">Peers
                         (<?php echo $Reflector->PeerCount(); ?>)</a></li>
+                <?php if (!empty($PageOptions['YSFPeerPage']['Show'])): ?>
+                <li<?php echo ($_GET['show'] == "ysfpeers") ? ' class="active"' : ''; ?>><a href="./index.php?show=ysfpeers"><?php echo SafeOutput($PageOptions['YSFPeerPage']['PageTitle']); ?>
+                        (<?php echo intval(count($YSFPeers)); ?>)</a></li>
+                <?php endif; ?>
+                <?php if (!empty($PageOptions['NXDNPeerPage']['Show'])): ?>
+                <li<?php echo ($_GET['show'] == "nxdnpeers") ? ' class="active"' : ''; ?>><a href="./index.php?show=nxdnpeers"><?php echo SafeOutput($PageOptions['NXDNPeerPage']['PageTitle']); ?>
+                        (<?php echo intval(count($NXDNPeers)); ?>)</a></li>
+                <?php endif; ?>
+                <?php if (!empty($PageOptions['P25PeerPage']['Show'])): ?>
+                <li<?php echo ($_GET['show'] == "p25peers") ? ' class="active"' : ''; ?>><a href="./index.php?show=p25peers"><?php echo SafeOutput($PageOptions['P25PeerPage']['PageTitle']); ?>
+                        (<?php echo intval(count($P25Peers)); ?>)</a></li>
+                <?php endif; ?>
                 <li<?php echo ($_GET['show'] == "reflectors") ? ' class="active"' : ''; ?>><a
                             href="./index.php?show=reflectors">Reflectorlist</a></li>
                 <li<?php echo ($_GET['show'] == "liveircddb") ? ' class="active"' : ''; ?>><a
@@ -244,9 +275,15 @@ if ($CallingHome['Active']) {
             if (!isset($_GET['show'])) {
                 $_GET['show'] = '';
             }
-            $allowed_shows = ['users', 'repeaters', 'liveircddb', 'peers', 'reflectors', ''];
+            $allowed_shows = ['users', 'repeaters', 'liveircddb', 'peers', 'reflectors',
+                              'ysfpeers', 'nxdnpeers', 'p25peers', ''];
             if (!in_array($_GET['show'], $allowed_shows, true)) {
                 $_GET['show'] = '';
+            }
+
+            // Validate 'do' parameter — only resetfilter is accepted via GET
+            if (isset($_GET['do']) && $_GET['do'] !== 'resetfilter') {
+                unset($_GET['do']);
             }
 
             switch ($_GET['show']) {
@@ -264,6 +301,15 @@ if ($CallingHome['Active']) {
                     break;
                 case 'reflectors' :
                     require_once("./pgs/reflectors.php");
+                    break;
+                case 'ysfpeers'   :
+                    require_once("./pgs/ysfpeers.php");
+                    break;
+                case 'nxdnpeers'  :
+                    require_once("./pgs/nxdnpeers.php");
+                    break;
+                case 'p25peers'   :
+                    require_once("./pgs/p25peers.php");
                     break;
                 default           :
                     require_once("./pgs/users.php");

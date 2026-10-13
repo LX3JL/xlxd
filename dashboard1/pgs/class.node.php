@@ -20,7 +20,7 @@ class Node {
 
     // Validate protocol
     $Protocol = trim($Protocol);
-    $allowed_protocols = ['DPlus', 'DExtra', 'DCS', 'DMR', 'DMRplus', 'DMRMmdvm', 'YSF', 'XLX', 'Terminal/AP', 'IMRS', 'none'];
+    $allowed_protocols = ['DPlus', 'DExtra', 'DCS', 'DMR', 'DMRplus', 'DMRMmdvm', 'YSF', 'XLX', 'Terminal/AP', 'IMRS', 'M17', 'NXDN', 'none'];
     $this->Protocol = in_array($Protocol, $allowed_protocols, true) ? $Protocol : 'Unknown';
     
     $this->ConnectTime   = ParseTime($ConnectTime);

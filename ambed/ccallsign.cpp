@@ -167,14 +167,12 @@ bool CCallsign::operator ==(const CCallsign &callsign) const
 
 CCallsign::operator const char *() const
 {
-	char *sz = (char *)(const char *)m_sz;
-	
 	// empty
-	::memset(sz, 0, sizeof(m_sz));	
+	::memset(m_sz, 0, sizeof(m_sz));
     // callsign
-    sz[CALLSIGN_LEN] = 0;
-    ::memcpy(sz, m_Callsign, sizeof(m_Callsign));
-      
+    m_sz[CALLSIGN_LEN] = 0;
+    ::memcpy(m_sz, m_Callsign, sizeof(m_Callsign));
+
     // done
     return m_sz;
 }

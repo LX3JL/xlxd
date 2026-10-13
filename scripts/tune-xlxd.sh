@@ -1,0 +1,316 @@
+#!/bin/bash
+#
+# tune-xlxd.sh - System tuning for XLXd reflector
+# Optimizes network stack and process priority for low-latency UDP voice traffic
+#
+# Usage: sudo ./tune-xlxd.sh [options]
+#   --apply     Apply tunings (default is dry-run/show only)
+#   --persist   Make sysctl changes persistent (/etc/sysctl.d/)
+#   --interface Override network interface (default: auto-detect)
+#   --help      Show this help
+#
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Default options
+DRY_RUN=true
+PERSIST=false
+INTERFACE=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --apply)
+            DRY_RUN=false
+            shift
+            ;;
+        --persist)
+            PERSIST=true
+            shift
+            ;;
+        --interface)
+            INTERFACE="$2"
+            shift 2
+            ;;
+        --help|-h)
+            head -15 "$0" | tail -13
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Check root
+if [[ $EUID -ne 0 ]] && [[ "$DRY_RUN" == "false" ]]; then
+    echo -e "${RED}Error: --apply requires root privileges${NC}"
+    echo "Run with: sudo $0 --apply"
+    exit 1
+fi
+
+# Auto-detect primary network interface
+if [[ -z "$INTERFACE" ]]; then
+    INTERFACE=$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'dev \K\S+' | head -1)
+    if [[ -z "$INTERFACE" ]]; then
+        INTERFACE="eth0"
+    fi
+fi
+
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  XLXd System Tuning Script${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo -e "${YELLOW}DRY RUN MODE - No changes will be made${NC}"
+    echo -e "${YELLOW}Use --apply to actually apply changes${NC}"
+else
+    echo -e "${GREEN}APPLY MODE - Changes will be made${NC}"
+fi
+echo ""
+echo -e "Network interface: ${GREEN}$INTERFACE${NC}"
+echo ""
+
+# Function to run or show command
+run_cmd() {
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo -e "  ${YELLOW}[DRY-RUN]${NC} $*"
+    else
+        echo -e "  ${GREEN}[RUNNING]${NC} $*"
+        eval "$@" 2>/dev/null || echo -e "  ${RED}[FAILED]${NC} $*"
+    fi
+}
+
+# Function to show current value
+show_current() {
+    local name="$1"
+    local cmd="$2"
+    local value
+    value=$(eval "$cmd" 2>/dev/null || echo "N/A")
+    echo -e "  Current $name: ${BLUE}$value${NC}"
+}
+
+#############################################
+# 1. Process Priority for xlxd
+#############################################
+echo -e "${BLUE}[1/5] Process Priority${NC}"
+echo "-------------------------------------"
+
+XLXD_PID=$(pidof xlxd 2>/dev/null || echo "")
+if [[ -n "$XLXD_PID" ]]; then
+    echo -e "  xlxd PID: ${GREEN}$XLXD_PID${NC}"
+    show_current "nice" "ps -o nice= -p $XLXD_PID"
+
+    echo ""
+    echo "  Applying high priority (nice -20):"
+    run_cmd "renice -n -20 -p $XLXD_PID"
+
+    # Also set ambed if running
+    AMBED_PID=$(pidof ambed 2>/dev/null || echo "")
+    if [[ -n "$AMBED_PID" ]]; then
+        echo ""
+        echo -e "  ambed PID: ${GREEN}$AMBED_PID${NC}"
+        run_cmd "renice -n -20 -p $AMBED_PID"
+    fi
+else
+    echo -e "  ${YELLOW}xlxd not running - skipping process priority${NC}"
+    echo "  To start xlxd with high priority, use:"
+    echo "    nice -n -20 /xlxd/xlxd"
+fi
+echo ""
+
+#############################################
+# 2. Sysctl Network Tuning
+#############################################
+echo -e "${BLUE}[2/5] Sysctl Network Tuning${NC}"
+echo "-------------------------------------"
+
+declare -A SYSCTL_SETTINGS=(
+    # Socket buffer sizes
+    ["net.core.rmem_max"]="26214400"
+    ["net.core.wmem_max"]="26214400"
+    ["net.core.rmem_default"]="1048576"
+    ["net.core.wmem_default"]="1048576"
+
+    # Netdev processing budget
+    ["net.core.netdev_budget"]="600"
+    ["net.core.netdev_budget_usecs"]="8000"
+
+    # Busy polling for low latency (in microseconds)
+    ["net.core.busy_poll"]="50"
+    ["net.core.busy_read"]="50"
+
+    # Increase backlog for burst handling
+    ["net.core.netdev_max_backlog"]="5000"
+
+    # Somaxconn for connection handling
+    ["net.core.somaxconn"]="4096"
+)
+
+for key in "${!SYSCTL_SETTINGS[@]}"; do
+    current=$(sysctl -n "$key" 2>/dev/null || echo "N/A")
+    target="${SYSCTL_SETTINGS[$key]}"
+
+    if [[ "$current" == "$target" ]]; then
+        echo -e "  $key = $current ${GREEN}[OK]${NC}"
+    else
+        echo -e "  $key = $current -> ${YELLOW}$target${NC}"
+        run_cmd "sysctl -w $key=$target"
+    fi
+done
+
+# Persist settings if requested
+if [[ "$PERSIST" == "true" ]] && [[ "$DRY_RUN" == "false" ]]; then
+    echo ""
+    echo "  Writing persistent config to /etc/sysctl.d/99-xlxd.conf"
+    cat > /etc/sysctl.d/99-xlxd.conf << 'EOF'
+# XLXd tuning - optimized for low-latency UDP voice traffic
+# Generated by tune-xlxd.sh
+
+# Socket buffer sizes
+net.core.rmem_max = 26214400
+net.core.wmem_max = 26214400
+net.core.rmem_default = 1048576
+net.core.wmem_default = 1048576
+
+# Netdev processing budget
+net.core.netdev_budget = 600
+net.core.netdev_budget_usecs = 8000
+
+# Busy polling for low latency
+net.core.busy_poll = 50
+net.core.busy_read = 50
+
+# Backlog and connection handling
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 4096
+EOF
+    echo -e "  ${GREEN}Persistent config written${NC}"
+elif [[ "$PERSIST" == "true" ]]; then
+    echo ""
+    echo -e "  ${YELLOW}[DRY-RUN] Would write /etc/sysctl.d/99-xlxd.conf${NC}"
+fi
+echo ""
+
+#############################################
+# 3. NIC Interrupt Coalescing
+#############################################
+echo -e "${BLUE}[3/5] NIC Interrupt Coalescing${NC}"
+echo "-------------------------------------"
+
+if command -v ethtool &> /dev/null; then
+    echo "  Current coalescing settings for $INTERFACE:"
+    ethtool -c "$INTERFACE" 2>/dev/null | grep -E "(rx-usecs|tx-usecs):" | head -4 | sed 's/^/    /'
+
+    echo ""
+    echo "  Setting low-latency coalescing (rx-usecs=10, tx-usecs=10):"
+    run_cmd "ethtool -C $INTERFACE rx-usecs 10 tx-usecs 10"
+
+    # Note: These settings don't persist across reboots
+    # Would need a network script or systemd service
+else
+    echo -e "  ${YELLOW}ethtool not installed - skipping NIC tuning${NC}"
+    echo "  Install with: apt install ethtool"
+fi
+echo ""
+
+#############################################
+# 4. Queue Discipline
+#############################################
+echo -e "${BLUE}[4/5] Queue Discipline${NC}"
+echo "-------------------------------------"
+
+if command -v tc &> /dev/null; then
+    current_qdisc=$(tc qdisc show dev "$INTERFACE" 2>/dev/null | head -1 | awk '{print $2}')
+    echo -e "  Current qdisc on $INTERFACE: ${BLUE}$current_qdisc${NC}"
+
+    # fq (fair queuing) is good for real-time traffic with pacing
+    echo ""
+    echo "  Setting fq (fair queuing) for better pacing:"
+    run_cmd "tc qdisc replace dev $INTERFACE root fq"
+else
+    echo -e "  ${YELLOW}tc not installed - skipping qdisc tuning${NC}"
+    echo "  Install with: apt install iproute2"
+fi
+echo ""
+
+#############################################
+# 5. Socket Buffer Size in xlxd
+#############################################
+echo -e "${BLUE}[5/5] Application Socket Buffers${NC}"
+echo "-------------------------------------"
+echo "  Note: xlxd uses default socket buffer sizes."
+echo "  The sysctl settings above increase the system maximums."
+echo "  To use larger buffers, xlxd would need code changes to call:"
+echo "    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, ...)"
+echo "    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, ...)"
+echo ""
+
+#############################################
+# Summary
+#############################################
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  Summary${NC}"
+echo -e "${BLUE}========================================${NC}"
+
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo -e "${YELLOW}This was a dry run. To apply changes:${NC}"
+    echo ""
+    echo "  # Apply temporarily (until reboot):"
+    echo "  sudo $0 --apply"
+    echo ""
+    echo "  # Apply and make persistent:"
+    echo "  sudo $0 --apply --persist"
+    echo ""
+else
+    echo -e "${GREEN}Tunings applied successfully!${NC}"
+    echo ""
+    if [[ "$PERSIST" == "true" ]]; then
+        echo "  Sysctl settings: Persistent (/etc/sysctl.d/99-xlxd.conf)"
+    else
+        echo "  Sysctl settings: Temporary (until reboot)"
+        echo "  Run with --persist to make permanent"
+    fi
+    echo ""
+    echo "  NIC coalescing: Temporary (need startup script for persistence)"
+    echo "  Queue discipline: Temporary (need startup script for persistence)"
+    echo "  Process priority: Temporary (restart xlxd with nice for persistence)"
+    echo ""
+    echo -e "${YELLOW}To make NIC/qdisc/priority persistent, add to /etc/rc.local or systemd:${NC}"
+    echo "  nice -n -20 /xlxd/xlxd &"
+    echo "  ethtool -C $INTERFACE rx-usecs 10 tx-usecs 10"
+    echo "  tc qdisc replace dev $INTERFACE root fq"
+fi
+echo ""
+
+#############################################
+# Verification
+#############################################
+if [[ "$DRY_RUN" == "false" ]]; then
+    echo -e "${BLUE}Verification:${NC}"
+    echo "-------------------------------------"
+
+    if [[ -n "$XLXD_PID" ]]; then
+        echo -n "  xlxd nice: "
+        ps -o nice= -p "$XLXD_PID" 2>/dev/null
+    fi
+
+    echo -n "  rmem_max: "
+    sysctl -n net.core.rmem_max
+
+    echo -n "  busy_poll: "
+    sysctl -n net.core.busy_poll
+
+    echo -n "  qdisc: "
+    tc qdisc show dev "$INTERFACE" 2>/dev/null | head -1 | awk '{print $2}'
+
+    echo ""
+fi

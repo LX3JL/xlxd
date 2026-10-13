@@ -48,8 +48,10 @@ CFtdiDeviceDescr::CFtdiDeviceDescr(uint32 uiVid, uint32 uiPid, const char *szDes
     m_bUsed = false;
     m_uiVid = uiVid;
     m_uiPid = uiPid;
-    ::strcpy(m_szDescription, szDescription);
-    ::strcpy(m_szSerial, szSerial);
+    ::strncpy(m_szDescription, szDescription, sizeof(m_szDescription) - 1);
+    m_szDescription[sizeof(m_szDescription) - 1] = '\0';
+    ::strncpy(m_szSerial, szSerial, sizeof(m_szSerial) - 1);
+    m_szSerial[sizeof(m_szSerial) - 1] = '\0';
 }
 
 CFtdiDeviceDescr::CFtdiDeviceDescr(const CFtdiDeviceDescr &descr)
@@ -136,13 +138,14 @@ const char * CFtdiDeviceDescr::GetChannelDescription(int ch) const
 {
     static char descr[FTDI_MAX_STRINGLENGTH];
     char tag[3] = "_X";
-    
-    ::strcpy(descr, GetDescription());
-    if ( ::strlen(descr) >= 2 )
+
+    ::snprintf(descr, sizeof(descr), "%s", GetDescription());
+    size_t len = ::strlen(descr);
+    if ( len >= 2 )
     {
-        descr[::strlen(descr)-2] = 0x00;
+        descr[len - 2] = 0x00;
         tag[1] = (char)ch + 'A';
-        ::strcat(descr, tag);
+        ::strncat(descr, tag, sizeof(descr) - ::strlen(descr) - 1);
     }
     return descr;
 }
@@ -150,11 +153,12 @@ const char * CFtdiDeviceDescr::GetChannelDescription(int ch) const
 const char * CFtdiDeviceDescr::GetChannelSerialNumber(int ch) const
 {
     static char serial[FTDI_MAX_STRINGLENGTH];
-    
-    ::strcpy(serial, GetSerialNumber());
-    if ( ::strlen(serial) >= 1 )
+
+    ::snprintf(serial, sizeof(serial), "%s", GetSerialNumber());
+    size_t len = ::strlen(serial);
+    if ( len >= 1 )
     {
-        serial[::strlen(serial)-1] = (char)ch + 'A';
+        serial[len - 1] = (char)ch + 'A';
     }
     return serial;
 }

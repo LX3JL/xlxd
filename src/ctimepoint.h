@@ -40,6 +40,7 @@ public:
     
     // operation
     void   Now(void)                        { m_TimePoint = std::chrono::steady_clock::now(); }
+    void   SetFutureSeconds(double sec)     { m_TimePoint = std::chrono::steady_clock::now() + std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(sec)); }
     double DurationSinceNow(void) const;
     
     // task

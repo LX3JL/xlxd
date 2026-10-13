@@ -54,14 +54,14 @@ inline void CFIRFilter::ProcessSampleBlock(uint8* voice, int length)
         // Buffer latest sample into delay line
         m_buffer[m_currentBufferPosition] = input;
 
-        for(int i = m_currentBufferPosition; i >= 0; i--)
+        for(int j = m_currentBufferPosition; j >= 0; j--)
         {
-            output += m_taps[iTaps++] * m_buffer[i];
+            output += m_taps[iTaps++] * m_buffer[j];
         }
 
-        for(int i = m_tapsLength - 1; i > m_currentBufferPosition; i--)
+        for(int j = m_tapsLength - 1; j > m_currentBufferPosition; j--)
         {
-            output += m_taps[iTaps++] * m_buffer[i];
+            output += m_taps[iTaps++] * m_buffer[j];
         }
         
         m_currentBufferPosition = (m_currentBufferPosition + 1) % m_tapsLength;

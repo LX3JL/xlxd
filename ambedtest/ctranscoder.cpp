@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include <cstring>
 #include "ctranscoder.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -340,8 +341,8 @@ bool CTranscoder::IsValidStreamDescrPacket(const CBuffer &Buffer, uint16 *Id, ui
     bool valid = false;
     if ( (Buffer.size() == 14) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
     {
-        *Id = *(uint16 *)(&Buffer.data()[8]);
-        *Port = *(uint16 *)(&Buffer.data()[10]);
+        ::memcpy(Id, &Buffer.data()[8], sizeof(uint16));
+        ::memcpy(Port, &Buffer.data()[10], sizeof(uint16));
         // uint8 CodecIn = Buffer.data()[12];
         // uint8 CodecOut = Buffer.data()[13];
         valid = true;

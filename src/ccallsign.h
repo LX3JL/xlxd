@@ -48,6 +48,7 @@ public:
     
     // status
     bool IsValid(void) const;
+    bool HasNumber(void) const;
     bool HasSuffix(void) const;
     bool HasModule(void) const                { return m_Module != ' '; }
     
@@ -55,6 +56,8 @@ public:
     void SetCallsign(const char *, bool = true);
     void SetCallsign(const uint8 *, int, bool = true);
     void SetYsfCallsign(const char *);
+    void SetNxdnCallsign(const char *);
+    void SetP25Callsign(const char *);
     void SetDmrid(uint32, bool = true);
     void SetDmrid(const uint8 *, bool = true);
     void SetModule(char);
@@ -79,6 +82,7 @@ public:
    
     // operators
     bool operator ==(const CCallsign &) const;
+    bool operator <(const CCallsign &) const;
     operator const char *() const;
     
 protected:

@@ -76,7 +76,7 @@ protected:
 protected:
     // data
     char    m_Callsign[CALLSIGN_LEN];
-    char	m_sz[CALLSIGN_LEN+1];
+    mutable char	m_sz[CALLSIGN_LEN+1];
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -2,13 +2,129 @@
 #  XLXD interlink file
 #
 #  one line per entry
-#  each entry specify a remote XLX to peer with
+#  each entry specifies a remote reflector to peer with
+#
+#  XLX REFLECTOR PEERING
+#  =====================
 #  format:
-#    <callsign> <ip> <list of module shared>
+#    <callsign> <ip> <list of modules shared>
 #  example:
 #    XLX270 158.64.26.132 ACD
 #
-#  note: the remote XLX must list this XLX in it's interlink file
+#  note: the remote XLX must list this XLX in its interlink file
 #        for the link to be established
+#
+#  YSF REFLECTOR PEERING
+#  =====================
+#  Connect directly to a YSF reflector using the native YSF protocol.
+#  YSF peers must have a callsign starting with "YSF" followed by
+#  the 5-digit YSF reflector ID (1-99999).
+#
+#  format:
+#    YSF<id> <hostname>:<port> <single module>
+#  example:
+#    YSF12345 ysf.example.com:42000 B
+#
+#  notes:
+#  - YSF reflectors are single-room, so only ONE module can be specified
+#  - Port is required (typically 42000 for YSF reflectors)
+#  - Traffic from YSF peers will show as "XLXnnn X / YSFnnnnn" in dashboard
+#  - The YSF reflector ID must be 5 digits (pad with zeros if needed)
+#
+#  NXDN REFLECTOR PEERING
+#  ======================
+#  Connect directly to an NXDN reflector using the native NXDN protocol.
+#  NXDN peers must have a callsign starting with "NX" followed by
+#  the 5-digit NXDN reflector/talkgroup ID (1-65535).
+#
+#  format:
+#    NX<id> <hostname>:<port> <single module>
+#  example:
+#    NX10200 nxdn.example.com:41400 B
+#
+#  notes:
+#  - NXDN reflectors are single-room, so only ONE module can be specified
+#  - Port is required (no default port)
+#  - Traffic from NXDN peers will show as "XLXnnn X / NXnnnnn" in dashboard
+#  - The NXDN ID must be 5 digits (pad with zeros if needed)
+#  - NXDN uses AMBE2+ codec (same as DMR/YSF), no transcoding needed
+#
+#  P25 REFLECTOR PEERING
+#  =====================
+#  Connect directly to a P25 reflector using the native P25 protocol.
+#  P25 peers must have a callsign starting with "P25" followed by
+#  the 5-digit P25 reflector/talkgroup ID (1-65535).
+#
+#  format:
+#    P25<id> <hostname>:<port> <single module>
+#  example:
+#    P2510200 p25.example.com:41000 B
+#
+#  notes:
+#  - P25 reflectors are single-room, so only ONE module can be specified
+#  - Port is required (no default port)
+#  - Traffic from P25 peers will show as "XLXnnn X / P25nnnnn" in dashboard
+#  - The P25 ID must be 5 digits (pad with zeros if needed)
+#  - P25 uses IMBE codec, requires ambed for transcoding to/from other modes
+#
+#  REF/DPLUS REFLECTOR PEERING
+#  ===========================
+#  Connect directly to a REF reflector using the DPlus protocol.
+#  XLX connects as a client to the remote REF reflector.
+#
+#  format:
+#    REF<nnn> <hostname>[:port] <local><remote>
+#  examples:
+#    REF001 ref001.example.com EA
+#    REF030 ref030.dstargateway.org:20001 AA
+#    REF123 192.168.1.100 BC
+#
+#  notes:
+#  - REF callsign must be REFnnn format (e.g., REF001, REF123)
+#  - Port defaults to 20001 if not specified
+#  - Module mapping: first letter = local XLX module, second = remote REF module
+#  - Both module letters must be uppercase A-Z
+#  - REF uses AMBE+ codec (same as D-Star), no transcoding needed for D-Star
+#  - DMR/YSF/M17 users are transcoded via ambed
+#
+#  XRF/DEXTRA REFLECTOR PEERING
+#  ============================
+#  Connect directly to an XRF reflector using the DExtra protocol.
+#  XLX connects as a client to the remote XRF reflector.
+#
+#  format:
+#    XRF<nnn> <hostname>[:port] <local><remote>
+#  examples:
+#    XRF001 xrf001.example.com EA
+#    XRF030 xrf030.dstargateway.org:30001 AA
+#    XRF123 192.168.1.100 BC
+#
+#  notes:
+#  - XRF callsign must be XRFnnn format (e.g., XRF001, XRF123)
+#  - Port defaults to 30001 if not specified
+#  - Module mapping: first letter = local XLX module, second = remote XRF module
+#  - Both module letters must be uppercase A-Z
+#  - XRF uses AMBE+ codec (same as D-Star), no transcoding needed for D-Star
+#  - DMR/YSF/M17 users are transcoded via ambed
+#
+#  DCS REFLECTOR PEERING
+#  =====================
+#  Connect directly to a DCS reflector using the DCS protocol.
+#  XLX connects as a client to the remote DCS reflector.
+#
+#  format:
+#    DCS<nnn> <hostname>[:port] <local><remote>
+#  examples:
+#    DCS001 dcs001.example.com EA
+#    DCS030 dcs030.xreflector.net:30051 AA
+#    DCS123 192.168.1.100 BC
+#
+#  notes:
+#  - DCS callsign must be DCSnnn format (e.g., DCS001, DCS123)
+#  - Port defaults to 30051 if not specified
+#  - Module mapping: first letter = local XLX module, second = remote DCS module
+#  - Both module letters must be uppercase A-Z
+#  - DCS uses AMBE+ codec (same as D-Star), no transcoding needed for D-Star
+#  - DMR/YSF/M17 users are transcoded via ambed
 #
 #############################################################################

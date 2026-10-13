@@ -131,7 +131,7 @@ void CBuffer::ReplaceAt(int i, uint16 ui)
     {
         resize(i+sizeof(uint16));
     }
-    *(uint16 *)(&(data()[i])) = ui;
+    ::memcpy(&(data()[i]), &ui, sizeof(uint16));
 }
 
 void CBuffer::ReplaceAt(int i, uint32 ui)
@@ -140,7 +140,7 @@ void CBuffer::ReplaceAt(int i, uint32 ui)
     {
         resize(i+sizeof(uint32));
     }
-    *(uint32 *)(&(data()[i])) = ui;
+    ::memcpy(&(data()[i]), &ui, sizeof(uint32));
 }
 
 void CBuffer::ReplaceAt(int i, const uint8 *ptr, int len)

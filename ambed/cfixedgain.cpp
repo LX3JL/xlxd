@@ -46,7 +46,9 @@ inline void CFixedGain::ProcessSampleBlock(uint8* voice, int length)
         //apply gain
         float output = input * m_gainLinear;
 
-        //write processed sample back
+        //write processed sample back, clamp to short range
+        if (output > 32767.0f) output = 32767.0f;
+        else if (output < -32768.0f) output = -32768.0f;
         voice[i] = HIBYTE((short)output);
         voice[i+1] = LOBYTE((short)output);
     }

@@ -49,7 +49,8 @@ public:
     // initialization
     bool Init(void);
     
-    // task
+    // XLX uses legacy single-thread mode (not yet converted to RX/TX split)
+    bool UsesSplitThreads(void) const { return false; }
     void Task(void);
     
 protected:

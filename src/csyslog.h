@@ -15,17 +15,24 @@
  ** along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *************************************************************************/
 
-#ifndef __syslog
-#define __syslog
+#ifndef __csyslog_h
+#define __csyslog_h
 
 #include <iostream>
 #include <streambuf>
 #include <string>
-namespace csyslog {
+
+// Include system syslog to get LOG_* constants
 #include <syslog.h>
+
+namespace csyslog {
+// Re-declare syslog function for our use
+using ::syslog;
+using ::openlog;
+using ::closelog;
 }
 
-namespace syslog
+namespace syslogns
 {
 	struct level {
 		enum pri {

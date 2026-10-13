@@ -31,9 +31,19 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
+// Protocol revisions
 #define XLX_PROTOCOL_REVISION_0      0       // AMBE only, original connect mechanism
 #define XLX_PROTOCOL_REVISION_1      1       // AMBE only, revised connect mechanism
 #define XLX_PROTOCOL_REVISION_2      2       // Transcoded AMBE+AMBE2 interlink
+#define XLX_PROTOCOL_REVISION_3      3       // AMBE+AMBE2+Codec2 interlink (M17 support)
+
+// DV Frame packet sizes per protocol revision
+// Rev 0/1: DSVT(12) + StreamID(2) + PacketID(1) + AMBE(9) + DVData(3) = 27 bytes
+// Rev 2:   Rev0/1(27) + DMR_PacketID(1) + DMR_SubID(1) + AMBE+(9) + DVSync(7) = 45 bytes
+// Rev 3:   Rev2(45) + Codec2(8) = 53 bytes
+#define XLX_DVFRAME_SIZE_REV01       27      // D-Star AMBE only
+#define XLX_DVFRAME_SIZE_REV2        45      // D-Star AMBE + DMR AMBE+
+#define XLX_DVFRAME_SIZE_REV3        53      // D-Star AMBE + DMR AMBE+ + M17 Codec2
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,6 +65,7 @@ public:
     int GetProtocolRevision(void) const         { return m_ProtRev; }
     const char *GetProtocolName(void) const     { return "XLX"; }
     int GetCodec(void) const;
+    uint32 GetAvailableCodecs(void) const;
     bool IsPeer(void) const                     { return true; }
     
     // status

@@ -49,7 +49,9 @@ public:
     CVocodecInterface *GetInterface(int);
     
     // manage channels
+    int  GetNbChannels(void) const                  { return (int)m_Channels.size(); }
     CVocodecChannel *OpenChannel(uint8, uint8);
+    CVocodecChannel *OpenEncoderChannel(uint8 uiCodecOut);  // encoder-only channel for Codec2 input
     void AddChannel(CVocodecChannel *ch)            { m_Channels.push_back(ch); }
     void CloseChannel(CVocodecChannel *);
 

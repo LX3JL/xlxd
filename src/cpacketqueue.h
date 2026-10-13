@@ -49,13 +49,7 @@ public:
     void Unlock()               { m_Mutex.unlock(); }
     
 protected:
-    // status
-    bool        m_bOpen;
-    uint16      m_uiStreamId;
     std::mutex  m_Mutex;
-    
-    // owner
-    CClient     *m_Client;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

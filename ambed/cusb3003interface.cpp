@@ -74,7 +74,7 @@ bool CUsb3003Interface::Init(uint8 uiOddCodec)
 uint8 CUsb3003Interface::GetChannelCodec(int iCh) const
 {
     uint8 uiCodec = CODEC_NONE;
-    if ( (iCh >= 0) && (iCh <= USB3003_NB_CH) )
+    if ( (iCh >= 0) && (iCh < USB3003_NB_CH) )
     {
         uiCodec = m_uiChCodecs[iCh];
     }
@@ -215,33 +215,33 @@ bool CUsb3003Interface::OpenDevice(void)
     CTimePoint::TaskSleepFor(50);
     FT_Purge(m_FtdiHandle, FT_PURGE_RX | FT_PURGE_TX );
     CTimePoint::TaskSleepFor(50);
-    
+
     ftStatus = FT_SetDataCharacteristics(m_FtdiHandle, FT_BITS_8, FT_STOP_BITS_1, FT_PARITY_NONE);
-    if ( ftStatus != FT_OK ) { FTDI_Error((char *)"FT_SetDataCharacteristics", ftStatus ); return false; }
-    
+    if ( ftStatus != FT_OK ) { FTDI_Error((char *)"FT_SetDataCharacteristics", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     ftStatus = FT_SetFlowControl(m_FtdiHandle, FT_FLOW_RTS_CTS, 0x11, 0x13);
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetFlowControl", ftStatus ); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetFlowControl", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     ftStatus = FT_SetRts (m_FtdiHandle);
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetRts", ftStatus ); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetRts", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     //for usb-3012 pull DTR high to take AMBE3003 out of reset.
     //for other devices noting is connected to DTR so it is a dont care
     ftStatus = FT_ClrDtr(m_FtdiHandle);
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_ClrDtr", ftStatus); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_ClrDtr", ftStatus); FT_Close(m_FtdiHandle); return false; }
+
     ftStatus = FT_SetBaudRate(m_FtdiHandle, baudrate );
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetBaudRate", ftStatus ); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetBaudRate", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     ftStatus = FT_SetLatencyTimer(m_FtdiHandle, 4);
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetLatencyTimer", ftStatus ); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetLatencyTimer", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     ftStatus = FT_SetUSBParameters(m_FtdiHandle, USB3XXX_MAXPACKETSIZE, 0);
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetUSBParameters", ftStatus ); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetUSBParameters", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     ftStatus = FT_SetTimeouts(m_FtdiHandle, 200, 200 );
-    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetTimeouts", ftStatus ); return false; }
-    
+    if (ftStatus != FT_OK) { FTDI_Error((char *)"FT_SetTimeouts", ftStatus ); FT_Close(m_FtdiHandle); return false; }
+
     // done
     return true;
 }

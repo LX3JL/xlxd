@@ -135,6 +135,16 @@ bool CCallsign::IsValid(void) const
     return valid;
 }
 
+bool CCallsign::HasNumber(void) const
+{
+    for ( int i = 0; i < CALLSIGN_LEN; i++ )
+    {
+        if ( IsNumber(m_Callsign[i]) )
+            return true;
+    }
+    return false;
+}
+
 bool CCallsign::HasSuffix(void) const
 {
     bool has = false;
@@ -199,7 +209,7 @@ void CCallsign::SetCallsign(const uint8 *buffer, int len, bool UpdateDmrid)
 void CCallsign::SetYsfCallsign(const char *sz)
 {
     int i;
-   
+
     // reset object
     ::memset(m_Callsign, ' ', sizeof(m_Callsign));
     ::memset(m_Suffix, ' ', sizeof(m_Suffix));
@@ -227,6 +237,46 @@ void CCallsign::SetYsfCallsign(const char *sz)
         m_uiDmrid = g_DmridDir.FindDmrid(*this);
     }
     g_DmridDir.Unlock();
+}
+
+void CCallsign::SetNxdnCallsign(const char *sz)
+{
+    // reset object
+    ::memset(m_Callsign, ' ', sizeof(m_Callsign));
+    ::memset(m_Suffix, ' ', sizeof(m_Suffix));
+    m_Module = ' ';
+    m_uiDmrid = 0;
+
+    // NXDN callsigns are 9 characters (NXDNnnnnn)
+    // Copy first 8 chars into m_Callsign
+    int len = (int)::strlen(sz);
+    for ( int i = 0; (i < (int)sizeof(m_Callsign)) && (i < len); i++ )
+    {
+        m_Callsign[i] = sz[i];
+    }
+    // Store the 9th character in m_Module so it appears when converted to string
+    // (the operator const char* puts m_Module at position 8 if HasModule() is true)
+    if ( len > (int)sizeof(m_Callsign) )
+    {
+        m_Module = sz[sizeof(m_Callsign)];
+    }
+}
+
+void CCallsign::SetP25Callsign(const char *sz)
+{
+    // reset object
+    ::memset(m_Callsign, ' ', sizeof(m_Callsign));
+    ::memset(m_Suffix, ' ', sizeof(m_Suffix));
+    m_Module = ' ';
+    m_uiDmrid = 0;
+
+    // P25 callsigns are up to 8 characters (P25nnnnn)
+    // Copy all chars into m_Callsign
+    int len = (int)::strlen(sz);
+    for ( int i = 0; (i < (int)sizeof(m_Callsign)) && (i < len); i++ )
+    {
+        m_Callsign[i] = sz[i];
+    }
 }
 
 void CCallsign::SetDmrid(uint32 dmrid, bool UpdateCallsign)
@@ -355,6 +405,11 @@ bool CCallsign::operator ==(const CCallsign &callsign) const
             (m_Module == callsign.m_Module) &&
             (::memcmp(callsign.m_Suffix, m_Suffix, sizeof(m_Suffix)) == 0) &&
             (m_uiDmrid == callsign.m_uiDmrid) );
+}
+
+bool CCallsign::operator <(const CCallsign &callsign) const
+{
+    return (::memcmp(m_Callsign, callsign.m_Callsign, sizeof(m_Callsign)) < 0);
 }
 
 CCallsign::operator const char *() const

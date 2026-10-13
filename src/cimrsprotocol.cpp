@@ -198,20 +198,22 @@ bool CImrsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 {
     bool newstream = false;
     
-    // find the stream
-    CPacketStream *stream = GetStream(Header->GetStreamId());
+    // find the stream (match on both StreamId and IP to avoid false matches)
+    CPacketStream *stream = GetStream(Header->GetStreamId(), &Ip);
     if ( stream == NULL )
     {
         // no stream open yet, open a new one
         CCallsign via(Header->GetRpt1Callsign());
-        
+        CCallsign myCallsign;
+        CCallsign rpt2Callsign;
+
         // find this client
         CClient *client = g_Reflector.GetClients()->FindClient(Ip, PROTOCOL_IMRS);
         if ( client != NULL )
         {
             // get client callsign
             via = client->GetCallsign();
-            
+
             // handle changing module client is linked to
             // via dgid of packet
             if ( Header->GetRpt2Module() != client->GetReflectorModule() )
@@ -220,30 +222,40 @@ bool CImrsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
                           << " linking by DG-ID to module " << Header->GetRpt2Module() << std::endl;
                 client->SetReflectorModule(Header->GetRpt2Module());
             }
-            
+
             // get module it's linked to
             //Header->SetRpt2Module(client->GetReflectorModule());
+
+            // save header callsigns before OpenStream — OpenStream transfers
+            // Header into the router queue, where the router thread may delete it
+            myCallsign = Header->GetMyCallsign();
+            rpt2Callsign = Header->GetRpt2Callsign();
 
             // and try to open the stream
             if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
             {
-                // keep the handle
+                // keep the handle — Header ownership transferred to stream
                 m_Streams.push_back(stream);
                 newstream = true;
+                Header = NULL;
+            }
+            else if ( g_Reflector.TryLateEntry(Header, client) )
+            {
+                Header = NULL;  // ownership transferred
             }
         }
         // release
         g_Reflector.ReleaseClients();
-        
+
         // update last heard
-        if ( g_Reflector.IsValidModule(Header->GetRpt2Module()) )
+        if ( newstream )
         {
-            g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
+            g_Reflector.GetUsers()->Hearing(myCallsign, via, rpt2Callsign);
             g_Reflector.ReleaseUsers();
         }
-        
+
         // delete header if needed
-        if ( !newstream )
+        if ( Header != NULL )
         {
             delete Header;
         }
@@ -265,31 +277,48 @@ bool CImrsProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &Ip)
 // queue helper
 
 void CImrsProtocol::HandleQueue(void)
-{    
+{
+    // drain queue into local vector
+    std::vector<CPacket *> packets;
     m_Queue.Lock();
     while ( !m_Queue.empty() )
     {
-        // get the packet
-        CPacket *packet = m_Queue.front();
+        packets.push_back(m_Queue.front());
         m_Queue.pop();
-        
+    }
+    m_Queue.Unlock();
+
+    // process packets without holding queue lock
+    CBuffer buffer;
+    buffer.reserve(256);
+
+    for ( size_t pi = 0; pi < packets.size(); pi++ )
+    {
+        CPacket *packet = packets[pi];
+
         // get our sender's id
         int iModId = g_Reflector.GetModuleIndex(packet->GetModuleId());
-        
+
+        // bounds check
+        if ( iModId < 0 || iModId >= NB_OF_MODULES )
+        {
+            delete packet;
+            continue;
+        }
+
         // encode
-        CBuffer buffer;
-        
+        buffer.clear();
+
         // check if it's header
         if ( packet->IsDvHeader() )
         {
             // update local stream cache
-            // this relies on queue feeder setting valid module id
             m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
             for ( int i = 0; i < 5; i++ )
             {
                 m_StreamsCache[iModId].m_dvFrames[i] = CDvFramePacket();
             }
-            
+
             // encode it
             EncodeDvHeaderPacket((const CDvHeaderPacket &)*packet, &buffer);
         }
@@ -306,7 +335,6 @@ void CImrsProtocol::HandleQueue(void)
             uint8 sid = packet->GetImrsPacketSubId();
             if ( (sid >= 0) && (sid <= 4) )
             {
-                //std::cout << (int)sid;
                 m_StreamsCache[iModId].m_dvFrames[sid] = CDvFramePacket((const CDvFramePacket &)*packet);
                 if ( sid == 4 )
                 {
@@ -314,34 +342,29 @@ void CImrsProtocol::HandleQueue(void)
                 }
             }
         }
-        
+
         // send it
         if ( buffer.size() > 0 )
         {
-            // and push it to all our clients linked to the module and who are not streaming in
+            // push to all clients linked to the module and who are not streaming in
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
             while ( (client = clients->FindNextClient(PROTOCOL_IMRS, &index)) != NULL )
             {
-                // is this client busy ?
                 if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
                 {
-                    // no, send the packet
-                    m_Socket.Send(buffer, client->GetIp(), IMRS_PORT);
-                    //std::cout << "sending " << buffer.size() << " bytes to " << client->GetIp() << std::endl;
+                    m_Socket.SendVoice(buffer, client->GetIp(), IMRS_PORT);
                 }
-                // as DR-2X doesn't seems to respond to keepalives when receiving a stream
-                // tickle the keepalive timer here
+                // DR-2X doesn't respond to keepalives when receiving a stream
                 client->Alive();
             }
             g_Reflector.ReleaseClients();
         }
-        
+
         // done
         delete packet;
     }
-    m_Queue.Unlock();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -357,6 +380,7 @@ void CImrsProtocol::HandleKeepalives(void)
     CClients *clients = g_Reflector.GetClients();
     int index = -1;
     CClient *client = NULL;
+    std::vector<CClient *> toRemove;
     while ( (client = clients->FindNextClient(PROTOCOL_IMRS, &index)) != NULL )
     {
         // is this client busy ?
@@ -368,11 +392,15 @@ void CImrsProtocol::HandleKeepalives(void)
         // check it's still with us
         else if ( !client->IsAlive() )
         {
-            // no, remove it
+            // no, collect for removal after loop
             std::cout << "IMRS client " << client->GetCallsign() << " keepalive timeout" << std::endl;
-            clients->RemoveClient(client);
+            toRemove.push_back(client);
         }
-        
+
+    }
+    for ( size_t i = 0; i < toRemove.size(); i++ )
+    {
+        clients->RemoveClient(toRemove[i]);
     }
     g_Reflector.ReleaseClients();
 }

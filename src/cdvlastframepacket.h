@@ -45,6 +45,8 @@ public:
     CDvLastFramePacket(const uint8 *, uint16, uint8, uint8, uint8);
     CDvLastFramePacket(const uint8 *, uint16, uint8, uint8, uint16);
     CDvLastFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
+    // M17 constructor
+    CDvLastFramePacket(const uint8 *codec2, uint16 sid, uint8 pid);
     CDvLastFramePacket(const CDvLastFramePacket &);
     
     // destructor
@@ -55,7 +57,7 @@ public:
     
     // identity
     bool IsLastPacket(void) const           { return true; }
-    bool HaveTranscodableAmbe(void) const   { return false; }
+    bool HaveTranscodableAmbe(void) const   { return true; }
 };
 
 

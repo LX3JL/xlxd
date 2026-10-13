@@ -25,6 +25,7 @@
 #include "main.h"
 #include "ctimepoint.h"
 #include "cambeserver.h"
+#include "cudpsocket.h"
 
 #include "syslog.h"
 #include <sys/stat.h>
@@ -104,28 +105,14 @@ int main(int argc, const char * argv[])
         exit(EXIT_FAILURE);
     }
     std::cout << "AMBEd started and listening on " << g_AmbeServer.GetListenIp() << std::endl;
-    
-#ifdef RUN_AS_DAEMON
-    // run forever
-    while ( true )
-    {
-        // sleep 60 seconds
-        CTimePoint::TaskSleepFor(60000);
-    }
-#else
-    // wait any key
+
+    // Log DSCP status once at startup
+    CUdpSocket::LogDscpStatus();
+
+    // run forever — shutdown is handled by process termination
+    // (destructors of static objects run on exit)
     for (;;)
     {
-        // sleep 60 seconds
         CTimePoint::TaskSleepFor(60000);
-        //std::cin.get();
     }
-#endif
-    
-    // and wait for end
-    g_AmbeServer.Stop();
-    std::cout << "AMBEd stopped" << std::endl;
-    
-    // done
-    exit(EXIT_SUCCESS);
 }

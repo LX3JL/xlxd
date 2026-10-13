@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include <string.h>
+#include <random>
 #include "cdmrmmdvmclient.h"
 #include "cdmrmmdvmprotocol.h"
 #include "creflector.h"
@@ -72,10 +73,9 @@ bool CDmrmmdvmProtocol::Init(void)
     // update time
     m_LastKeepaliveTime.Now();
     
-    // random number generator
-    time_t t;
-    ::srand((unsigned) time(&t));
-    m_uiAuthSeed = (uint32)rand();
+    // authentication seed from hardware random source
+    std::random_device rd;
+    m_uiAuthSeed = (uint32)rd();
     
     // done
     return ok;
@@ -249,8 +249,82 @@ void CDmrmmdvmProtocol::Task(void)
         }
         else if ( Buffer.size() != 55 )
         {
-            std::cout << "DMRmmdvm packet (" << Buffer.size() << ")" << std::endl;
-            //std::cout << Buffer << std::endl;
+            // Log unknown packet with details based on DMRplus IPSC Protocol spec
+            std::cout << "DMRmmdvm unknown packet (" << Buffer.size() << " bytes) from " << Ip;
+
+            // Try to identify packet type from signature (first 4-7 bytes are typically ASCII)
+            if ( Buffer.size() >= 4 )
+            {
+                std::cout << " sig=[";
+                int sigLen = MIN((int)Buffer.size(), 7);
+                for ( int i = 0; i < sigLen; i++ )
+                {
+                    char c = Buffer.data()[i];
+                    if ( c >= 0x20 && c <= 0x7e )
+                        std::cout << c;
+                    else
+                        break;  // Stop at first non-printable
+                }
+                std::cout << "]";
+            }
+
+            // Provide more detail for known packet types that failed validation
+            if ( Buffer.size() == 8 && ::memcmp(Buffer.data(), "RPTL", 4) == 0 )
+            {
+                // Login request (8 bytes: RPTL + 4-byte repeater ID)
+                uint32_t rptId = (Buffer.data()[4] << 24) | (Buffer.data()[5] << 16) |
+                                 (Buffer.data()[6] << 8) | Buffer.data()[7];
+                std::cout << " (Login request, repeater ID " << rptId << ")";
+            }
+            else if ( Buffer.size() == 9 && ::memcmp(Buffer.data(), "RPTCL", 5) == 0 )
+            {
+                // Repeater close (9 bytes: RPTCL + 4-byte repeater ID)
+                uint32_t rptId = (Buffer.data()[5] << 24) | (Buffer.data()[6] << 16) |
+                                 (Buffer.data()[7] << 8) | Buffer.data()[8];
+                std::cout << " (Repeater close, repeater ID " << rptId << ")";
+            }
+            else if ( Buffer.size() == 11 && ::memcmp(Buffer.data(), "RPTPONG", 7) == 0 )
+            {
+                // Pong response (11 bytes: RPTPONG + 4-byte repeater ID)
+                uint32_t rptId = (Buffer.data()[7] << 24) | (Buffer.data()[8] << 16) |
+                                 (Buffer.data()[9] << 8) | Buffer.data()[10];
+                std::cout << " (Pong, repeater ID " << rptId << ")";
+            }
+            else if ( Buffer.size() == 40 && ::memcmp(Buffer.data(), "RPTK", 4) == 0 )
+            {
+                // Auth response (40 bytes: RPTK + 4-byte repeater ID + 32-byte SHA256)
+                uint32_t rptId = (Buffer.data()[4] << 24) | (Buffer.data()[5] << 16) |
+                                 (Buffer.data()[6] << 8) | Buffer.data()[7];
+                std::cout << " (Auth response, repeater ID " << rptId << ")";
+            }
+            else if ( Buffer.size() == 302 && ::memcmp(Buffer.data(), "RPTC", 4) == 0 )
+            {
+                // Config packet (302 bytes: RPTC + config data)
+                // Callsign is at bytes 4-11 (8 bytes, space-padded)
+                char callsign[9];
+                ::memcpy(callsign, Buffer.data() + 4, 8);
+                callsign[8] = '\0';
+                std::cout << " (Config from " << callsign << ")";
+            }
+            else if ( Buffer.size() == 53 && ::memcmp(Buffer.data(), "DMRD", 4) == 0 )
+            {
+                // Data packet that failed validation (53 bytes)
+                std::cout << " (Data packet failed validation)";
+            }
+            else if ( Buffer.size() > 0 )
+            {
+                // Unknown packet - show first few bytes as hex
+                std::cout << " hex=[";
+                int showBytes = MIN((int)Buffer.size(), 8);
+                for ( int i = 0; i < showBytes; i++ )
+                {
+                    std::cout << std::hex << std::setfill('0') << std::setw(2)
+                              << (int)(uint8_t)Buffer.data()[i];
+                    if ( i < showBytes - 1 ) std::cout << " ";
+                }
+                std::cout << std::dec << "]";
+            }
+            std::cout << std::endl;
         }
     }
     
@@ -280,12 +354,21 @@ bool CDmrmmdvmProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &I
 {
     bool newstream = false;
     bool lastheard = false;
-    
+
+    // set default suffix if not already set
+    if ( !Header->HasMySuffix() )
+    {
+        Header->SetMySuffix("DMR");
+    }
+
     //
     CCallsign via(Header->GetRpt1Callsign());
 
-    // find the stream
-    CPacketStream *stream = GetStream(Header->GetStreamId());
+    // find the stream (match on both StreamId and IP to avoid false matches)
+    // save callsigns before any ownership transfer
+    CCallsign myCallsign = Header->GetMyCallsign();
+    CCallsign rpt2Callsign = Header->GetRpt2Callsign();
+    CPacketStream *stream = GetStream(Header->GetStreamId(), &Ip);
     if ( stream == NULL )
     {
         // no stream open yet, open a new one
@@ -310,6 +393,11 @@ bool CDmrmmdvmProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &I
                         std::cout << "DMRMMDVM node " << via << " link attempt on non-existing module" << std::endl;
                     }
                 }
+                else if ( cmd == CMD_NONE )
+                {
+                    // unlinked client sent a TG that doesn't map to a module
+                    std::cout << "DMRMMDVM unlinked client " << via << " sent invalid TG — ignored" << std::endl;
+                }
             }
             else
             {
@@ -327,16 +415,23 @@ bool CDmrmmdvmProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &I
                 }
             }
             
+            // re-save rpt2 callsign after module may have been updated
+            rpt2Callsign = Header->GetRpt2Callsign();
+
             // and now, re-check module is valid && that it's not a private call
             if ( g_Reflector.IsValidModule(Header->GetRpt2Module()) && (CallType == DMR_GROUP_CALL) )
             {
                 // yes, try to open the stream
                 if ( (stream = g_Reflector.OpenStream(Header, client)) != NULL )
                 {
-                    // keep the handle
                     m_Streams.push_back(stream);
                     newstream = true;
                     lastheard = true;
+                    Header = NULL;
+                }
+                else if ( g_Reflector.TryLateEntry(Header, client) )
+                {
+                    Header = NULL;
                 }
             }
         }
@@ -344,19 +439,19 @@ bool CDmrmmdvmProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &I
         {
             lastheard = true;
         }
-        
+
         // release
         g_Reflector.ReleaseClients();
-        
+
         // update last heard
         if ( lastheard )
         {
-            g_Reflector.GetUsers()->Hearing(Header->GetMyCallsign(), via, Header->GetRpt2Callsign());
+            g_Reflector.GetUsers()->Hearing(myCallsign, via, rpt2Callsign);
             g_Reflector.ReleaseUsers();
         }
-        
+
         // delete header if needed
-        if ( !newstream )
+        if ( Header != NULL )
         {
             delete Header;
         }
@@ -375,24 +470,103 @@ bool CDmrmmdvmProtocol::OnDvHeaderPacketIn(CDvHeaderPacket *Header, const CIp &I
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// client cache helpers
+
+void CDmrmmdvmProtocol::RefreshClientCache(int iModId)
+{
+    if ( iModId < 0 || iModId >= NB_OF_MODULES )
+        return;
+
+    // Check freshness under cache lock, release before acquiring Clients lock
+    {
+        std::lock_guard<std::mutex> lock(m_ClientCache[iModId].m_Mutex);
+        if ( m_ClientCache[iModId].m_bInitialized &&
+             m_ClientCache[iModId].m_LastRefresh.DurationSinceNow() < DMRMMDVM_CLIENT_CACHE_REFRESH_INTERVAL )
+        {
+            return;  // Cache is still fresh
+        }
+    }
+
+    // Scan clients WITHOUT holding cache lock
+    char moduleId = 'A' + iModId;
+    std::vector<CIp> freshIps;
+
+    CClients *clients = g_Reflector.GetClients();
+    int index = -1;
+    CClient *client = NULL;
+    while ( (client = clients->FindNextClient(PROTOCOL_DMRMMDVM, &index)) != NULL )
+    {
+        if ( !client->IsAMaster() && (client->GetReflectorModule() == moduleId) )
+        {
+            freshIps.push_back(client->GetIp());
+        }
+    }
+    g_Reflector.ReleaseClients();
+
+    // Write results under cache lock
+    std::lock_guard<std::mutex> lock(m_ClientCache[iModId].m_Mutex);
+    m_ClientCache[iModId].m_ClientIps.swap(freshIps);
+    m_ClientCache[iModId].m_LastRefresh.Now();
+    m_ClientCache[iModId].m_bInitialized = true;
+}
+
+void CDmrmmdvmProtocol::SendToModuleClients(int iModId, const CBuffer &buffer, uint16 streamId)
+{
+    if ( iModId < 0 || iModId >= NB_OF_MODULES )
+        return;
+
+    // Refresh cache if needed (acquires its own lock)
+    RefreshClientCache(iModId);
+
+    // Send to cached clients (cache mutex is TX-thread-only, safe to hold during sends)
+    std::lock_guard<std::mutex> lock(m_ClientCache[iModId].m_Mutex);
+    for ( const CIp &ip : m_ClientCache[iModId].m_ClientIps )
+    {
+        // skip the stream owner to prevent audio echo back to transmitter
+        if ( m_StreamsCache[iModId].m_bHasOwner &&
+             m_StreamsCache[iModId].m_uiOutboundStreamId == streamId &&
+             m_StreamsCache[iModId].m_OwnerIp == ip )
+        {
+            continue;
+        }
+        m_Socket.SendVoice(buffer, ip);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // queue helper
 
 void CDmrmmdvmProtocol::HandleQueue(void)
 {
-    
+    // Phase 1: Drain all packets from queue under lock, then release lock immediately
+    std::vector<CPacket *> packets;
+    packets.reserve(100);  // Pre-allocate for typical queue sizes
+
     m_Queue.Lock();
     while ( !m_Queue.empty() )
     {
-        // get the packet
-        CPacket *packet = m_Queue.front();
+        packets.push_back(m_Queue.front());
         m_Queue.pop();
-        
-        // get our sender's id
+    }
+    m_Queue.Unlock();
+
+    // Phase 2: Process packets without holding queue lock
+    for ( size_t i = 0; i < packets.size(); i++ )
+    {
+        CPacket *packet = packets[i];
+
+        // get our sender's id and validate bounds
         int iModId = g_Reflector.GetModuleIndex(packet->GetModuleId());
-        
+        if ( iModId < 0 || iModId >= NB_OF_MODULES )
+        {
+            // Invalid module - skip this packet
+            delete packet;
+            continue;
+        }
+
         // encode
         CBuffer buffer;
-        
+
         // check if it's header
         if ( packet->IsDvHeader() )
         {
@@ -400,8 +574,27 @@ void CDmrmmdvmProtocol::HandleQueue(void)
             // this relies on queue feeder setting valid module id
             m_StreamsCache[iModId].m_dvHeader = CDvHeaderPacket((const CDvHeaderPacket &)*packet);
             m_StreamsCache[iModId].m_uiSeqId = 0;
+            m_StreamsCache[iModId].m_uiLastSubid = 0;
             EncodeEmbeddedLC(m_StreamsCache[iModId].m_embeddedLC, m_StreamsCache[iModId].m_dvHeader.GetMyCallsign().GetDmrid());
-            
+            m_StreamsCache[iModId].m_uiOutboundStreamId = packet->GetStreamId();
+            // capture stream owner IP for send-time exclusion
+            m_StreamsCache[iModId].m_bHasOwner = false;
+            CPacketStream *stream = g_Reflector.GetStream(packet->GetModuleId());
+            if ( stream != NULL )
+            {
+                stream->Lock();
+                if ( stream->IsOpen() && stream->GetStreamId() == packet->GetStreamId() )
+                {
+                    const CIp *ownerIp = stream->GetOwnerIp();
+                    if ( ownerIp != NULL )
+                    {
+                        m_StreamsCache[iModId].m_OwnerIp = *ownerIp;
+                        m_StreamsCache[iModId].m_bHasOwner = true;
+                    }
+                }
+                stream->Unlock();
+            }
+
             // encode it
             EncodeDvHeaderPacket((const CDvHeaderPacket &)*packet, m_StreamsCache[iModId].m_uiSeqId, &buffer);
             m_StreamsCache[iModId].m_uiSeqId = 1;
@@ -409,7 +602,49 @@ void CDmrmmdvmProtocol::HandleQueue(void)
         // check if it's a last frame
         else if ( packet->IsLastPacket() )
         {
-            // encode it
+            // flush any incomplete triplet before sending terminator
+            // pad missing frames with zeros (0x00) — the radio's squelch
+            // masks the brief artifact at end of transmission
+            if ( m_StreamsCache[iModId].m_uiLastSubid > 0 )
+            {
+                uint8 zeroAmbe[9];
+                ::memset(zeroAmbe, 0, sizeof(zeroAmbe));
+
+                if ( m_StreamsCache[iModId].m_uiLastSubid == 1 )
+                {
+                    // only frame0 cached — zero-pad frame1 and frame2
+                    CDvFramePacket padFrame1(zeroAmbe, (uint8 *)"\x00\x00\x00\x00\x00\x00\x00",
+                                             m_StreamsCache[iModId].m_uiOutboundStreamId, 0, 2);
+                    CDvFramePacket padFrame2(zeroAmbe, (uint8 *)"\x00\x00\x00\x00\x00\x00\x00",
+                                             m_StreamsCache[iModId].m_uiOutboundStreamId, 0, 3);
+                    CBuffer flushBuf;
+                    EncodeDvPacket(m_StreamsCache[iModId].m_dvHeader,
+                                   m_StreamsCache[iModId].m_dvFrame0,
+                                   padFrame1, padFrame2,
+                                   m_StreamsCache[iModId].m_uiSeqId, &flushBuf);
+                    m_StreamsCache[iModId].m_uiSeqId = (m_StreamsCache[iModId].m_uiSeqId + 1) & 0xFF;
+                    if ( flushBuf.size() > 0 )
+                        SendToModuleClients(iModId, flushBuf, packet->GetStreamId());
+                }
+                else if ( m_StreamsCache[iModId].m_uiLastSubid == 2 )
+                {
+                    // frame0 and frame1 cached — zero-pad frame2
+                    CDvFramePacket padFrame2(zeroAmbe, (uint8 *)"\x00\x00\x00\x00\x00\x00\x00",
+                                             m_StreamsCache[iModId].m_uiOutboundStreamId, 0, 3);
+                    CBuffer flushBuf;
+                    EncodeDvPacket(m_StreamsCache[iModId].m_dvHeader,
+                                   m_StreamsCache[iModId].m_dvFrame0,
+                                   m_StreamsCache[iModId].m_dvFrame1,
+                                   padFrame2,
+                                   m_StreamsCache[iModId].m_uiSeqId, &flushBuf);
+                    m_StreamsCache[iModId].m_uiSeqId = (m_StreamsCache[iModId].m_uiSeqId + 1) & 0xFF;
+                    if ( flushBuf.size() > 0 )
+                        SendToModuleClients(iModId, flushBuf, packet->GetStreamId());
+                }
+                m_StreamsCache[iModId].m_uiLastSubid = 0;
+            }
+
+            // now send the terminator
             EncodeDvLastPacket(m_StreamsCache[iModId].m_dvHeader, m_StreamsCache[iModId].m_uiSeqId, &buffer);
             m_StreamsCache[iModId].m_uiSeqId = (m_StreamsCache[iModId].m_uiSeqId + 1) & 0xFF;
         }
@@ -421,9 +656,11 @@ void CDmrmmdvmProtocol::HandleQueue(void)
             {
                 case 1:
                     m_StreamsCache[iModId].m_dvFrame0 = CDvFramePacket((const CDvFramePacket &)*packet);
+                    m_StreamsCache[iModId].m_uiLastSubid = 1;
                     break;
                 case 2:
                     m_StreamsCache[iModId].m_dvFrame1 = CDvFramePacket((const CDvFramePacket &)*packet);
+                    m_StreamsCache[iModId].m_uiLastSubid = 2;
                     break;
                 case 3:
                     EncodeDvPacket(
@@ -434,36 +671,22 @@ void CDmrmmdvmProtocol::HandleQueue(void)
                                    m_StreamsCache[iModId].m_uiSeqId,
                                    &buffer);
                     m_StreamsCache[iModId].m_uiSeqId = (m_StreamsCache[iModId].m_uiSeqId + 1) & 0xFF;
+                    m_StreamsCache[iModId].m_uiLastSubid = 0;
                     break;
                 default:
                     break;
             }
         }
-        
+
         // send it
         if ( buffer.size() > 0 )
         {
-            // and push it to all our clients linked to the module and who are not streaming in
-            CClients *clients = g_Reflector.GetClients();
-            int index = -1;
-            CClient *client = NULL;
-            while ( (client = clients->FindNextClient(PROTOCOL_DMRMMDVM, &index)) != NULL )
-            {
-                // is this client busy ?
-                if ( !client->IsAMaster() && (client->GetReflectorModule() == packet->GetModuleId()) )
-                {
-                    // no, send the packet
-                    m_Socket.Send(buffer, client->GetIp());
-                    
-                }
-            }
-            g_Reflector.ReleaseClients();
+            SendToModuleClients(iModId, buffer, packet->GetStreamId());
         }
-        
+
         // done
         delete packet;
     }
-    m_Queue.Unlock();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -479,6 +702,7 @@ void CDmrmmdvmProtocol::HandleKeepalives(void)
     CClients *clients = g_Reflector.GetClients();
     int index = -1;
     CClient *client = NULL;
+    std::vector<CClient *> toRemove;
     while ( (client = clients->FindNextClient(PROTOCOL_DMRMMDVM, &index)) != NULL )
     {
         // is this client busy ?
@@ -492,13 +716,18 @@ void CDmrmmdvmProtocol::HandleKeepalives(void)
         {
             // no, disconnect
             CBuffer disconnect;
+            EncodeClosePacket(&disconnect, client);
             m_Socket.Send(disconnect, client->GetIp());
-            
-            // remove it
+
+            // collect for removal after loop
             std::cout << "DMRmmdvm client " << client->GetCallsign() << " keepalive timeout" << std::endl;
-            clients->RemoveClient(client);
+            toRemove.push_back(client);
         }
-        
+
+    }
+    for ( size_t i = 0; i < toRemove.size(); i++ )
+    {
+        clients->RemoveClient(toRemove[i]);
     }
     g_Reflector.ReleaseClients();
 }
@@ -600,7 +829,7 @@ bool CDmrmmdvmProtocol::IsValidOptionPacket(const CBuffer &Buffer, CCallsign *ca
     uint8 tag[] = { 'R','P','T','O' };
     
     bool valid = false;
-    if ( (Buffer.size() >= 8) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
+    if ( (Buffer.size() >= 8) && (Buffer.size() <= 512) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
     {
         uint32 uiRptrId = MAKEDWORD(MAKEWORD(Buffer.data()[7],Buffer.data()[6]),MAKEWORD(Buffer.data()[5],Buffer.data()[4]));
         callsign->SetDmrid(uiRptrId, true);
@@ -660,13 +889,15 @@ bool CDmrmmdvmProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CDvHeaderPa
                 //bptc.decode(&(Buffer.data()[20]), lcdata);
                 
                 // crack DMR header
-                //uint8 uiSeqId = Buffer.data()[4];
                 uint32 uiSrcId = MAKEDWORD(MAKEWORD(Buffer.data()[7],Buffer.data()[6]),MAKEWORD(Buffer.data()[5],0));
                 uint32 uiDstId = MAKEDWORD(MAKEWORD(Buffer.data()[10],Buffer.data()[9]),MAKEWORD(Buffer.data()[8],0));
                 uint32 uiRptrId = MAKEDWORD(MAKEWORD(Buffer.data()[14],Buffer.data()[13]),MAKEWORD(Buffer.data()[12],Buffer.data()[11]));
                 //uint8 uiVoiceSeq = (Buffer.data()[15] & 0x0F);
-                uint32 uiStreamId = *(uint32 *)(&Buffer.data()[16]);
-                
+                uint32 uiStreamId32; ::memcpy(&uiStreamId32, &Buffer.data()[16], sizeof(uint32));
+                // fold-XOR both halves to mix all 32 bits into 16
+                uint16 uiStreamId = (uint16)(uiStreamId32 ^ (uiStreamId32 >> 16));
+                if ( uiStreamId == 0 ) uiStreamId = 1;  // avoid sentinel
+
                 // call type
                 *CallType = uiCallType;
                 
@@ -685,9 +916,11 @@ bool CDmrmmdvmProtocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CDvHeaderPa
                 }
                 
                 // build DVHeader
+                // RPT1 uses caller's callsign + 'B' — D-Star hotspot convention.
+                // See cnxdnprotocol.cpp for the rationale.
                 CCallsign csMY = CCallsign("", uiSrcId);
-                CCallsign rpt1 = CCallsign("", uiRptrId);
-                rpt1.SetModule(MMDVM_MODULE_ID);
+                CCallsign rpt1 = CCallsign("", uiSrcId);
+                rpt1.SetModule('B');
                 CCallsign rpt2 = m_ReflectorCallsign;
                 rpt2.SetModule(DmrDstIdToModule(uiDstId));
                 
@@ -726,12 +959,12 @@ bool CDmrmmdvmProtocol::IsValidDvFramePacket(const CBuffer &Buffer, CDvFramePack
         {
             // crack DMR header
             //uint8 uiSeqId = Buffer.data()[4];
-            //uint32 uiSrcId = MAKEDWORD(MAKEWORD(Buffer.data()[7],Buffer.data()[6]),MAKEWORD(Buffer.data()[5],0));
-            //uint32 uiDstId = MAKEDWORD(MAKEWORD(Buffer.data()[10],Buffer.data()[9]),MAKEWORD(Buffer.data()[8],0));
             //uint32 uiRptrId = MAKEDWORD(MAKEWORD(Buffer.data()[14],Buffer.data()[13]),MAKEWORD(Buffer.data()[12],Buffer.data()[11]));
             uint8 uiVoiceSeq = (Buffer.data()[15] & 0x0F);
-            uint32 uiStreamId = *(uint32 *)(&Buffer.data()[16]);
-           
+            uint32 uiStreamId32; ::memcpy(&uiStreamId32, &Buffer.data()[16], sizeof(uint32));
+            uint16 uiStreamId = (uint16)(uiStreamId32 ^ (uiStreamId32 >> 16));
+            if ( uiStreamId == 0 ) uiStreamId = 1;
+
             // crack payload
             uint8 dmrframe[33];
             uint8 dmr3ambe[27];
@@ -809,13 +1042,14 @@ bool CDmrmmdvmProtocol::IsValidDvLastFramePacket(const CBuffer &Buffer, CDvLastF
                 //bptc.decode(&(Buffer.data()[20]), lcdata);
                 
                 // crack DMR header
-                //uint8 uiSeqId = Buffer.data()[4];
                 //uint32 uiSrcId = MAKEDWORD(MAKEWORD(Buffer.data()[7],Buffer.data()[6]),MAKEWORD(Buffer.data()[5],0));
                 //uint32 uiDstId = MAKEDWORD(MAKEWORD(Buffer.data()[10],Buffer.data()[9]),MAKEWORD(Buffer.data()[8],0));
                 //uint32 uiRptrId = MAKEDWORD(MAKEWORD(Buffer.data()[14],Buffer.data()[13]),MAKEWORD(Buffer.data()[12],Buffer.data()[11]));
                 //uint8 uiVoiceSeq = (Buffer.data()[15] & 0x0F);
-                uint32 uiStreamId = *(uint32 *)(&Buffer.data()[16]);
-                
+                uint32 uiStreamId32; ::memcpy(&uiStreamId32, &Buffer.data()[16], sizeof(uint32));
+                uint16 uiStreamId = (uint16)(uiStreamId32 ^ (uiStreamId32 >> 16));
+                if ( uiStreamId == 0 ) uiStreamId = 1;
+
                 // dummy ambe
                 uint8 ambe[9];
                 ::memset(ambe, 0, sizeof(ambe));

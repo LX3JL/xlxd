@@ -8,6 +8,7 @@
    <th colspan="2">DCS</th>
    <th width="65" rowspan="2">DMR</th>
    <th width="65" rowspan="2">YSF<br />DG-ID</th>
+   <th width="100" rowspan="2">M17</th>
  </tr>
  <tr>
    <th width="100">URCALL</th>
@@ -43,6 +44,7 @@ for ($i = 1; $i <= $NumberOfModules; $i++) {
    <td align="center">'. sanitize_output(is_numeric($ReflectorNumber) ? 'D' . sprintf('%01d',$ReflectorNumber) . (($i<=4)?$module:sprintf('%02d',$i)) : '-') .'</td>
    <td align="center">'. sanitize_output(4000+$i) .'</td>
    <td align="center">'. sanitize_output(9+$i) .'</td>
+   <td align="center">'. sanitize_output('M17-' . $ReflectorNumber . ' ' . $module) .'</td>
  </tr>';
 }
 

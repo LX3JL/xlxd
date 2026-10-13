@@ -13,6 +13,10 @@ if (!isset($_SESSION['FilterModule'])) {
    $_SESSION['FilterModule'] = null;
 }
 
+// Pagination settings
+$PerPage = isset($PageOptions['RepeatersPage']['LimitTo']) ? $PageOptions['RepeatersPage']['LimitTo'] : 99;
+$CurrentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+
 // Validate filter inputs
 if (isset($_SESSION['FilterCallSign']) && $_SESSION['FilterCallSign'] !== null) {
     $_SESSION['FilterCallSign'] = preg_replace('/[^A-Z0-9\*\-\/\s]/i', '', $_SESSION['FilterCallSign']);
@@ -139,6 +143,8 @@ if ($PageOptions['RepeatersPage']['IPModus'] != 'HideIP') {
 $odd = "";
 $Reflector->LoadFlags();
 
+// First pass: build filtered list
+$FilteredNodes = array();
 for ($i=0;$i<$Reflector->NodeCount();$i++) {
    $ShowThisStation = true;
    if ($PageOptions['UserPage']['ShowFilter']) {
@@ -160,16 +166,28 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
             $PR = false;
          }
       }
-
       $ShowThisStation = ($CS && $MO && $PR);
    }
-
    if ($ShowThisStation) {
-      if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
-   
-      echo '
+      $FilteredNodes[] = $i;
+   }
+}
+
+// Calculate pagination
+$TotalNodes = count($FilteredNodes);
+$TotalPages = ceil($TotalNodes / $PerPage);
+$CurrentPage = min($CurrentPage, max(1, $TotalPages));
+$StartIndex = ($CurrentPage - 1) * $PerPage;
+$EndIndex = min($StartIndex + $PerPage, $TotalNodes);
+
+// Display nodes for current page
+for ($idx = $StartIndex; $idx < $EndIndex; $idx++) {
+   $i = $FilteredNodes[$idx];
+   if ($odd == "#FFFFFF") { $odd = "#F1FAFA"; } else { $odd = "#FFFFFF"; }
+
+   echo '
      <tr height="30" bgcolor="'.$odd.'" onMouseOver="this.bgColor=\'#FFFFCA\';" onMouseOut="this.bgColor=\''.$odd.'\';">
-      <td align="center">'.($i+1).'</td>
+      <td align="center">'.($idx+1).'</td>
       <td align="center">';
       list ($Flag, $Name) = $Reflector->GetFlag($Reflector->Nodes[$i]->GetCallSign());
       if (file_exists("./img/flags/".$Flag.".png")) {
@@ -219,10 +237,38 @@ for ($i=0;$i<$Reflector->NodeCount();$i++) {
       }
       echo '
       </tr>';
-   }
-   if ($i == $PageOptions['RepeatersPage']['LimitTo']) { $i = $Reflector->NodeCount()+1; }
 }
 
 ?>
 
 </table>
+
+<?php if ($TotalPages > 1): ?>
+<div style="text-align: center; margin: 10px 0; padding: 10px;">
+   <span style="margin-right: 15px;">Showing <?php echo ($StartIndex + 1); ?>-<?php echo $EndIndex; ?> of <?php echo $TotalNodes; ?> nodes</span>
+   <?php if ($CurrentPage > 1): ?>
+      <a href="./index.php?show=repeaters&amp;page=1" class="smalllink">&laquo; First</a>
+      <a href="./index.php?show=repeaters&amp;page=<?php echo ($CurrentPage - 1); ?>" class="smalllink">&lt; Prev</a>
+   <?php endif; ?>
+
+   <?php
+   // Show page numbers
+   $startPage = max(1, $CurrentPage - 2);
+   $endPage = min($TotalPages, $CurrentPage + 2);
+   for ($p = $startPage; $p <= $endPage; $p++):
+      if ($p == $CurrentPage):
+   ?>
+      <strong style="margin: 0 5px;"><?php echo $p; ?></strong>
+   <?php else: ?>
+      <a href="./index.php?show=repeaters&amp;page=<?php echo $p; ?>" class="smalllink" style="margin: 0 5px;"><?php echo $p; ?></a>
+   <?php
+      endif;
+   endfor;
+   ?>
+
+   <?php if ($CurrentPage < $TotalPages): ?>
+      <a href="./index.php?show=repeaters&amp;page=<?php echo ($CurrentPage + 1); ?>" class="smalllink">Next &gt;</a>
+      <a href="./index.php?show=repeaters&amp;page=<?php echo $TotalPages; ?>" class="smalllink">Last &raquo;</a>
+   <?php endif; ?>
+</div>
+<?php endif; ?>

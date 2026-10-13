@@ -72,6 +72,7 @@ public:
     // clients access
     int     GetNbClients(void) const                    { return (int)m_Clients.size(); }
     void    ClearClients(void)                          { m_Clients.clear(); }
+    void    AddClient(CClient *client)                  { m_Clients.push_back(client); }
     CClient *GetClient(int);
     
     // reporting

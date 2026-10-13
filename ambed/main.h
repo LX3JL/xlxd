@@ -48,14 +48,21 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR                   1
-#define VERSION_MINOR                   3
-#define VERSION_REVISION                5
+#define VERSION_MINOR                   4
+#define VERSION_REVISION                0
 
 // global ------------------------------------------------------
-
 //#define RUN_AS_DAEMON
-#define NB_MAX_STREAMS                  99
 //#define DEBUG_DUMPFILE
+
+// QoS - set DSCP/TOS on outgoing packets for network prioritization
+// DSCP values: 0-63 (6 bits). Common choices for voice:
+//   46 (EF)  - Expedited Forwarding, highest priority voice
+//   34 (AF41)- Assured Forwarding class 4, high priority
+//   26 (AF31)- Assured Forwarding class 3, medium-high priority
+//   0        - Best effort (default, no priority)
+#define DSCP_MARKING_ENABLE             1                                   // 1 = enable, 0 = disable
+#define DSCP_VALUE                      46                                  // DSCP value (0-63)
 
 // Transcoder server --------------------------------------------
 #define TRANSCODER_PORT                 10100                               // UDP port
@@ -64,15 +71,42 @@
 #define CODEC_NONE                      0
 #define CODEC_AMBEPLUS                  1
 #define CODEC_AMBE2PLUS                 2
+#define CODEC_CODEC2                    3
+#define CODEC_IMBE                      4
 
-// Transcoding speech gains
-#define CODECGAIN_AMBEPLUS              -10                                 // in dB
-#define CODECGAIN_AMBE2PLUS             +10                                 // in dB
+// Frame sizes --------------------------------------------------
+#define AMBE_FRAME_SIZE                 9
+#define CODEC2_FRAME_SIZE               8
+#define IMBE_FRAME_SIZE                 11
+
+// Transcoding speech gains (hardware vocodec channels: AMBE decode -> PCM -> AMBE encode)
+#define CODECGAIN_AMBEPLUS              -10                                 // in dB (D-Star)
+#define CODECGAIN_AMBE2PLUS             +10                                 // in dB (DMR)
+
+// IMBE transcoding gains (software IMBE decode -> PCM -> hardware AMBE encode / software Codec2 encode)
+#define IMBE_DECODE_GAIN                +18                                 // in dB - IMBE library outputs very quiet PCM
+#define IMBE_TO_AMBEPLUS_GAIN           +0                                  // in dB - additional gain for D-Star encode
+#define IMBE_TO_AMBE2PLUS_GAIN          -13                                 // in dB - attenuation for DMR encode
+#define IMBE_TO_CODEC2_GAIN             -7                                  // in dB - gain for M17 encode
+
+// Codec2 transcoding gains (software Codec2 decode -> PCM -> hardware AMBE encode / software IMBE encode)
+#define CODEC2_DECODE_GAIN              +6                                  // in dB - if Codec2 library needs gain adjustment
+#define CODEC2_TO_AMBEPLUS_GAIN         -3                                  // in dB - gain for D-Star encode
+#define CODEC2_TO_AMBE2PLUS_GAIN        -13                                 // in dB - gain for DMR encode
+#define CODEC2_TO_IMBE_GAIN             -13                                 // in dB - gain for P25 encode
+
+// IMBE encode gain (applied to PCM from hardware vocoder -> IMBE software encode)
+// Note: Codec2 -> IMBE path in cstream.cpp uses CODEC2_TO_IMBE_GAIN separately
+#define IMBE_ENCODE_GAIN                -4                                  // in dB
 
 // Transcoding Tweaks
-#define USE_AGC                         0
-#define AGC_CLAMPING                    3                                   //clamps the AGC gain to +- this value
-#define USE_BANDPASSFILTER              1
+#define USE_AGC                         1                                   // 1=AGC, 0=fixed gain
+#define AGC_CLAMPING                    3                                   // clamps the AGC gain to +- this value in dB
+#define USE_BANDPASSFILTER              1                                   // bandpass filter on PCM (decode path)
+
+// Software queue depth limit - prevents unbounded growth if hardware stalls
+// At 50 frames/sec, 50 = 1 second of buffering
+#define SOFTWARE_QUEUE_MAX_DEPTH        50
 
 // Timeouts -----------------------------------------------------
 #define STREAM_ACTIVITY_TIMEOUT         3                                   // in seconds
@@ -90,8 +124,8 @@ typedef unsigned int            uint;
 ////////////////////////////////////////////////////////////////////////////////////////
 // macros
 
-#define MIN(a,b) 				((a) < (b))?(a):(b)
-#define MAX(a,b) 				((a) > (b))?(a):(b)
+#define MIN(a,b) 				(((a) < (b)) ? (a) : (b))
+#define MAX(a,b) 				(((a) > (b)) ? (a) : (b))
 #define MAKEWORD(low, high)		((uint16)(((uint8)(low)) | (((uint16)((uint8)(high))) << 8)))
 #define MAKEDWORD(low, high)	((uint32)(((uint16)(low)) | (((uint32)((uint16)(high))) << 16)))
 #define LOBYTE(w)				((uint8)(uint16)(w & 0x00FF))

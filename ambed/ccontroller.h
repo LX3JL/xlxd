@@ -55,18 +55,18 @@ public:
     void SetListenIp(const CIp &ip)     { m_Ip = ip; }
 
     // streams management
-    CStream *OpenStream(const CCallsign &, const CIp &, uint8, uint8);
+    CStream *OpenStream(const CCallsign &, const CIp &, uint8, uint8, uint8, uint8);
     void CloseStream(CStream *);
     void CloseStream(uint16);
-    
+
     // task
     static void Thread(CController *);
     void Task(void);
 
 protected:
-    // packet decoding helpers    
+    // packet decoding helpers
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
-    bool IsValidOpenstreamPacket(const CBuffer &, CCallsign *, uint8 *, uint8 *);
+    bool IsValidOpenstreamPacket(const CBuffer &, CCallsign *, uint8 *, uint8 *, uint8 *, uint8 *);
     bool IsValidClosestreamPacket(const CBuffer &, uint16 *);
     
     // packet encoding helpers
@@ -85,11 +85,12 @@ protected:
     
     // streams
     uint16                 m_uiLastStreamId;
+    uint16                 m_uiMaxStreams;
     std::mutex             m_Mutex;
     std::vector<CStream *> m_Streams;
 
     // thread
-    bool            m_bStopThread;
+    std::atomic<bool> m_bStopThread;
     std::thread     *m_pThread;
     
 };

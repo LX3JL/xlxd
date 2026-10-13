@@ -58,6 +58,13 @@ public:
     CPeer *FindPeer(const CIp &, int);
     CPeer *FindPeer(const CCallsign &, const CIp &, int);
     CPeer *FindPeer(const CCallsign &, int);
+    // Port-aware variant of FindPeer(Ip, Protocol). Used by YSF / NXDN /
+    // P25 where peers listen on well-known ports declared in the
+    // interlink file and two peers can legitimately share an IP-addr
+    // on different ports. Other protocols (DExtra/DPlus/DCS/XLX/M17)
+    // intentionally use the IP-only variant — see the comment in
+    // cpeers.cpp::FindPeer(Ip, Protocol) for the NAT-friendly rationale.
+    CPeer *FindPeerByIpPort(const CIp &, int);
 
     // iterate on peers
     CPeer *FindNextPeer(int, int*);

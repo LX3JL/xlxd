@@ -68,6 +68,36 @@ $CallingHome['OverrideIPAddress']                    = "";                      
 $CallingHome['InterlinkFile']                        = "/xlxd/xlxd.interlink";                 // Path to interlink file
 
 
+// -------------------------------------------------------------------------
+// Co-located peer reflector pages (YSF, NXDN, P25)
+//
+// Each block controls one co-located reflector whose connected gateways are
+// shown by reading that reflector's systemd journal via journalctl.
+//
+// Show         — set true to enable the nav item and page (default: false)
+// ServiceUnit  — exact systemd unit name passed to journalctl -u
+// PageTitle    — label shown in the sidebar nav and as the page heading
+//
+// IP display and masquerade character are inherited from RepeatersPage above;
+// there are no separate per-page IP settings for these pages.
+// -------------------------------------------------------------------------
+
+$PageOptions['YSFPeerPage'] = array();
+$PageOptions['YSFPeerPage']['Show']        = false;                    // Enable/disable the YSF Peers page
+$PageOptions['YSFPeerPage']['ServiceUnit'] = 'YSFReflector.service';  // systemd unit name to query via journalctl
+$PageOptions['YSFPeerPage']['PageTitle']   = 'YSF Peers';
+
+$PageOptions['NXDNPeerPage'] = array();
+$PageOptions['NXDNPeerPage']['Show']        = false;                    // Enable/disable the NXDN Peers page
+$PageOptions['NXDNPeerPage']['ServiceUnit'] = 'NXDNReflector.service'; // systemd unit name to query via journalctl
+$PageOptions['NXDNPeerPage']['PageTitle']   = 'NXDN Peers';
+
+$PageOptions['P25PeerPage'] = array();
+$PageOptions['P25PeerPage']['Show']        = false;                    // Enable/disable the P25 Peers page
+$PageOptions['P25PeerPage']['ServiceUnit'] = 'P25Reflector.service';  // systemd unit name to query via journalctl
+$PageOptions['P25PeerPage']['PageTitle']   = 'P25 Peers';
+
+
 /*
   include an extra config file for people who dont like to mess with shipped config.ing.php
   this makes updating dashboard from git a little bit easier

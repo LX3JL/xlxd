@@ -25,6 +25,7 @@
 #ifndef ctranscoder_h
 #define ctranscoder_h
 
+#include <atomic>
 #include "csemaphore.h"
 #include "ccodecstream.h"
 #include "cudpsocket.h"
@@ -56,7 +57,7 @@ public:
     void Unlock(void)                   { m_Mutex.unlock(); }
     
     // status
-    bool IsConnected(void) const        { return m_bConnected; }
+    bool IsConnected(void) const        { return m_bConnected.load(); }
     
     // manage streams
     CCodecStream *GetStream(CPacketStream *, uint8);
@@ -77,7 +78,7 @@ protected:
 
     // packet encoding helpers
     void EncodeKeepAlivePacket(CBuffer *);
-    void EncodeOpenstreamPacket(CBuffer *, uint8, uint8);
+    void EncodeOpenstreamPacket(CBuffer *, uint8, uint8, uint8, uint8);
     void EncodeClosestreamPacket(CBuffer *, uint16);
     
 protected:
@@ -87,18 +88,19 @@ protected:
 
     // sync objects for Openstream
     CSemaphore      m_SemaphoreOpenStream;
-    bool            m_bStreamOpened;
-    uint16          m_StreamidOpenStream;
-    uint16          m_PortOpenStream;
+    std::atomic<bool> m_bStreamOpened;
+    std::atomic<bool> m_bWaitingForStream;  // true while GetStream is waiting for a response
+    std::atomic<uint16> m_StreamidOpenStream;
+    std::atomic<uint16> m_PortOpenStream;
     
     // thread
-    bool            m_bStopThread;
+    std::atomic<bool> m_bStopThread;
     std::thread     *m_pThread;
 
     // socket
     CIp             m_Ip;
     CUdpSocket      m_Socket;
-    bool            m_bConnected;
+    std::atomic<bool> m_bConnected;
 
     // time
     CTimePoint      m_LastKeepaliveTime;

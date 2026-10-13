@@ -33,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 
+#include "main.h"
 #include "cip.h"
 #include "cbuffer.h"
 
@@ -67,7 +68,19 @@ public:
     int Send(const CBuffer &, const CIp &, uint16);
     int Send(const char *, const CIp &);
     int Send(const char *, const CIp &, uint16);
-    
+
+    // write - voice packets with DSCP marking
+#if (DSCP_MARKING_ENABLE == 1)
+    int SendVoice(const CBuffer &, const CIp &);
+    int SendVoice(const CBuffer &, const CIp &, uint16);
+    static void LogDscpStatus(void);
+#else
+    // When DSCP disabled, SendVoice is just an alias for Send
+    int SendVoice(const CBuffer &Buffer, const CIp &Ip) { return Send(Buffer, Ip); }
+    int SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 port) { return Send(Buffer, Ip, port); }
+    static void LogDscpStatus(void) {}
+#endif
+
 protected:
     // data
     int                 m_Socket;

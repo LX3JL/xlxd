@@ -67,7 +67,7 @@ protected:
     std::vector<CVocodecChannel *>  m_Channels;
     
     // thread
-    bool                            m_bStopThread;
+    std::atomic<bool>               m_bStopThread;
     std::thread                     *m_pThread;
     
 };

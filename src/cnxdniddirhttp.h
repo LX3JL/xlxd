@@ -1,9 +1,8 @@
 //
-//  cbmclient.cpp
+//  cnxdniddirhttp.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 20/01/2017.
-//  Copyright © 2015 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created for NXDN Reflector peering support
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,33 +21,35 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#include <string.h>
-#include "main.h"
-#include "cbmclient.h"
+#ifndef cnxdniddirhttp_h
+#define cnxdniddirhttp_h
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructors
-
-CBmClient::CBmClient()
-{
-}
-
-CBmClient::CBmClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
-    : CClient(callsign, ip, reflectorModule)
-{
-}
-
-CBmClient::CBmClient(const CBmClient &client)
-    : CClient(client)
-{
-}
+#include <string>
+#include "cnxdniddir.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// status
 
-bool CBmClient::IsAlive(void) const
+class CNxdnIdDirHttp : public CNxdnIdDir
 {
-    return (m_LastKeepaliveTime.DurationSinceNow() < XLX_KEEPALIVE_TIMEOUT);
-}
+public:
+    // constructor
+    CNxdnIdDirHttp() {}
 
+    // destructor
+    ~CNxdnIdDirHttp() {}
+
+    // refresh
+    bool LoadContent(CBuffer *);
+    bool RefreshContent(const CBuffer &);
+
+protected:
+    // reload helpers
+    bool NeedReload(void)  { return true; }
+    bool HttpGet(const char *, const char *, int, CBuffer *);
+
+    // data
+    std::string m_LastSource;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+#endif /* cnxdniddirhttp_h */

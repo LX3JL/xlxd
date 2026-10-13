@@ -3,7 +3,7 @@
 //  ambed
 //
 //  Created by Jean-Luc Deltombe (LX3JL) on 09/07/2017.
-//  Copyright © 2017-2019 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Copyright 2017-2025 Jean-Luc Deltombe (LX3JL). All rights reserved.
 //
 // ----------------------------------------------------------------------------
 //    This file is part of ambed.
@@ -22,9 +22,25 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-VERSION: 1.3.4
+VERSION: 1.4.0
 
-Hardware compatibility.
+Overview
+========
+ambed is a multi-mode digital voice transcoder daemon that bridges between
+different amateur radio digital voice protocols. It uses DVSI hardware
+vocoders for AMBE+/AMBE2+ and software vocoders for Codec2 (M17) and
+IMBE (P25).
+
+
+Supported Codecs
+================
+- AMBE+     (D-Star) - hardware DVSI vocoder
+- AMBE2+    (DMR/YSF/NXDN) - hardware DVSI vocoder
+- Codec2    (M17) - software vocoder (3200bps mode)
+- IMBE      (P25) - software vocoder
+
+
+Hardware Compatibility
 ======================
 This version of ambed is compatible with:
 - DF2ET's AMBE3003USB opensource device (https://github.com/phl0/AMBE3003USB)
@@ -39,35 +55,72 @@ This version of ambed is compatible with:
 
 Available transcoding channels per device:
 
-device			DMR->DSTAR		DSTAR->DMR		Nb Of concurrent channels
--------------------------------------------------------------------------
-3000(pair)		1				1				2
-3003			1				1				2
-3003(pair)		3				3				4
-3003-3000(pair)	2				2				4
-3006			3				3				6
-3012			6				6				12
+Device              Hardware    Transcoding     Software Vocoders
+                    Channels    Channels        (IMBE/Codec2)
+--------------------------------------------------------------------
+3000 (pair)         2           2               1 each
+3003 (single)       3           2               1 each
+3003 (pair)         6           6               3 each
+3003+3000 (pair)    4           4               2 each
+3006                6           6               3 each
+3012                12          12              6 each
 
-Multiple devices can be used at the same time.
-You need to use 3000 by pairs or paired with a 3003
-Do not to use USB hubs as they have proven making
-system behaviour unreliable.
+Notes:
+- USB-3000 devices must be used in pairs or paired with a USB-3003
+- Multiple devices can be used simultaneously
+- Avoid USB hubs as they may cause unreliable behaviour
+- Max concurrent streams is calculated automatically from hardware
+- Software vocoders (Codec2/IMBE) use 2 hardware channels per stream
 
-Instructions:
-=============
 
-1) Installation of FTDI drivers
+Configuration Options (main.h)
+==============================
+
+QoS/DSCP Marking:
+    DSCP_MARKING_ENABLE     1 = enable, 0 = disable
+    DSCP_VALUE              DSCP value 0-63 (default: 46/EF for voice)
+
+Audio Processing:
+    USE_AGC                 1 = AGC enabled, 0 = fixed gain
+    AGC_CLAMPING            AGC gain limit in dB (default: 3)
+    USE_BANDPASSFILTER      1 = 300-3400Hz bandpass filter enabled
+
+Transcoding Gains (hardware AMBE<->AMBE):
+    CODECGAIN_AMBEPLUS      D-Star decode/encode gain (default: -10dB)
+    CODECGAIN_AMBE2PLUS     DMR decode/encode gain (default: +10dB)
+
+IMBE Transcoding Gains (P25 input):
+    IMBE_DECODE_GAIN        IMBE decoder output gain (default: +18dB)
+    IMBE_TO_AMBEPLUS_GAIN   Additional gain for D-Star output (default: 0dB)
+    IMBE_TO_AMBE2PLUS_GAIN  Additional gain for DMR output (default: -13dB)
+    IMBE_TO_CODEC2_GAIN     Gain for M17 output (default: -7dB)
+
+Codec2 Transcoding Gains (M17 input):
+    CODEC2_DECODE_GAIN      Codec2 decoder output gain (default: +6dB)
+    CODEC2_TO_AMBEPLUS_GAIN Gain for D-Star output (default: 0dB)
+    CODEC2_TO_AMBE2PLUS_GAIN Gain for DMR output (default: -16dB)
+    CODEC2_TO_IMBE_GAIN     Gain for P25 output (default: -8dB)
+
+Timeouts:
+    STREAM_ACTIVITY_TIMEOUT Stream inactivity timeout in seconds (default: 3)
+
+
+Installation
+============
+
+1) Install FTDI drivers
 
 Download from FTDI web site the latest D2XX driver package (tested on 1.4.6).
 Follow FTDI provided documentation for installation and testing of the drivers.
 
 
-2) installation of g++ compiler
+2) Install build tools
 
 # apt-get install build-essential
-# apt-get install g++-4.7
+# apt-get install g++
 
-2) download and compile ambed
+
+3) Download and compile ambed
 
 # git clone https://github.com/LX3JL/xlxd.git
 # cd xlxd/ambed/
@@ -75,46 +128,70 @@ Follow FTDI provided documentation for installation and testing of the drivers.
 # make
 # make install
 
-3) configuring ambed startup script
+
+4) Configure ambed startup script
 
 # nano /ambed/run
 
-edit following line to match your IP:
+Edit the following line to match your IP:
 
 sudo /ambed/ambed 127.0.0.1 &
 
-if ambed is running on same machine than xlxd, use default 127.0.0.1
-otherwise use the machine own IP
+If ambed is running on the same machine as xlxd, use 127.0.0.1
+Otherwise use the machine's own IP address.
 
 
-4) running ambed
+5) Running ambed
 
-note:
-Due to specific FTDI driver implementation, ambed must be running
-with root privilege, and cannot be run as a daemon.
-So ambed will display the information and error messages in the
-terminal it has been started from
+Note:
+Due to specific FTDI driver implementation, ambed must run with root
+privileges and cannot be run as a daemon. ambed will display information
+and error messages in the terminal from which it was started.
 
-plug at least one USB-3xxx USB device
+Plug in at least one USB-3xxx device, then:
 
 # cd /ambed
 # ./run
- 
- 
-during initialisation phase, ambed will scan all USB port to discover
-and configure ans report status of all available USB-3xxx devices
+
+During initialisation, ambed will scan all USB ports to discover,
+configure and report the status of all available USB-3xxx devices.
+
+Example startup output:
+    Starting AMBEd 1.4.0
+    Codec interfaces initialized successfully : 6 channels available
+    Software vocoders : 3 IMBE (P25), 3 Codec2 (M17)
+    Max concurrent streams: 3 (from 6 vocoder channels)
+    Voice packets marked as DSCP 46
+    AMBEd started and listening on 127.0.0.1
 
 
-5) stoping ambed
+6) Stopping ambed
 
-find PID of ambed process, using for example ps
+Find the PID of ambed process:
 
 # ps ax | grep ambed
 
-and kill the process
+And kill the process:
 
 # kill xxxx
 
-where xxxx is PID found previously.
+Where xxxx is the PID found previously.
 
+
+Transcoding Paths
+=================
+
+Hardware (DVSI) paths:
+    D-Star (AMBE+) <-> DMR/YSF/NXDN (AMBE2+)
+
+Software codec paths:
+    M17 (Codec2) -> D-Star (AMBE+)
+    M17 (Codec2) -> DMR/YSF/NXDN (AMBE2+)
+    M17 (Codec2) -> P25 (IMBE)
+    P25 (IMBE) -> D-Star (AMBE+)
+    P25 (IMBE) -> DMR/YSF/NXDN (AMBE2+)
+    P25 (IMBE) -> M17 (Codec2)
+
+Note: M17 and P25 input modes use software decoders paired with
+hardware encoders. Each stream uses 2 hardware channels.
 

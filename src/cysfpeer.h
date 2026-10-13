@@ -1,9 +1,8 @@
 //
-//  cbmpeer.h
+//  cysfpeer.h
 //  xlxd
 //
-//  Created by Jean-Luc Deltombe (LX3JL) on 20/01/2017.
-//  Copyright © 2016 Jean-Luc Deltombe (LX3JL). All rights reserved.
+//  Created for YSF Reflector peering support
 //
 // ----------------------------------------------------------------------------
 //    This file is part of xlxd.
@@ -22,41 +21,44 @@
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
 
-#ifndef cbmpeer_h
-#define cbmpeer_h
-
+#ifndef cysfpeer_h
+#define cysfpeer_h
 
 #include "cpeer.h"
-#include "cbmclient.h"
-
-////////////////////////////////////////////////////////////////////////////////////////
-// define
-
+#include "cysfpeerclient.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
 
-class CBmPeer : public CPeer
+class CYsfPeer : public CPeer
 {
 public:
     // constructors
-    CBmPeer();
-    CBmPeer(const CCallsign &, const CIp &, char *, const CVersion &);
-    CBmPeer(const CBmPeer &);
-    
+    CYsfPeer();
+    CYsfPeer(const CCallsign &, const CIp &, char *, const CVersion &);
+    CYsfPeer(const CYsfPeer &);
+
     // destructor
-    ~CBmPeer();
-    
+    ~CYsfPeer();
+
     // status
     bool IsAlive(void) const;
-    
+    void Alive(void);
+
     // identity
-    int GetProtocol(void) const                 { return PROTOCOL_XLX; }
-    const char *GetProtocolName(void) const     { return "XLX"; }
-    
-    // revision helper
-    static int GetProtocolRevision(const CVersion &);
+    int GetProtocol(void) const                 { return PROTOCOL_YSF; }
+    const char *GetProtocolName(void) const     { return "YSF"; }
+
+    // get
+    uint32_t GetYsfId(void) const               { return m_uiYsfId; }
+
+    // set
+    void SetYsfId(uint32_t id)                  { m_uiYsfId = id; }
+
+protected:
+    // YSF reflector ID (5 digits, 1-99999)
+    uint32_t m_uiYsfId;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#endif /* cbmpeer_h */
+#endif /* cysfpeer_h */

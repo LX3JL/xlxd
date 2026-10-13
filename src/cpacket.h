@@ -76,6 +76,7 @@ public:
     
     // set
     void UpdatePids(uint32);
+    void SetStreamId(uint16 uiId)                   { m_uiStreamId = uiId; }
     void SetModuleId(uint8 uiId)                    { m_uiModuleId = uiId; }
     void SetLocalOrigin(void)                       { m_uiOriginId = ORIGIN_LOCAL; }
     void SetRemotePeerOrigin(void)                  { m_uiOriginId = ORIGIN_PEER; }

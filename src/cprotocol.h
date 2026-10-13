@@ -25,6 +25,9 @@
 #ifndef cprotocol_h
 #define cprotocol_h
 
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include "cudpsocket.h"
 #include "cpacketstream.h"
 #include "cdvheaderpacket.h"
@@ -81,14 +84,20 @@ public:
     
     // queue
     CPacketQueue *GetQueue(void)        { m_Queue.Lock(); return &m_Queue; }
-    void ReleaseQueue(void)             { m_Queue.Unlock(); }
-    
+    void ReleaseQueue(void)             { m_Queue.Unlock(); m_QueueCondVar.notify_one(); }
+
     // get
     const CCallsign &GetReflectorCallsign(void)const { return m_ReflectorCallsign; }
-    
-    // task
-    static void Thread(CProtocol *);
+
+    // task — legacy single-thread mode (used by unconverted protocols)
+    static void RxThread(CProtocol *);
+    static void TxThread(CProtocol *);
     virtual void Task(void) {};
+
+    // split-thread mode — override these plus UsesSplitThreads() to enable
+    virtual bool UsesSplitThreads(void) const { return false; }
+    virtual void RxTask(void) {}
+    virtual void TxTask(void);
     
 protected:
     // packet encoding helpers
@@ -101,10 +110,28 @@ protected:
     virtual bool OnDvHeaderPacketIn(CDvHeaderPacket *, const CIp &) { return false; }
     virtual void OnDvFramePacketIn(CDvFramePacket *, const CIp * = NULL);
     virtual void OnDvLastFramePacketIn(CDvLastFramePacket *, const CIp * = NULL);
-    
+    void HandleStreamLastFrame(CPacketStream *, CDvLastFramePacket *);
+
     // stream handle helpers
     CPacketStream *GetStream(uint16, const CIp * = NULL);
     void CheckStreamsTimeout(void);
+
+    // shared per-transmission stream-id nonce generator
+    //
+    // YSF / NXDN / P25 cross-mode allocate fresh stream-ids on each new
+    // transmission (see e.g. cysfprotocol.cpp::AllocateNewStreamIdForSource).
+    // The nonce source is shared across ALL protocol instances so that:
+    //   1. Two different protocols can't allocate the same value for two
+    //      simultaneously-active transmissions on the same module — that
+    //      would put the same wire DCS sid on two consecutive cross-mode
+    //      streams from different sources, ghosting the gateway's stream
+    //      tracking the same way same-source rapid re-keys did.
+    //   2. The starting offset is randomised per xlxd run, so a gateway
+    //      that cached the previous run's last-used sid won't match the
+    //      first sid the new run hands out.
+    // Returns a non-zero uint16 each call. Atomic — safe to call from
+    // any thread without external locking.
+    static uint16 AllocateGlobalStreamIdNonce(void);
     
     // queue helper
     virtual void HandleQueue(void);
@@ -131,9 +158,15 @@ protected:
     // queue
     CPacketQueue    m_Queue;
     
-    // thread
-    bool            m_bStopThread;
-    std::thread     *m_pThread;
+    // threads
+    std::atomic<bool> m_bStopThread;     // RX thread stop (also used by legacy single-thread)
+    std::atomic<bool> m_bStopTxThread;   // TX thread stop
+    std::thread     *m_pThread;          // RX thread (or legacy single thread)
+    std::thread     *m_pTxThread;        // TX thread (NULL in legacy mode)
+
+    // TX thread wake-up
+    std::condition_variable m_QueueCondVar;
+    std::mutex              m_QueueCondMutex;
     
     // identity
     CCallsign       m_ReflectorCallsign;

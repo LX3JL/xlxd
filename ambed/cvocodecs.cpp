@@ -243,6 +243,8 @@ bool CVocodecs::Init(void)
     if ( ok )
     {
         std::cout << "Codec interfaces initialized successfully : " << iNbCh << " channels available" << std::endl;
+        int iSoftVocoders = iNbCh / 2;
+        std::cout << "Software vocoders : " << iSoftVocoders << " IMBE (P25), " << iSoftVocoders << " Codec2 (M17)" << std::endl;
     }
     else
     {
@@ -258,17 +260,17 @@ bool CVocodecs::Init(void)
 bool CVocodecs::DiscoverFtdiDevices(void)
 {
     bool ok = false;
-    int iNbDevices = 0;
+    DWORD iNbDevices = 0;
     FT_DEVICE_LIST_INFO_NODE *list;
-    
+
     // clear vector
     for ( int i = 0; i < m_FtdiDeviceDescrs.size(); i++ )
     {
         delete m_FtdiDeviceDescrs[i];
     }
-    
+
     // and discover
-    if ( FT_CreateDeviceInfoList((LPDWORD)&iNbDevices) == FT_OK )
+    if ( FT_CreateDeviceInfoList(&iNbDevices) == FT_OK )
     {
         std::cout << "Detected " << iNbDevices << " USB-FTDI devices" << std::endl << std::endl;
         ok = true;
@@ -276,12 +278,12 @@ bool CVocodecs::DiscoverFtdiDevices(void)
         {
             // allocate the list
             list = new FT_DEVICE_LIST_INFO_NODE[iNbDevices];
-            
+
             // fill
-            if ( FT_GetDeviceInfoList(list, (LPDWORD)&iNbDevices) == FT_OK )
+            if ( FT_GetDeviceInfoList(list, &iNbDevices) == FT_OK )
             {
                 // process
-                for ( int i = 0; i < iNbDevices; i++ )
+                for ( DWORD i = 0; i < iNbDevices; i++ )
                 {
                     std::cout << "Description : " << list[i].Description << "\t Serial : " << list[i].SerialNumber << std::endl;
                     CFtdiDeviceDescr *descr = new CFtdiDeviceDescr(
@@ -331,6 +333,31 @@ CVocodecChannel *CVocodecs::OpenChannel(uint8 uiCodecIn, uint8 uiCodecOut)
     m_MutexChannels.unlock();
     
     // done
+    return Channel;
+}
+
+CVocodecChannel *CVocodecs::OpenEncoderChannel(uint8 uiCodecOut)
+{
+    CVocodecChannel *Channel = NULL;
+    bool done = false;
+
+    // For encoder-only channels, we find a channel where the encoder matches the desired codec
+    // The decoder side is ignored - we'll push PCM directly to VoiceQueue
+    m_MutexChannels.lock();
+    for ( int i = 0; (i < m_Channels.size()) && !done; i++ )
+    {
+        if ( !m_Channels[i]->IsOpen() &&
+             (m_Channels[i]->GetCodecOut() == uiCodecOut) )
+        {
+            if ( m_Channels[i]->Open() )
+            {
+                Channel = m_Channels[i];
+                done = true;
+            }
+        }
+    }
+    m_MutexChannels.unlock();
+
     return Channel;
 }
 

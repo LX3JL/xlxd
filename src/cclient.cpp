@@ -37,6 +37,9 @@ CClient::CClient()
     m_LastKeepaliveTime.Now();
     m_ConnectTime = std::time(NULL);
     m_LastHeardTime = std::time(NULL);
+    // Initialize keepalive timer with random jitter to stagger outbound keepalives
+    m_KeepaliveTimer.Now();
+    m_NextKeepaliveTime = GetRandomJitter(KEEPALIVE_JITTER_MAX);
 }
 
 CClient::CClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
@@ -48,6 +51,9 @@ CClient::CClient(const CCallsign &callsign, const CIp &ip, char reflectorModule)
     m_LastKeepaliveTime.Now();
     m_ConnectTime = std::time(NULL);
     m_LastHeardTime = std::time(NULL);
+    // Initialize keepalive timer with random jitter to stagger outbound keepalives
+    m_KeepaliveTimer.Now();
+    m_NextKeepaliveTime = GetRandomJitter(KEEPALIVE_JITTER_MAX);
 }
 
 CClient::CClient(const CClient &client)
@@ -59,6 +65,8 @@ CClient::CClient(const CClient &client)
     m_LastKeepaliveTime = client.m_LastKeepaliveTime;
     m_ConnectTime = client.m_ConnectTime;
     m_LastHeardTime = client.m_LastHeardTime;
+    m_KeepaliveTimer = client.m_KeepaliveTimer;
+    m_NextKeepaliveTime = client.m_NextKeepaliveTime;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -107,11 +115,11 @@ void CClient::GetJsonObject(char *Buffer)
     char sz[512];
     char mbstr[100];
     char cs[16];
-    
+
     if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&m_LastHeardTime)))
     {
         m_Callsign.GetCallsignString(cs);
-        
+
         ::sprintf(sz, "{\"callsign\":\"%s\",\"module\":\"%c\",\"linkedto\":\"%c\",\"time\":\"%s\"}",
                   cs,
                   m_Callsign.GetModule(),
@@ -119,4 +127,18 @@ void CClient::GetJsonObject(char *Buffer)
                   mbstr);
         ::strcat(Buffer, sz);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// static helpers
+
+double CClient::GetRandomJitter(double maxJitter)
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::mutex mtx;
+
+    std::lock_guard<std::mutex> lock(mtx);
+    std::uniform_real_distribution<double> dis(0.0, maxJitter);
+    return dis(gen);
 }

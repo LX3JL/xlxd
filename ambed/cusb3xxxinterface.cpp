@@ -44,10 +44,13 @@ CUsb3xxxInterface::CUsb3xxxInterface(uint32 uiVid, uint32 uiPid, const char *szD
     m_FtdiHandle = NULL;
     m_uiVid = uiVid;
     m_uiPid = uiPid;
-    ::strcpy(m_szDeviceName, szDeviceName);
-    ::strcpy(m_szDeviceSerial, szDeviceSerial);
+    ::strncpy(m_szDeviceName, szDeviceName, sizeof(m_szDeviceName) - 1);
+    m_szDeviceName[sizeof(m_szDeviceName) - 1] = '\0';
+    ::strncpy(m_szDeviceSerial, szDeviceSerial, sizeof(m_szDeviceSerial) - 1);
+    m_szDeviceSerial[sizeof(m_szDeviceSerial) - 1] = '\0';
     m_iSpeechFifolLevel = 0;
     m_iChannelFifolLevel = 0;
+    m_nRxBufLen = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -107,16 +110,14 @@ bool CUsb3xxxInterface::Init(void)
     }
     std::cout << std::endl;
   
-    // create our queues
-    for ( int i = 0; i < GetNbChannels(); i++ )
-    {
-        m_SpeechQueues.push_back(new CPacketQueue);
-        m_ChannelQueues.push_back(new CPacketQueue);
-    }
-    
-    // base class
+    // create queues and start thread only if device init succeeded
     if ( ok )
     {
+        for ( int i = 0; i < GetNbChannels(); i++ )
+        {
+            m_SpeechQueues.push_back(new CPacketQueue);
+            m_ChannelQueues.push_back(new CPacketQueue);
+        }
         ok &= CVocodecInterface::Init();
     }
     
@@ -143,50 +144,124 @@ void CUsb3xxxInterface::Task(void)
     //      to CStream client is garantied to have the same PID
     //      than the corresponding incoming packet
     
-    // process the device incoming packet
-    // get all packets from device and push them
-    // to the relevant clients queues
-    if ( ReadBuffer(&Buffer) )
+    // Phase 1: Batched read from USB device
+    // Only query hardware if we expect a response (FIFO has pending packets)
+    // or have partial data in the carry-over buffer
+    if ( m_iSpeechFifolLevel > 0 || m_iChannelFifolLevel > 0 || m_nRxBufLen > 0 )
     {
-        if ( IsValidSpeechPacket(Buffer, &iCh, &VoicePacket) )
+        DWORD nAvail = 0;
+        if ( FT_GetQueueStatus(m_FtdiHandle, &nAvail) == FT_OK && nAvail > 0 )
         {
-            // update fifo level
-            // as we get a speech packet, it means that the device
-            // channel fifo input decreased by 1
-            m_iChannelFifolLevel = MAX(0, m_iChannelFifolLevel-1);
-            
-            // push back to relevant channel voice queue
-            // our incoming channel packet has now been through the decoder
-            // find the coupled channel encoder and push to it's queue
-            // this is were the DVSI enc-dec channel crossover take place
-            Channel = GetChannelWithChannelIn(iCh);
-            if ( Channel != NULL )
+            int nToRead = (int)nAvail;
+            if ( m_nRxBufLen + nToRead > (int)sizeof(m_rawRxBuf) )
+                nToRead = (int)sizeof(m_rawRxBuf) - m_nRxBufLen;
+
+            if ( nToRead > 0 )
             {
-                Queue = Channel->GetVoiceQueue();
-                CVoicePacket *clone = new CVoicePacket(VoicePacket);
-                Channel->ProcessSignal(*clone);
-                Queue->push(clone);
-                Channel->ReleaseVoiceQueue();
+                DWORD nRead = 0;
+                if ( FT_Read(m_FtdiHandle, (LPVOID)&m_rawRxBuf[m_nRxBufLen], nToRead, &nRead) == FT_OK )
+                {
+                    m_nRxBufLen += (int)nRead;
+                }
             }
         }
-        else if ( IsValidChannelPacket(Buffer, &iCh, &AmbePacket) )
-        {
-            // update fifo level
-            // as we get a channel packet, it means that the device
-            // speech fifo input decreased by 1
-            m_iSpeechFifolLevel = MAX(0, m_iSpeechFifolLevel-1);
 
-            // push back to relevant channel outcoming queue
-            // we are done with this packet transcoding
-            // it's final step
-            Channel = GetChannelWithChannelOut(iCh);
-            if ( Channel != NULL )
+        // Parse complete DVSI packets from carry-over buffer
+        int pos = 0;
+        while ( pos < m_nRxBufLen )
+        {
+            // need at least 4 bytes for header
+            if ( m_nRxBufLen - pos < 4 )
+                break;
+
+            // validate start byte and type byte
+            if ( (uint8)m_rawRxBuf[pos] != PKT_HEADER )
             {
-                Queue = Channel->GetPacketQueueOut();
-                CAmbePacket *clone = new CAmbePacket(AmbePacket);
-                Queue->push(clone);
-                Channel->ReleasePacketQueueOut();
+                std::cout << "Batched read: invalid header byte, purging" << std::endl;
+                FT_Purge(m_FtdiHandle, FT_PURGE_RX);
+                m_nRxBufLen = 0;
+                pos = 0;
+                break;
             }
+            uint8 pktType = (uint8)m_rawRxBuf[pos + 3];
+            if ( pktType != PKT_CONTROL && pktType != PKT_CHANNEL && pktType != PKT_SPEECH )
+            {
+                std::cout << "Batched read: invalid packet type, purging" << std::endl;
+                FT_Purge(m_FtdiHandle, FT_PURGE_RX);
+                m_nRxBufLen = 0;
+                pos = 0;
+                break;
+            }
+
+            // get payload length and total packet size
+            int plen = ((m_rawRxBuf[pos + 1] & 0xFF) << 8) | (m_rawRxBuf[pos + 2] & 0xFF);
+            if ( plen > USB3XXX_MAXPACKETSIZE - 4 )
+            {
+                std::cout << "Batched read: implausible payload length " << plen << ", purging" << std::endl;
+                FT_Purge(m_FtdiHandle, FT_PURGE_RX);
+                m_nRxBufLen = 0;
+                pos = 0;
+                break;
+            }
+            int pktTotal = 4 + plen;
+
+            // wait for complete packet
+            if ( m_nRxBufLen - pos < pktTotal )
+                break;
+
+            // extract complete packet into Buffer and dispatch
+            Buffer.clear();
+            Buffer.resize(pktTotal);
+            ::memcpy(Buffer.data(), &m_rawRxBuf[pos], pktTotal);
+            pos += pktTotal;
+
+            if ( IsValidSpeechPacket(Buffer, &iCh, &VoicePacket) )
+            {
+                m_iChannelFifolLevel = MAX(0, m_iChannelFifolLevel-1);
+
+                Channel = GetChannelWithChannelIn(iCh);
+                if ( Channel != NULL )
+                {
+                    CVoicePacket *clone = new CVoicePacket(VoicePacket);
+                    Channel->ProcessSignal(*clone);
+                    Queue = Channel->GetVoiceQueue();
+                    Queue->push(clone);
+                    Channel->ReleaseVoiceQueue();
+                }
+            }
+            else if ( IsValidChannelPacket(Buffer, &iCh, &AmbePacket) )
+            {
+                m_iSpeechFifolLevel = MAX(0, m_iSpeechFifolLevel-1);
+
+                Channel = GetChannelWithChannelOut(iCh);
+                if ( Channel != NULL )
+                {
+                    // Restore the PID that was on the corresponding input
+                    // packet — the hardware response carries channel and
+                    // codec data but not the original pid, so we recover
+                    // it from the per-channel FIFO populated when the
+                    // input packet was consumed (see input-side push
+                    // below in this same Task() loop). FIFO ordering
+                    // matches because the DVStick processes packets
+                    // sequentially per physical channel.
+                    CAmbePacket *clone = new CAmbePacket(AmbePacket);
+                    clone->SetPid(Channel->PopPid());
+                    Queue = Channel->GetPacketQueueOut();
+                    Queue->push(clone);
+                    Channel->ReleasePacketQueueOut();
+                }
+            }
+        }
+
+        // move residual bytes to front of buffer
+        if ( pos > 0 && pos < m_nRxBufLen )
+        {
+            ::memmove(m_rawRxBuf, &m_rawRxBuf[pos], m_nRxBufLen - pos);
+            m_nRxBufLen -= pos;
+        }
+        else if ( pos >= m_nRxBufLen )
+        {
+            m_nRxBufLen = 0;
         }
     }
     
@@ -213,9 +288,9 @@ void CUsb3xxxInterface::Task(void)
                     // this is second step of transcoding
                     // we just received from hardware a decoded speech packet
                     // post it to relevant channel encoder
-                    int i = Channel->GetChannelOut();
-                    Packet->SetChannel(i);
-                    m_SpeechQueues[i]->push(Packet);
+                    int chIdx = Channel->GetChannelOut();
+                    Packet->SetChannel(chIdx);
+                    m_SpeechQueues[chIdx]->push(Packet);
                     // done
                     done = false;
                 }
@@ -231,12 +306,20 @@ void CUsb3xxxInterface::Task(void)
                     // get packet
                     CAmbePacket *Packet = (CAmbePacket *)Queue->front();
                     Queue->pop();
+                    // PID-preservation push: capture the pid before the
+                    // packet heads into the USB write path (where it
+                    // gets freed). The matching pop happens above when
+                    // the encoder-side hardware response arrives, so
+                    // the pid round-trips correctly via the per-channel
+                    // FIFO instead of via packet bytes (which the DVStick
+                    // protocol doesn't preserve).
+                    Channel->PushPid(Packet->GetPid());
                     // this is first step of transcoding
                     // a fresh new packet to be transcoded is showing up
                     // post it to relevant channel decoder
-                    int i = Channel->GetChannelIn();
-                    Packet->SetChannel(i);
-                    m_ChannelQueues[i]->push(Packet);
+                    int chIdx = Channel->GetChannelIn();
+                    Packet->SetChannel(chIdx);
+                    m_ChannelQueues[chIdx]->push(Packet);
                     // done
                     done = false;
                 }
@@ -279,98 +362,127 @@ void CUsb3xxxInterface::Task(void)
         
     } while (!done);
     
-    // process device queue to feed hardware
-    // make sure that device fifo is fed all the time
+    // Phase 4: Batched write to USB device
+    // Run timeout checks once per iteration
     int fifoSize = GetDeviceFifoSize();
-    do
+    if ( (m_iSpeechFifolLevel > 0) && (m_SpeechFifoLevelTimeout.DurationSinceNow() >= (DEVICE_TIMEOUT/1000.0f)) )
     {
-        done = true;
-        // any packet to send ?
-        if ( m_DeviceQueue.size() > 0 )
+        std::cout << "Reseting " << m_szDeviceName << ":" << m_szDeviceSerial << " device fifo level due to timeout" << std::endl;
+        m_iSpeechFifolLevel = 0;
+        // Purge any stale data from hardware and carry-over buffer
+        FT_Purge(m_FtdiHandle, FT_PURGE_RX);
+        m_nRxBufLen = 0;
+        if ( CheckIfDeviceNeedsReOpen() )
         {
-            // yes, get it
-            CPacket *Packet = m_DeviceQueue.front();
-            
-            Channel = NULL;
-            if ( Packet->IsVoice() )
-                Channel = GetChannelWithChannelOut(Packet->GetChannel());
-            else if ( Packet->IsAmbe() )
-                Channel = GetChannelWithChannelIn(Packet->GetChannel());
-            // if channel no longer open, drop packet, don't waste time with lagged packets
-            if ( (Channel != NULL) && !Channel->IsOpen() )
+            m_iChannelFifolLevel = 0;
+        }
+    }
+    if ( (m_iChannelFifolLevel > 0) && (m_ChannelFifoLevelTimeout.DurationSinceNow() >= (DEVICE_TIMEOUT/1000.0f)) )
+    {
+        std::cout << "Reseting " << m_szDeviceName << ":" << m_szDeviceSerial << " device fifo level due to timeout" << std::endl;
+        m_iChannelFifolLevel = 0;
+        FT_Purge(m_FtdiHandle, FT_PURGE_RX);
+        m_nRxBufLen = 0;
+        if ( CheckIfDeviceNeedsReOpen() )
+        {
+            m_iSpeechFifolLevel = 0;
+        }
+    }
+
+    // Gather packets into a single TX batch
+    CBuffer txBatch;
+    int speechToSend = 0;
+    int channelToSend = 0;
+    bool gathering = true;
+    while ( gathering && !m_DeviceQueue.empty() )
+    {
+        CPacket *Packet = m_DeviceQueue.front();
+
+        // check if channel is still open
+        Channel = NULL;
+        if ( Packet->IsVoice() )
+            Channel = GetChannelWithChannelOut(Packet->GetChannel());
+        else if ( Packet->IsAmbe() )
+            Channel = GetChannelWithChannelIn(Packet->GetChannel());
+        if ( (Channel != NULL) && !Channel->IsOpen() )
+        {
+            m_DeviceQueue.pop();
+            delete Packet;
+            continue;
+        }
+
+        if ( Packet->IsVoice() )
+        {
+            if ( m_iSpeechFifolLevel + speechToSend < fifoSize )
             {
+#ifdef DEBUG_DUMPFILE
+                int dbgCh = Packet->GetChannel();
+#endif
+                EncodeSpeechPacket(&Buffer, Packet->GetChannel(), (CVoicePacket *)Packet);
+                txBatch.Append(Buffer.data(), (int)Buffer.size());
                 m_DeviceQueue.pop();
                 delete Packet;
-                done = false;
-                continue;
+                speechToSend++;
+#ifdef DEBUG_DUMPFILE
+                g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Sp" << dbgCh << "->" << std::endl; std::cout.flush();
+#endif
             }
-            
-            // if device fifo level is zero (device idle)
-            // wait that at least 3 packets are in incoming
-            // queue before restarting
-            if ( ((m_iSpeechFifolLevel+m_iChannelFifolLevel) > 0) || (m_DeviceQueue.size() >= (fifoSize+1)) )
+            else
             {
-                
-                // if too much time elapsed since last packet was sent to device and fifo level is not zero
-                // then we failed to get reply(s) from device, reset device fifo level to restart communication
-                if ( (m_iSpeechFifolLevel > 0) && (m_SpeechFifoLevelTimeout.DurationSinceNow() >= (DEVICE_TIMEOUT/1000.0f)) )
-                {
-                    std::cout << "Reseting " << m_szDeviceName << ":" << m_szDeviceSerial << " device fifo level due to timeout" << std::endl;
-                    m_iSpeechFifolLevel = 0;
-                    if ( CheckIfDeviceNeedsReOpen() )
-                        m_iChannelFifolLevel = 0;
-                }
-                if ( (m_iChannelFifolLevel > 0) && (m_ChannelFifoLevelTimeout.DurationSinceNow() >= (DEVICE_TIMEOUT/1000.0f)) )
-                {
-                    std::cout << "Reseting " << m_szDeviceName << ":" << m_szDeviceSerial << " device fifo level due to timeout" << std::endl;
-                    m_iChannelFifolLevel = 0;
-                    if ( CheckIfDeviceNeedsReOpen() )
-                        m_iSpeechFifolLevel = 0;
-                }
-                
-                if ( Packet->IsVoice() && (m_iSpeechFifolLevel < fifoSize) )
-                {
-                    // encode & post
-                    EncodeSpeechPacket(&Buffer, Packet->GetChannel(), (CVoicePacket *)Packet);
-                    WriteBuffer(Buffer);
-                    // remove from queue
-                    m_DeviceQueue.pop();
-                    // and delete it
-                    delete Packet;
-                    // update fifo level
-                    m_iSpeechFifolLevel++;
-                    m_SpeechFifoLevelTimeout.Now();
-                    // next
-                    done = false;
-#ifdef DEBUG_DUMPFILE
-                    g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Sp" << Packet->GetChannel() << "->" << std::endl; std::cout.flush();
-#endif
-                }
-                else if ( Packet->IsAmbe() && (m_iChannelFifolLevel < fifoSize) )
-                {
-                    // encode & post
-                    EncodeChannelPacket(&Buffer, Packet->GetChannel(), (CAmbePacket *)Packet);
-                    WriteBuffer(Buffer);
-                    // remove from queue
-                    m_DeviceQueue.pop();
-                    // and delete it
-                    delete Packet;
-                    // update fifo level
-                    m_iChannelFifolLevel++;
-                    m_ChannelFifoLevelTimeout.Now();
-                    // next
-                    done = false;
-#ifdef DEBUG_DUMPFILE
-                    g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Ch" << Packet->GetChannel() << "->" << std::endl; std::cout.flush();
-#endif
-                }
-
+                gathering = false;
             }
         }
-    } while (!done);
+        else if ( Packet->IsAmbe() )
+        {
+            if ( m_iChannelFifolLevel + channelToSend < fifoSize )
+            {
+#ifdef DEBUG_DUMPFILE
+                int dbgCh = Packet->GetChannel();
+#endif
+                EncodeChannelPacket(&Buffer, Packet->GetChannel(), (CAmbePacket *)Packet);
+                txBatch.Append(Buffer.data(), (int)Buffer.size());
+                m_DeviceQueue.pop();
+                delete Packet;
+                channelToSend++;
+#ifdef DEBUG_DUMPFILE
+                g_AmbeServer.m_DebugFile << m_szDeviceName << "\t" << "Ch" << dbgCh << "->" << std::endl; std::cout.flush();
+#endif
+            }
+            else
+            {
+                gathering = false;
+            }
+        }
+        else
+        {
+            m_DeviceQueue.pop();
+            delete Packet;
+        }
+    }
+
+    // Single write for entire batch
+    if ( txBatch.size() > 0 )
+    {
+        WriteBuffer(txBatch);
+        m_iSpeechFifolLevel += speechToSend;
+        m_iChannelFifolLevel += channelToSend;
+        if ( speechToSend > 0 )
+            m_SpeechFifoLevelTimeout.Now();
+        if ( channelToSend > 0 )
+            m_ChannelFifoLevelTimeout.Now();
+    }
     
-    // and wait a bit
-    CTimePoint::TaskSleepFor(2);
+    // Adaptive sleep: 1ms when work is pending, 10ms when idle
+    bool hasWork = (m_iSpeechFifolLevel > 0) || (m_iChannelFifolLevel > 0) ||
+                   !m_DeviceQueue.empty() || (m_nRxBufLen > 0);
+    if ( !hasWork )
+    {
+        for ( int i = 0; i < GetNbChannels() && !hasWork; i++ )
+        {
+            hasWork = !m_SpeechQueues[i]->empty() || !m_ChannelQueues[i]->empty();
+        }
+    }
+    CTimePoint::TaskSleepFor(hasWork ? 1 : 10);
 }
 
 
@@ -528,19 +640,18 @@ bool CUsb3xxxInterface::CheckIfDeviceNeedsReOpen(void)
 bool CUsb3xxxInterface::ReadBuffer(CBuffer *buffer)
 {
     bool ok = false;
-    int n;
-   
+    DWORD n;
+
     // any byte in tx queue ?
-    if  ( FT_GetQueueStatus(m_FtdiHandle, (LPDWORD)&n) == FT_OK )
+    if  ( FT_GetQueueStatus(m_FtdiHandle, &n) == FT_OK )
     {
-        //if ( (FT_GetQueueStatus(m_FtdiHandle, (LPDWORD)&n) == FT_OK) && (n != 0) )
         if ( n != 0 )
         {
             buffer->clear();
             buffer->resize(USB3XXX_MAXPACKETSIZE);
-            n = FTDI_read_packet(m_FtdiHandle, (char *)buffer->data(), USB3XXX_MAXPACKETSIZE);
-            buffer->resize(n);
-            ok = (n != 0);
+            int len = FTDI_read_packet(m_FtdiHandle, (char *)buffer->data(), USB3XXX_MAXPACKETSIZE);
+            buffer->resize(len);
+            ok = (len != 0);
         }
     }
     return ok;
@@ -588,16 +699,16 @@ int CUsb3xxxInterface::FTDI_read_packet(FT_HANDLE ftHandle, char *pkt, int maxle
 bool CUsb3xxxInterface::FTDI_read_bytes(FT_HANDLE ftHandle, char *buffer, int len)
 {
     // this relies on FT_SetTimouts() mechanism
-    int n;
+    DWORD n;
     bool ok = false;
-    
-    ok = (FT_Read(ftHandle, (LPVOID)buffer, len, (LPDWORD)&n) == FT_OK) && (n == len);
+
+    ok = (FT_Read(ftHandle, (LPVOID)buffer, len, &n) == FT_OK) && ((int)n == len);
     if ( !ok )
     {
         //FT_Purge(ftHandle, FT_PURGE_RX);
         std::cout << "FTDI_read_bytes(" << len << ") failed : " << n << std::endl;
     }
-    
+
     return ok;
 }
 
@@ -605,12 +716,12 @@ bool CUsb3xxxInterface::FTDI_write_packet(FT_HANDLE ft_handle, const char *pkt, 
 {
     FT_STATUS ftStatus;
     bool  ok = true;
-    int   nwritten;
-    
+    DWORD nwritten;
+
     if ( len > 0 )
     {
-        ftStatus = FT_Write(m_FtdiHandle, (LPVOID *)pkt, (DWORD)len, (LPDWORD)&nwritten);
-        ok = (ftStatus == FT_OK) && (len == nwritten);
+        ftStatus = FT_Write(ft_handle, (LPVOID)pkt, (DWORD)len, &nwritten);
+        ok = (ftStatus == FT_OK) && ((int)nwritten == len);
         if ( !ok )
         {
             FTDI_Error((char *)"FT_Write", ftStatus);

@@ -71,7 +71,12 @@ CDvLastFramePacket::CDvLastFramePacket(const uint8 *ambe, uint16 sid, uint8 pid,
 {
 }
 
+// m17 constructor
 
+CDvLastFramePacket::CDvLastFramePacket(const uint8 *codec2, uint16 sid, uint8 pid)
+    : CDvFramePacket(codec2, sid, pid)
+{
+}
 
 // copy constructor
     

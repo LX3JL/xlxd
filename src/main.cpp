@@ -24,8 +24,9 @@
 
 #include "main.h"
 #include "creflector.h"
+#include "cudpsocket.h"
 
-#include "syslog.h"
+#include "csyslog.h"
 #include <sys/stat.h>
 
 
@@ -44,9 +45,9 @@ int main(int argc, const char * argv[])
 #ifdef RUN_AS_DAEMON
     
     // redirect cout, cerr and clog to syslog
-    syslog::redirect cout_redir(std::cout);
-    syslog::redirect cerr_redir(std::cerr);
-    syslog::redirect clog_redir(std::clog);
+    syslogns::redirect cout_redir(std::cout);
+    syslogns::redirect cerr_redir(std::cerr);
+    syslogns::redirect clog_redir(std::clog);
 
     //Fork the Parent Process
     pid_t pid, sid;
@@ -110,7 +111,10 @@ int main(int argc, const char * argv[])
     }
     std::cout << "Reflector " << g_Reflector.GetCallsign()
               << "started and listening on " << g_Reflector.GetListenIp() << std::endl;
-    
+
+    // Log DSCP status once at startup
+    CUdpSocket::LogDscpStatus();
+
 #ifdef RUN_AS_DAEMON
 	// run forever
     while ( true )

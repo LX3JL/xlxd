@@ -59,16 +59,25 @@ public:
     const CCallsign &GetCallsign(void) const        { return m_Callsign; }
     const CIp &GetIp(void) const                    { return m_Ip; }
     const char *GetModules(void)                    { return m_Modules; }
-    
+    uint16 GetPort(void) const                      { return m_uiPort; }
+
+    // For REF peers: modules string is "XY" where X=local module, Y=remote module
+    char GetLocalModule(void) const                 { return (m_Modules[0] != '\0') ? m_Modules[0] : ' '; }
+    char GetRemoteModule(void) const                { return (m_Modules[1] != '\0') ? m_Modules[1] : m_Modules[0]; }
+
+    // set
+    void SetPort(uint16 port)                       { m_uiPort = port; }
+
     // update
     void ResolveIp(void)                            { m_Ip = CIp(m_szUrl); }
-    
+
 protected:
     // data
     CCallsign   m_Callsign;
     char        m_szUrl[URL_MAXLEN+1];
     CIp         m_Ip;
     char        m_Modules[NB_MODULES_MAX+1];
+    uint16      m_uiPort;   // custom port (0 = use protocol default)
 };
 
 

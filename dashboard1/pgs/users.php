@@ -147,7 +147,7 @@ for ($i=0;$i<$Reflector->StationCount();$i++) {
             }
             echo '</td>
          <td width="75"><a href="https://www.qrz.com/db/'.sanitize_attribute($Reflector->Stations[$i]->GetCallsignOnly()).'" class="pl" target="_blank">'.sanitize_output($Reflector->Stations[$i]->GetCallsignOnly()).'</a></td>
-         <td width="60">'.sanitize_output($Reflector->Stations[$i]->GetSuffix()).'</td>
+     <td width="60">'.$Reflector->Stations[$i]->GetSuffix()." ".$Reflector->Stations[$i]->GetDMRID().'</td>
          <td width="50" align="center"><a href="http://www.aprs.fi/'.sanitize_attribute($Reflector->Stations[$i]->GetCallsignOnly()).'" class="pl" target="_blank"><img src="./img/sat.png" /></a></td>
          <td width="150">'.sanitize_output($Reflector->Stations[$i]->GetVia());
             if ($Reflector->Stations[$i]->GetPeer() != $Reflector->GetReflectorName()) {

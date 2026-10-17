@@ -46,7 +46,7 @@
 #define MMDVM_SLOTTYPE_TERMINATOR    2
 
 // DMRMMDVM Module ID
-#define MMDVM_MODULE_ID             'B'
+#define MMDVM_MODULE_ID             'M'
 
 // Client cache refresh interval in seconds
 #define DMRMMDVM_CLIENT_CACHE_REFRESH_INTERVAL   1.0

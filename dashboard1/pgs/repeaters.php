@@ -125,7 +125,7 @@ if ($PageOptions['UserPage']['ShowFilter']) {
    <th width="25">#</th>
    <th width="60">Flag</th>
    <th width="100">DV Station</th>
-   <th width="75">Band</th>
+   <th width="75">Band or DMRID</th>
    <th width="150">Last Heard</th>
    <th width="150">Linked for</th>
    <th width="90">Protocol</th>
@@ -208,16 +208,18 @@ for ($idx = $StartIndex; $idx < $EndIndex; $idx++) {
       }
       else {
          switch ($Reflector->Nodes[$i]->GetSuffix()) {
-            case 'A' : echo '23cm'; break;
-            case 'B' : echo '70cm'; break;
-            case 'C' : echo '2m'; break;
+            case 'A' : echo '1.2GHz'; break;
+            case 'B' : echo '430MHz'; break;
+            case 'C' : echo '144MHz'; break;
             case 'D' : echo 'Dongle'; break;
             case 'G' : echo 'Internet-Gateway'; break;
+            case 'M' : echo $Reflector->Nodes[$i]->GetDMRID(); break;
+            case 'P' : echo 'Pi-Star-NODE'; break;
             default  : echo '';
          }
       }
       echo '</td>
-      <td>'.sanitize_output(date("d.m.Y H:i", $Reflector->Nodes[$i]->GetLastHeardTime())).'</td>
+      <td>'.sanitize_output(date("Y.m.d H:i", $Reflector->Nodes[$i]->GetLastHeardTime())).'</td>
       <td>'.sanitize_output(FormatSeconds(time()-$Reflector->Nodes[$i]->GetConnectTime())).' s</td>
       <td>'.sanitize_output($Reflector->Nodes[$i]->GetProtocol()).'</td>
       <td align="center">'.sanitize_output($Reflector->Nodes[$i]->GetLinkedModule()).'</td>';

@@ -46,6 +46,7 @@
 #define VERSION_MAJOR                   2
 #define VERSION_MINOR                   6
 #define VERSION_REVISION                1
+#define VERSION_BUILD                  "DMR"
 
 // global ------------------------------------------------------
 #define RUN_AS_DAEMON

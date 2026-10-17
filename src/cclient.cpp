@@ -95,6 +95,7 @@ void CClient::WriteXml(std::ofstream &xmlFile)
 {
     xmlFile << "<NODE>" << std::endl;
     xmlFile << "\t<Callsign>" << m_Callsign << "</Callsign>" << std::endl;
+    xmlFile << "\t<DMRID>" << m_Callsign.GetDmrid() << "</DMRID>" << std::endl;
     xmlFile << "\t<IP>" << m_Ip << "</IP>" << std::endl;
     xmlFile << "\t<LinkedModule>" << m_ReflectorModule << "</LinkedModule>" << std::endl;
     xmlFile << "\t<Protocol>" << GetProtocolName() << "</Protocol>" << std::endl;

@@ -121,6 +121,10 @@ bool CDmridDir::Reload(void)
 
 const CCallsign *CDmridDir::FindCallsign(uint32 dmrid)
 {
+    if (dmrid > 9999999 ) //HLX
+    {
+        dmrid = int(dmrid/100);
+    }
     auto found = m_CallsignMap.find(dmrid);
     if ( found != m_CallsignMap.end() )
     {

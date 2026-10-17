@@ -16,7 +16,7 @@ $PageOptions = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';		    // Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.3.10';       			// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.3.10(DMR)';       			// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;          			// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';       			// Page refresh time in miliseconds
@@ -42,8 +42,8 @@ $PageOptions['ModuleNames']['C']                     = 'National';
 $PageOptions['ModuleNames']['D']                     = '';
 
 
-$PageOptions['MetaDescription']                      = 'XLX is a D-Star Reflector System for Ham Radio Operators.';  // Meta Tag Values, usefull for Search Engine
-$PageOptions['MetaKeywords']                         = 'Ham Radio, D-Star, XReflector, XLX, XRF, DCS, REF, ';        // Meta Tag Values, usefull forSearch Engine
+$PageOptions['MetaDescription']                      = 'XLX is a D-Star and DMR Reflector System for Ham Radio Operators.';  // Meta Tag Values, usefull for Search Engine
+$PageOptions['MetaKeywords']                         = 'Ham Radio, D-Star, XReflector, XLX, XRF, DCS, REF, DMR, ';        // Meta Tag Values, usefull forSearch Engine
 $PageOptions['MetaAuthor']                           = 'LX1IQ';                                                      // Meta Tag Values, usefull for Search Engine
 $PageOptions['MetaRevisit']                          = 'After 30 Days';                                              // Meta Tag Values, usefull for Search Engine
 $PageOptions['MetaRobots']                           = 'index,follow';                                               // Meta Tag Values, usefull for Search Engine

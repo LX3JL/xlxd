@@ -101,6 +101,7 @@ bool CGateKeeper::MayLink(const CCallsign &callsign, const CIp &ip, int protocol
         case PROTOCOL_DCS:
         case PROTOCOL_DMRPLUS:
         case PROTOCOL_DMRMMDVM:
+             ok &= IsNodeListedOk(callsign, ip);
         case PROTOCOL_YSF:
         case PROTOCOL_G3:
         case PROTOCOL_IMRS:

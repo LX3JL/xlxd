@@ -11,11 +11,13 @@ class Node {
    private $Suffix;
    private $Prefix;
    private $RandomID;
+   private $DMRID;
 
-   public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime, $RandomID) {
+   public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime, $RandomID, $DMRID) {
 
     // Validate and sanitize IP
     $IP = trim($IP);
+    $this->DMRID         = $DMRID;
     $this->IP = filter_var($IP, FILTER_VALIDATE_IP) ? $IP : '0.0.0.0';
 
     // Validate protocol
@@ -64,6 +66,7 @@ class Node {
    public function GetSuffix()               { return $this->Suffix;         }
    public function GetPrefix()               { return $this->Prefix;         }
    public function GetRandomID()             { return $this->RandomID;       }
+   public function GetDMRID()                { return $this->DMRID;          }
    
 }
 

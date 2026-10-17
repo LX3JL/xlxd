@@ -96,7 +96,7 @@ int main(int argc, const char * argv[])
     }
 
     // splash
-    std::cout << "Starting xlxd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << std::endl << std::endl;
+    std::cout << "Starting xlxd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << "." << VERSION_BUILD << std::endl << std::endl;
 
     // initialize reflector
     g_Reflector.SetCallsign(argv[1]);

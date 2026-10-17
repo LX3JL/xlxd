@@ -60,7 +60,7 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
    <td>'.sanitize_output($Name).'</td>';
    }
    echo '
-   <td>'.sanitize_output(date("d.m.Y H:i", $Reflector->Peers[$i]->GetLastHeardTime())).'</td>
+   <td>'.sanitize_output(date("Y.m.d H:i", $Reflector->Peers[$i]->GetLastHeardTime())).'</td>
    <td>'.sanitize_output(FormatSeconds(time()-$Reflector->Peers[$i]->GetConnectTime())).' s</td>
    <td align="center">'.sanitize_output($Reflector->Peers[$i]->GetProtocol()).'</td>
    <td align="center">'.sanitize_output($Reflector->Peers[$i]->GetLinkedModule()).'</td>';

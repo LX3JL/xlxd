@@ -11,11 +11,12 @@ class Node {
    private $Suffix;
    private $Prefix;
    private $RandomID;
-
-   public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime, $RandomID) {
+   private $DMRID;
+   
+   public function __construct($Callsign, $IP, $LinkedModule, $Protocol, $ConnectTime, $LastHeardTime, $RandomID, $DMRID) {
 
       $this->IP            = $IP;
-
+      $this->DMRID         = $DMRID;
       $this->Protocol      = $Protocol;
       $this->ConnectTime   = ParseTime($ConnectTime);
       $this->LastHeardTime = ParseTime($LastHeardTime);
@@ -49,7 +50,7 @@ class Node {
    public function GetSuffix()               { return $this->Suffix;         }
    public function GetPrefix()               { return $this->Prefix;         }
    public function GetRandomID()             { return $this->RandomID;       }
-   
+   public function GetDMRID()                { return $this->DMRID;          }
 }
 
 ?>

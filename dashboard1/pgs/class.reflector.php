@@ -70,7 +70,8 @@ class xReflector {
                 $XML->GetElement($tmpNodes[$i], 'Protocol'), 
                 $XML->GetElement($tmpNodes[$i], 'ConnectTime'), 
                 $XML->GetElement($tmpNodes[$i], 'LastHeardTime'), 
-                CreateCode(16)
+                CreateCode(16),
+                $XML->GetElement($tmpNodes[$i], 'DMRID')
             );
             $this->AddNode($Node);
         }
@@ -83,7 +84,8 @@ class xReflector {
                 $XML->GetElement($tmpStations[$i], 'Via node'), 
                 $XML->GetElement($tmpStations[$i], 'Via peer'), 
                 $XML->GetElement($tmpStations[$i], 'LastHeardTime'), 
-                $XML->GetElement($tmpStations[$i], 'On module')
+                $XML->GetElement($tmpStations[$i], 'On module'),
+                $XML->GetElement($tmpStations[$i],'DMRID')
             );
             $this->AddStation($Station, false);
         }
@@ -102,7 +104,7 @@ class xReflector {
             $this->AddPeer($Peer, false);
         }
         
-        $this->Version = strip_tags($XML->GetElement($this->XMLContent, "Version"));
+        $this->Version = $XML->GetElement($this->XMLContent, "Version");
     }
    }
    

@@ -58,7 +58,7 @@ for ($i=0;$i<$Reflector->PeerCount();$i++) {
         echo '<td>' . SafeOutput($Name) . '</td>';
     }
     echo '
-   <td>'.date("d.m.Y H:i", $Reflector->Peers[$i]->GetLastHeardTime()).'</td>
+   <td>'.date("Y.m.d H:i", $Reflector->Peers[$i]->GetLastHeardTime()).'</td>
    <td>'.FormatSeconds(time()-$Reflector->Peers[$i]->GetConnectTime()).' s</td>
    <td>'.SafeOutput($Reflector->Peers[$i]->GetProtocol()).'</td>
    <td>'.SafeOutput($Reflector->Peers[$i]->GetLinkedModule()).'</td>';

@@ -55,7 +55,7 @@
 #define WIRESX_CMD_DISC_REQ         5
 
 // YSF Module ID
-#define YSF_MODULE_ID             'B'
+#define YSF_MODULE_ID             'Y'
 
 // Client cache refresh interval in seconds
 #define YSF_CLIENT_CACHE_REFRESH_INTERVAL   1.0

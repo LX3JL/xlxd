@@ -75,6 +75,7 @@ void CUser::WriteXml(std::ofstream &xmlFile)
 {
     xmlFile << "<STATION>" << std::endl;
     xmlFile << "\t<Callsign>" << m_My << "</Callsign>" << std::endl;
+    xmlFile << "\t<DMRID>" << m_My.GetDmrid() << "</DMRID>" << std::endl;
     xmlFile << "\t<Via node>" << m_Rpt1 << "</Via node>" << std::endl;
     xmlFile << "\t<On module>" << m_Rpt2.GetModule() << "</On module>" << std::endl;
     xmlFile << "\t<Via peer>" << m_Xlx << "</Via peer>" << std::endl;

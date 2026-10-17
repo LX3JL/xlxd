@@ -10,6 +10,15 @@ The sources are published under GPL Licenses.
 
 ---
 
+# Improved functionality when connecting DMR
+
+  - Whitelist connection restrictions used by XLXD    
+    Samples available for Japan
+  - Made it possible to connect even if the SSID is attached.
+  - Display DMRID on dashboard
+    
+---
+
 ## Supported Protocols (XLX v2.6.x with M17 Extension, YSF Peer, NXDN Peer, P25 Peer, REF Peer, XRF Peer and DCS Peer)
 
 - **D-Star**: Icom-G3Terminal, DExtra, DPlus and DCS

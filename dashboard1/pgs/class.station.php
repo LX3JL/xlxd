@@ -9,8 +9,9 @@ class Station {
    private $CallsignOnly;
    private $Peer;
    private $OnModule;
+   private $DMRID;
       
-   public function __construct($Callsign, $Via, $Peer, $LastHeardTime, $OnModule) {
+   public function __construct($Callsign, $Via, $Peer, $LastHeardTime, $OnModule, $DMRID) {
     // Sanitize and validate callsign
     $Callsign = trim($Callsign);
     $this->Callsign = $Callsign;
@@ -20,7 +21,7 @@ class Station {
     $this->Peer = trim($Peer);
     
     $this->LastHeardTime = ParseTime($LastHeardTime);
-    
+    $this->DMRID         = $DMRID;
     if (strpos($Callsign, " / ") !== false) {
         $this->Suffix = trim(substr($Callsign, strpos($Callsign, " / ")+3));
     }
@@ -48,6 +49,7 @@ class Station {
    public function GetSuffix()               { return $this->Suffix;         }
    public function GetCallsignOnly()         { return $this->CallsignOnly;   }
    public function GetModule()               { return $this->OnModule;       }
+   public function GetDMRID()                { return $this->DMRID;          } 
    
 }
 

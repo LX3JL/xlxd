@@ -55,6 +55,7 @@ echo '
                 <td>Avg TX/h</td>
   </tr>';
 
+<<<<<<< HEAD
 for ($i=0;$i<count($Data[0]);$i++) {
         if ($Data[0][$i]['time'] > 0) {
                   echo '
@@ -66,6 +67,19 @@ for ($i=0;$i<count($Data[0]);$i++) {
                         <td width="100">'.kbytes_to_string($Data[0][$i]['tx2']).'</td>
           </tr>';
          }
+=======
+for ($i=0;$i<count($Data[0]);$i++) {  
+	if ($Data[0][$i]['time'] > 0) {
+		  echo '
+		<tr>
+			<td width="100">'.date("Y.m.d", $Data[0][$i]['time']).'</td>
+			<td width="100">'.kbytes_to_string($Data[0][$i]['rx']).'</td>
+			<td width="100">'.kbytes_to_string($Data[0][$i]['tx']).'</td>
+			<td width="100">'.kbytes_to_string($Data[0][$i]['rx2']).'</td>
+			<td width="100">'.kbytes_to_string($Data[0][$i]['tx2']).'</td>
+	  </tr>';
+	 }
+>>>>>>> 1477273 (DMRID Display, DMR Connection with SSID Supported, DMR Connection Restrictions)
 }
 
 echo '</table>';

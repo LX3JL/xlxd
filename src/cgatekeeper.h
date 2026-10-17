@@ -131,6 +131,7 @@ protected:
     bool IsNodeListedOk(const CCallsign &, const CIp &, char = ' ') const;
     bool IsPeerListedOk(const CCallsign &, const CIp &, char) const;
     bool IsPeerListedOk(const CCallsign &, const CIp &, char *) const;
+    bool IsValidatorCallsign(const CCallsign &) const;
 
     // loop detection helpers
     bool IsLoopSuppressed(const CCallsign &myCallsign, char module);

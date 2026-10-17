@@ -302,8 +302,10 @@ bool CGateKeeper::IsNodeListedOk(const CCallsign &callsign, const CIp &ip, char 
 
         // require at least one digit for valid amateur callsigns,
         // but skip for explicitly whitelisted callsigns and the
-        // DVREF validator callsign (used to verify reflector status)
-        if ( ok && !whitelisted && !callsign.HasSameCallsignWithWildcard(CCallsign("DVREFCK")) )
+        // DVRef.com / RefCheck.radio validator callsigns (used to
+        // verify reflector status). note: D-Star callsigns are 7 chars
+        // + module, so "DVREFCHK" arrives as callsign "DVREFCH".
+        if ( ok && !whitelisted && !IsValidatorCallsign(callsign) )
         {
             ok &= callsign.HasNumber();
         }
@@ -312,6 +314,23 @@ bool CGateKeeper::IsNodeListedOk(const CCallsign &callsign, const CIp &ip, char 
     // done
     return ok;
 
+}
+
+bool CGateKeeper::IsValidatorCallsign(const CCallsign &callsign) const
+{
+    // reflector status validator callsigns that contain no digit
+    //   DVREFCK  : DVRef validator callsign (7-char form)
+    //   DVREFCHK : DVRef.com and RefCheck.radio API default validator callsign
+    static const char *validators[] = { "DVREFCK", "DVREFCHK" };
+    
+    for ( size_t i = 0; i < sizeof(validators)/sizeof(validators[0]); i++ )
+    {
+        if ( callsign.HasSameCallsign(CCallsign(validators[i])) )
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool CGateKeeper::IsPeerListedOk(const CCallsign &callsign, const CIp &ip, char module) const

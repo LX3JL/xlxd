@@ -115,4 +115,71 @@ function ParseJournalPeers(array $pageOpts): array
 
     return $peers;
 }
+
+/**
+ * HasLocalPeer — true when xlxd.interlink has a peer of this type at 127.0.0.1
+ *
+ * These pages read the journal of a reflector on this host, so they only make
+ * sense when xlxd peers with it locally. $type is 'YSF', 'NXDN' or 'P25', the
+ * peer names are matched as xlxd does (YSF..., NX<digit>..., P25<digit>...).
+ */
+function HasLocalPeer(string $type, string $interlinkFile): bool
+{
+    static $cache = [];
+
+    $patterns = ['YSF' => '/^YSF/', 'NXDN' => '/^NX[0-9]/', 'P25' => '/^P25[0-9]/'];
+    if (!isset($patterns[$type])) {
+        return false;
+    }
+
+    if (isset($cache[$type])) {
+        return $cache[$type];
+    }
+
+    $cache[$type] = false;
+
+    // The path is set in config.inc.php, wherever it lives only read a file named xlxd.interlink
+    $realPath = realpath($interlinkFile);
+    if ($realPath === false || !is_file($realPath)) {
+        error_log('HasLocalPeer: interlink file not found: ' . $interlinkFile);
+        return false;
+    }
+    if (basename($realPath) !== 'xlxd.interlink') {
+        error_log('HasLocalPeer: not an xlxd.interlink file: ' . $realPath);
+        return false;
+    }
+    if (!is_readable($realPath)) {
+        error_log('HasLocalPeer: interlink file not readable: ' . $realPath);
+        return false;
+    }
+
+    $lines = file($realPath, FILE_IGNORE_NEW_LINES);
+    if ($lines === false) {
+        return false;
+    }
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#') {
+            continue;
+        }
+
+        // <name> <host[:port]> <modules>, split as xlxd does
+        $tokens = preg_split('/[ ,\t]+/', $line);
+        if (count($tokens) < 3 || !preg_match($patterns[$type], $tokens[0])) {
+            continue;
+        }
+
+        $host = explode(':', $tokens[1])[0];
+        $isLoopback = (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && strpos($host, '127.') === 0)
+                   || strcasecmp($host, 'localhost') === 0;
+
+        if ($isLoopback) {
+            $cache[$type] = true;
+            break;
+        }
+    }
+
+    return $cache[$type];
+}
 ?>

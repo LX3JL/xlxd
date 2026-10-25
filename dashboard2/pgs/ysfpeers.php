@@ -11,7 +11,11 @@
  */
 
 if (empty($PageOptions['YSFPeerPage']['Show'])) {
-    echo '<p class="text-muted">This page is not enabled.</p>';
+    if (!empty($PageOptions['YSFPeerPage']['NoLocalPeer'])) {
+        echo '<p class="text-muted">No local YSF peer (127.0.0.1) in xlxd.interlink, this page only works with a YSF reflector on this host.</p>';
+    } else {
+        echo '<p class="text-muted">This page is not enabled.</p>';
+    }
     return;
 }
 

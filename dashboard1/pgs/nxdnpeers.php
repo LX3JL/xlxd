@@ -7,7 +7,11 @@
  */
 
 if (empty($PageOptions['NXDNPeerPage']['Show'])) {
-    echo '<p style="font-family:verdana;font-size:10pt;">This page is not enabled.</p>';
+    if (!empty($PageOptions['NXDNPeerPage']['NoLocalPeer'])) {
+        echo '<p style="font-family:verdana;font-size:10pt;">No local NXDN peer (127.0.0.1) in xlxd.interlink, this page only works with a NXDN reflector on this host.</p>';
+    } else {
+        echo '<p style="font-family:verdana;font-size:10pt;">This page is not enabled.</p>';
+    }
     return;
 }
 

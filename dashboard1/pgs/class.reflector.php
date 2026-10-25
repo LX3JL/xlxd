@@ -430,9 +430,9 @@ class xReflector {
         return false;
     }
     
-    // Prevent path traversal
+    // Prevent path traversal, the file can live anywhere but must be xlxd.interlink
     $realPath = realpath($this->Interlinkfile);
-    if ($realPath === false || strpos($realPath, '/xlxd/') === false) {
+    if ($realPath === false || !is_file($realPath) || basename($realPath) !== 'xlxd.interlink') {
         error_log("ReadInterlinkFile blocked - invalid path");
         return false;
     }
@@ -442,7 +442,7 @@ class xReflector {
         $this->InterlinkXML = "";
         $Interlinkfilecontent = file($realPath);
         for ($i=0;$i<count($Interlinkfilecontent);$i++) {
-            if (substr($Interlinkfilecontent[$i], 0, 1) != '#') {
+            if (trim($Interlinkfilecontent[$i]) !== '' && substr($Interlinkfilecontent[$i], 0, 1) != '#') {
                 $Interlink = explode(" ", $Interlinkfilecontent[$i]);
                 $this->Interlinks[] = new Interlink();
                 if (isset($Interlink[0])) { 

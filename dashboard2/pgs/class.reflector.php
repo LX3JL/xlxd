@@ -370,7 +370,7 @@ class xReflector {
          $this->InterlinkXML = "";
          $Interlinkfilecontent = file($this->Interlinkfile);
          for ($i=0;$i<count($Interlinkfilecontent);$i++) {
-             if (substr($Interlinkfilecontent[$i], 0, 1) != '#') {
+             if (trim($Interlinkfilecontent[$i]) !== '' && substr($Interlinkfilecontent[$i], 0, 1) != '#') {
                 $Interlink = explode(" ", $Interlinkfilecontent[$i]);
                 $this->Interlinks[] = new Interlink();
                 if (isset($Interlink[0])) { $this->Interlinks[count($this->Interlinks)-1]->SetName(trim($Interlink[0]));    }

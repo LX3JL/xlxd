@@ -17,7 +17,7 @@ $VNStat      = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';	// Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.4.6';		// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.4.7';		// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;		// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';		// Page refresh time in miliseconds
@@ -74,6 +74,17 @@ $VNStat['Interfaces']                                = array();
 $VNStat['Interfaces'][0]['Name']                     = 'eth0';
 $VNStat['Interfaces'][0]['Address']                  = 'eth0';
 $VNStat['Binary']                                    = '/usr/bin/vnstat';
+
+// -------------------------------------------------------------------------
+// Co-located peer reflector pages (YSF, NXDN, P25)
+//
+// Each page shows the gateways or repeaters connected to a reflector running
+// on this host, read from its systemd journal via journalctl.
+//
+// LOCAL ONLY: a page only appears when xlxd.interlink has a peer of that type
+// at 127.0.0.1 (or localhost), e.g. "YSF12345 127.0.0.1:42000 B". The users of
+// a remote peer can't be seen from here, so Show = true alone is not enough.
+// -------------------------------------------------------------------------
 
 $PageOptions['YSFPeerPage'] = array();
 $PageOptions['YSFPeerPage']['Show']           = false;                   // Enable/disable the YSF Peers page

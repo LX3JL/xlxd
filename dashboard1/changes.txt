@@ -1,3 +1,40 @@
+xlx db v2.4.7
+YSF/NXDN/P25 Peer Pages, vnStat 2.13 Support and Interlink Fixes
+
+- "pgs/ysfpeers.php", "pgs/nxdnpeers.php", "pgs/p25peers.php" (NEW)
+  * Lists the gateways/repeaters linked to a co-located YSF, NXDN or P25 reflector
+  * Only shown when xlxd.interlink has a local (127.0.0.1) peer of that type
+
+- "pgs/parse_journal_peers.php" (NEW)
+  * Reads the reflector's linked list from its systemd journal
+  * Added HasLocalPeer() to check xlxd.interlink for a local peer
+  * xlxd.interlink can live anywhere, logs why it can't be read
+
+- "pgs/render_journal_peers.php" (NEW)
+  * Shared table renderer for the peer pages
+
+- "pgs/config.inc.php"
+  * Added YSFPeerPage, NXDNPeerPage and P25PeerPage options, local peers only
+
+- "index.php"
+  * Added the peer pages to the menu, with live counts
+  * Peer pages hidden, and journalctl skipped, without a local peer
+  * Empty $CallingHome['InterlinkFile'] falls back to /xlxd/xlxd.interlink
+
+- "pgs/functions.php"
+  * vnStat 2.13 support, traffic read with --json instead of --dumpdb
+
+- "pgs/traffic.php"
+  * Tidied layout and structure
+
+- "pgs/class.reflector.php"
+  * ReadInterlinkFile() reads xlxd.interlink from any path, not just /xlxd/
+  * Blank lines in xlxd.interlink skipped, no more empty interlinks
+
+- "pgs/class.interlink.php"
+  * YSF/NXDN/P25 host:port addresses accepted, were sent empty on calling home
+  * Fixed PHP 8.1+ deprecation notices
+
 xlx db v2.4.6
 M17 Protocol Support and Repeaters Page Pagination
 

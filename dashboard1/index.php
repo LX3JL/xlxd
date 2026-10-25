@@ -96,6 +96,15 @@ $Reflector->LoadXML();
 // Results are reused by the page files (they check isset() before re-parsing).
 require_once('./pgs/parse_journal_peers.php');
 
+// These pages need a local peer in xlxd.interlink, hide them (and skip journalctl) without one
+$InterlinkFile = !empty($CallingHome['InterlinkFile']) ? $CallingHome['InterlinkFile'] : '/xlxd/xlxd.interlink';
+foreach (['YSF' => 'YSFPeerPage', 'NXDN' => 'NXDNPeerPage', 'P25' => 'P25PeerPage'] as $PeerType => $PeerPage) {
+    if (!empty($PageOptions[$PeerPage]['Show']) && !HasLocalPeer($PeerType, $InterlinkFile)) {
+        $PageOptions[$PeerPage]['Show']        = false;
+        $PageOptions[$PeerPage]['NoLocalPeer'] = true;
+    }
+}
+
 $YSFPeers = [];
 if (!empty($PageOptions['YSFPeerPage']['Show'])) {
     $YSFPeers = ParseJournalPeers($PageOptions['YSFPeerPage']);

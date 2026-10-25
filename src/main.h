@@ -227,7 +227,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define YSFNODEDB_REFRESH_RATE          180                                 // in minutes
 
 // NXDN ID database ---------------------------------------------
-#define NXDNIDDB_USE_RLX_SERVER         0                                   // 1 = use http, 0 = use local file
+#define NXDNIDDB_USE_RLX_SERVER         1                                   // 1 = use http, 0 = use local file
 #define NXDNIDDB_PATH                   "/xlxd/nxdn.csv"                    // local file path
 #define NXDNIDDB_REFRESH_RATE           720                                 // in minutes (12 hours)
 

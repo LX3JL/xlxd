@@ -7,9 +7,10 @@ class Interlink {
    private $Modules;
 
    public function __construct() { 
-      $this->ReflectorName    = null;
-      $this->ReflectorAddress = null;
-      $this->Modules          = null;
+      // Empty strings, not null, PHP 8.1+ warns on null in strpos() and htmlspecialchars()
+      $this->ReflectorName    = '';
+      $this->ReflectorAddress = '';
+      $this->Modules          = '';
    }
    
    public function SetName($RefName)    {      $this->ReflectorName = trim($RefName);        }

@@ -7,9 +7,10 @@ class Interlink {
    private $Modules;
 
    public function __construct() { 
-      $this->ReflectorName    = null;
-      $this->ReflectorAddress = null;
-      $this->Modules          = null;
+      // Empty strings, not null, PHP 8.1+ warns on null in strpos() and htmlspecialchars()
+      $this->ReflectorName    = '';
+      $this->ReflectorAddress = '';
+      $this->Modules          = '';
    }
    
    public function SetName($RefName) {
@@ -21,11 +22,16 @@ class Interlink {
    }
    public function SetAddress($RefAdd) {
     $RefAdd = trim($RefAdd);
-    // Validate it's a valid hostname or IP
-    if (filter_var($RefAdd, FILTER_VALIDATE_IP) || 
-        filter_var($RefAdd, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+    // Validate it's a valid hostname or IP, YSF/NXDN/P25 peers add a :port
+    if ($this->IsValidHost($RefAdd) ||
+        (preg_match('/^(.+):([0-9]{1,5})$/', $RefAdd, $Parts) && $Parts[2] >= 1 && $Parts[2] <= 65535 && $this->IsValidHost($Parts[1]))) {
         $this->ReflectorAddress = $RefAdd;
     }
+   }
+
+   private function IsValidHost($Host) {
+    return filter_var($Host, FILTER_VALIDATE_IP) ||
+           filter_var($Host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
    }
    public function GetName()            {      return $this->ReflectorName;                   }
    public function GetAddress()         {      return $this->ReflectorAddress;                }

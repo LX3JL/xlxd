@@ -16,7 +16,7 @@ $PageOptions = array();
 
 $PageOptions['ContactEmail']                         = 'your_email';		    // Support E-Mail address
 
-$PageOptions['DashboardVersion']                     = '2.3.10';       			// Dashboard Version
+$PageOptions['DashboardVersion']                     = '2.3.11';       			// Dashboard Version
 
 $PageOptions['PageRefreshActive']                    = true;          			// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';       			// Page refresh time in miliseconds
@@ -73,6 +73,10 @@ $CallingHome['InterlinkFile']                        = "/xlxd/xlxd.interlink";  
 //
 // Each block controls one co-located reflector whose connected gateways are
 // shown by reading that reflector's systemd journal via journalctl.
+//
+// LOCAL ONLY: a page only appears when xlxd.interlink has a peer of that type
+// at 127.0.0.1 (or localhost), e.g. "YSF12345 127.0.0.1:42000 B". The users of
+// a remote peer can't be seen from here, so Show = true alone is not enough.
 //
 // Show         — set true to enable the nav item and page (default: false)
 // ServiceUnit  — exact systemd unit name passed to journalctl -u

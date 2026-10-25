@@ -7,7 +7,11 @@
  */
 
 if (empty($PageOptions['P25PeerPage']['Show'])) {
-    echo '<p style="font-family:verdana;font-size:10pt;">This page is not enabled.</p>';
+    if (!empty($PageOptions['P25PeerPage']['NoLocalPeer'])) {
+        echo '<p style="font-family:verdana;font-size:10pt;">No local P25 peer (127.0.0.1) in xlxd.interlink, this page only works with a P25 reflector on this host.</p>';
+    } else {
+        echo '<p style="font-family:verdana;font-size:10pt;">This page is not enabled.</p>';
+    }
     return;
 }
 

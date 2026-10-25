@@ -11,7 +11,11 @@
  */
 
 if (empty($PageOptions['NXDNPeerPage']['Show'])) {
-    echo '<p class="text-muted">This page is not enabled.</p>';
+    if (!empty($PageOptions['NXDNPeerPage']['NoLocalPeer'])) {
+        echo '<p class="text-muted">No local NXDN peer (127.0.0.1) in xlxd.interlink, this page only works with a NXDN reflector on this host.</p>';
+    } else {
+        echo '<p class="text-muted">This page is not enabled.</p>';
+    }
     return;
 }
 

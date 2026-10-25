@@ -11,7 +11,11 @@
  */
 
 if (empty($PageOptions['P25PeerPage']['Show'])) {
-    echo '<p class="text-muted">This page is not enabled.</p>';
+    if (!empty($PageOptions['P25PeerPage']['NoLocalPeer'])) {
+        echo '<p class="text-muted">No local P25 peer (127.0.0.1) in xlxd.interlink, this page only works with a P25 reflector on this host.</p>';
+    } else {
+        echo '<p class="text-muted">This page is not enabled.</p>';
+    }
     return;
 }
 

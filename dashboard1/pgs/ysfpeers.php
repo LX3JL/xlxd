@@ -7,7 +7,11 @@
  */
 
 if (empty($PageOptions['YSFPeerPage']['Show'])) {
-    echo '<p style="font-family:verdana;font-size:10pt;">This page is not enabled.</p>';
+    if (!empty($PageOptions['YSFPeerPage']['NoLocalPeer'])) {
+        echo '<p style="font-family:verdana;font-size:10pt;">No local YSF peer (127.0.0.1) in xlxd.interlink, this page only works with a YSF reflector on this host.</p>';
+    } else {
+        echo '<p style="font-family:verdana;font-size:10pt;">This page is not enabled.</p>';
+    }
     return;
 }
 

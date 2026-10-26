@@ -22,7 +22,7 @@ $PageOptions['DashboardVersion']                     = '2.4.7';		// Dashboard Ve
 $PageOptions['PageRefreshActive']                    = true;		// Activate automatic refresh
 $PageOptions['PageRefreshDelay']                     = '10000';		// Page refresh time in miliseconds
 
-$PageOptions['NumberOfModules']                      = 10;		// Number of Modules enabled on reflector
+$PageOptions['NumberOfModules']                      = 26;		// Number of Modules enabled on reflector
 
 $PageOptions['RepeatersPage'] = array();
 $PageOptions['RepeatersPage']['LimitTo']             = 99;		// Number of Repeaters to show

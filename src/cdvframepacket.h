@@ -25,6 +25,8 @@
 #ifndef cdvframepacket_h
 #define cdvframepacket_h
 
+#include <array>
+#include <memory>
 #include "cpacket.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -66,6 +68,8 @@ public:
     CDvFramePacket(const uint8 *codec2, uint16 sid, uint8 pid);
     // P25 constructor
     CDvFramePacket(uint16 sid, const uint8 *imbe);
+    // PCM constructor
+    CDvFramePacket(uint16 sid, uint8 pid, const uint8 *pcm);
     CDvFramePacket(const CDvFramePacket &);
     
     // destructor
@@ -86,6 +90,7 @@ public:
     const uint8 *GetImbe(void) const        { return m_uiImbe; }
     const uint8 *GetDvData(void) const      { return m_uiDvData; }
     const uint8 *GetDvSync(void) const      { return m_uiDvSync; }
+    const uint8 *GetPcm(void) const         { return m_Pcm ? m_Pcm->data() : NULL; }
     // Per-codec presence flags. Each Has* returns true iff the
     // corresponding byte slot has been populated with real codec
     // data (via SetAmbe or a real-data constructor). The default
@@ -105,10 +110,11 @@ public:
     bool HasAmbePlusData(void) const        { return m_bHasAmbePlus; }
     bool HasCodec2Data(void) const          { return m_bHasCodec2; }
     bool HasImbeData(void) const            { return m_bHasImbe; }
+    bool HasPcmData(void) const             { return m_Pcm != nullptr; }
 
     // set
     void SetDvData(uint8 *);
-    void SetAmbe(uint8, uint8 *);
+    void SetAmbe(uint8, const uint8 *);
     void SetCodec2(const uint8 *);
 
     // Reconcile the four Has-flags to reflect what the source actually
@@ -150,6 +156,9 @@ protected:
     // data (p25)
     uint8       m_uiImbe[IMBE_SIZE];
     bool        m_bHasImbe;
+    // data (pcm) - allocated only when present and shared read-only
+    // by the per-protocol duplicates, so non-PCM traffic pays nothing
+    std::shared_ptr<const std::array<uint8, PCM_FRAME_SIZE>> m_Pcm;
 };
 
 

@@ -55,7 +55,7 @@ public:
     void SetListenIp(const CIp &ip)     { m_Ip = ip; }
 
     // streams management
-    CStream *OpenStream(const CCallsign &, const CIp &, uint8, uint8, uint8, uint8);
+    CStream *OpenStream(const CCallsign &, const CIp &, uint8, uint8, uint8, uint8, uint8 = CODEC_NONE, bool = false, uint32 = 0);
     void CloseStream(CStream *);
     void CloseStream(uint16);
 
@@ -68,15 +68,19 @@ protected:
     bool IsValidKeepAlivePacket(const CBuffer &, CCallsign *);
     bool IsValidOpenstreamPacket(const CBuffer &, CCallsign *, uint8 *, uint8 *, uint8 *, uint8 *);
     bool IsValidClosestreamPacket(const CBuffer &, uint16 *);
+    bool IsValidCapsPacket(const CBuffer &);
+    bool IsValidExtOpenstreamPacket(const CBuffer &, CCallsign *, uint8 *, uint8 *, uint32 *);
     
     // packet encoding helpers
     void EncodeKeepAlivePacket(CBuffer *);
     void EncodeStreamDescrPacket(CBuffer *, const CStream &);
     void EncodeNoStreamAvailablePacket(CBuffer *);
+    void EncodeCapsPacket(CBuffer *);
 
     // codec helpers
     bool IsValidCodecIn(uint8);
     bool IsValidCodecOut(uint8);
+    bool IsValidExtCodec(uint8);
     
 protected:
     // control socket

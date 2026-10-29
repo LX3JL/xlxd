@@ -200,21 +200,7 @@ class CDvFramePacket;  // pointer-only use for m_pLastVoiceInJitter
 #define IMBE_SIZE           11
 
 // transcoder packet offsets
-#define TRANSCODER_PACKET_CODEC_OFFSET      0
 #define TRANSCODER_PACKET_PID_OFFSET        1
-#define TRANSCODER_PACKET_AMBE1_OFFSET      2
-#define TRANSCODER_PACKET_CODEC2_OFFSET     11
-#define TRANSCODER_PACKET_AMBE2_OFFSET      12
-#define TRANSCODER_PACKET_CODEC3_OFFSET     20
-#define TRANSCODER_PACKET_AMBE3_OFFSET      21
-
-// transcoder packet sizes
-#define TRANSCODER_PACKET_SIZE_LEGACY       11      // codec(1) + pid(1) + ambe(9)
-#define TRANSCODER_PACKET_SIZE_MULTI        20      // codec1(1) + pid(1) + ambe1(9) + codec2(1) + codec2_data(8)
-#define TRANSCODER_PACKET_SIZE_C2IN         21      // codec1(1) + pid(1) + ambe1(9) + codec2(1) + ambe2(9)
-#define TRANSCODER_PACKET_SIZE_IMBEIN       30      // codec1(1) + pid(1) + ambe1(9) + codec2(1) + ambe2(9) + codec3(1) + codec2_data(8)
-#define TRANSCODER_PACKET_SIZE_3CODEC       32      // codec1(1) + pid(1) + ambe1(9) + codec2(1) + codec2_data(8) + codec3(1) + imbe(11)
-#define TRANSCODER_PACKET_SIZE_C2IN_3CODEC  33      // codec1(1) + pid(1) + ambe1(9) + codec2(1) + ambe2(9) + codec3(1) + imbe(11)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +212,7 @@ class CCodecStream : public CPacketQueue
 {
 public:
     // constructor
-    CCodecStream(CPacketStream *, uint16, uint8, uint8, uint8, uint8);
+    CCodecStream(CPacketStream *, uint16, uint8, uint8, uint8, uint8, uint8 = CODEC_NONE);
 
     // destructor
     virtual ~CCodecStream();
@@ -277,10 +263,14 @@ public:
 
 protected:
     // packet decoding helpers
-    bool IsValidAmbePacket(const CBuffer &, uint8 *, uint8 *, uint8 *);
+    bool IsValidAmbePacket(const CBuffer &, const uint8 **);
 
     // packet encoding helpers
     void EncodeAmbePacket(CBuffer *, const uint8 *);
+
+    // codec helpers
+    static int GetCodecFrameSize(uint8);
+    bool HasCodecOut(uint8) const;
 
 
 protected:
@@ -289,9 +279,7 @@ protected:
     uint16          m_uiPort;
     uint8           m_uiPid;
     uint8           m_uiCodecIn;
-    uint8           m_uiCodecOut1;
-    uint8           m_uiCodecOut2;
-    uint8           m_uiCodecOut3;
+    uint8           m_uiCodecOut[TRANSCODER_MAX_OUTPUTS];   // in open order, CODEC_NONE = unused
 
     // socket
     CIp             m_Ip;

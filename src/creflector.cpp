@@ -324,10 +324,10 @@ CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client
     //     codec is missing)
     //
     // Source-codec preference when multiple are available:
-    //   AMBE+2 > AMBE+ > Codec2 > IMBE
+    //   AMBE+2 > AMBE+ > Codec2 > IMBE > PCM
     // (most-common cross-mode pairing first; IMBE only as input if
     // it's literally the only thing available, which would only
-    // happen for native P25 sources).
+    // happen for native P25 sources; PCM only for USRP sources).
     uint8 transcodeInputCodec = CODEC_NONE;
     if ( transcodeSourceCodecs != 0U )
     {
@@ -339,6 +339,7 @@ CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client
             else if ( transcodeSourceCodecs & (1U << CODEC_AMBEPLUS)  ) transcodeInputCodec = CODEC_AMBEPLUS;
             else if ( transcodeSourceCodecs & (1U << CODEC_CODEC2)    ) transcodeInputCodec = CODEC_CODEC2;
             else if ( transcodeSourceCodecs & (1U << CODEC_IMBE)      ) transcodeInputCodec = CODEC_IMBE;
+            else if ( transcodeSourceCodecs & (1U << CODEC_PCM_S16LE_8K) ) transcodeInputCodec = CODEC_PCM_S16LE_8K;
         }
     }
     // Backward-compat fallback: if the inputCodec from the stream is
@@ -352,10 +353,19 @@ CPacketStream *CReflector::OpenStream(CDvHeaderPacket *DvHeader, CClient *client
         transcodeInputCodec = inputCodec;
     }
 
+    // PCM in or out needs the extended open, which carries exactly
+    // the missing codecs; everything else keeps the legacy open.
     CCodecStream *codecStream = NULL;
     if ( transcodeInputCodec != CODEC_NONE )
     {
-        codecStream = g_Transcoder.GetStream(stream, transcodeInputCodec);
+        if ( (transcodeInputCodec == CODEC_PCM_S16LE_8K) || (neededCodecs & (1U << CODEC_PCM_S16LE_8K)) )
+        {
+            codecStream = g_Transcoder.GetStream(stream, transcodeInputCodec, neededCodecs & ~transcodeSourceCodecs);
+        }
+        else
+        {
+            codecStream = g_Transcoder.GetStream(stream, transcodeInputCodec);
+        }
     }
 
     // ----- Phase 3: attach the codec stream (stream lock only) -----

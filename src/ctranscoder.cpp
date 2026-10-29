@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include <cstring>
+#include <random>
 #include "creflector.h"
 #include "ctranscoder.h"
 
@@ -36,6 +37,15 @@
 
 // timeout — must accommodate remote AMBEd with 50-200ms network RTT
 #define AMBED_OPENSTREAM_TIMEOUT    1000    // in ms
+#define AMBED_CAPS_TIMEOUT          1000    // in ms
+
+////////////////////////////////////////////////////////////////////////////////////////
+// helper
+
+static uint32 GetBE32(const uint8 *p)
+{
+    return ((uint32)p[0] << 24) | ((uint32)p[1] << 16) | ((uint32)p[2] << 8) | (uint32)p[3];
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -57,6 +67,15 @@ CTranscoder::CTranscoder()
     m_bWaitingForStream = false;
     m_StreamidOpenStream = 0;
     m_PortOpenStream = 0;
+    m_uiOpenTransaction = 0;
+    // random start: a restarted xlxd does not reuse the previous run's ids
+    m_uiLastTransaction = (uint32)std::random_device()();
+    m_bPcmWanted = false;
+    m_iPcmCaps = PCMCAPS_IDLE;
+    m_uiPcmMaxOutputs = 0;
+    m_uiPcmCodecs = 0;
+    m_bPcmUnavailableLogged = false;
+    m_bPcmPartialLogged = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +159,9 @@ void CTranscoder::Task(void)
     CIp         Ip;
     uint16      StreamId;
     uint16      Port;
+    uint32      Transaction;
+    uint8       MaxOutputs;
+    uint32      Codecs;
     
     // anything coming in from codec server ?
     //if ( (m_Socket.Receive(&Buffer, &Ip, 20) != -1) && (Ip == m_Ip) )
@@ -148,9 +170,9 @@ void CTranscoder::Task(void)
         m_LastActivityTime.Now();
         
         // crack packet
-        if ( IsValidStreamDescrPacket(Buffer, &StreamId, &Port) )
+        if ( IsValidStreamDescrPacket(Buffer, &StreamId, &Port, &Transaction) )
         {
-            if ( m_bWaitingForStream )
+            if ( m_bWaitingForStream && (Transaction == m_uiOpenTransaction) )
             {
                 // Normal path: GetStream is waiting for this response
                 m_bStreamOpened = true;
@@ -170,9 +192,9 @@ void CTranscoder::Task(void)
                           << " — sent close to free hardware channel" << std::endl;
             }
         }
-        else if ( IsValidNoStreamAvailablePacket(Buffer) )
+        else if ( IsValidNoStreamAvailablePacket(Buffer, &Transaction) )
         {
-            if ( m_bWaitingForStream )
+            if ( m_bWaitingForStream && (Transaction == m_uiOpenTransaction) )
             {
                 m_bStreamOpened = false;
                 m_SemaphoreOpenStream.Notify();
@@ -184,10 +206,38 @@ void CTranscoder::Task(void)
             if ( !m_bConnected )
             {
                 std::cout << "Transcoder connected at " << Ip << std::endl;
+                // new connection, probe the extended open again
+                m_iPcmCaps = PCMCAPS_IDLE;
             }
             m_bConnected = true;
         }
-        
+        else if ( IsValidCapsPacket(Buffer, &MaxOutputs, &Codecs) )
+        {
+            if ( m_iPcmCaps == PCMCAPS_PROBING )
+            {
+                m_uiPcmMaxOutputs = MaxOutputs;
+                m_uiPcmCodecs = Codecs;
+                m_iPcmCaps = PCMCAPS_OK;
+                std::cout << "Transcoder extended open: " << (int)MaxOutputs << " outputs, codec mask 0x"
+                          << std::hex << Codecs << std::dec << std::endl;
+            }
+        }
+    }
+
+    // probe the extended open once per connection, and only when a PCM
+    // endpoint is configured: legacy setups never see the request
+    if ( m_bPcmWanted && m_bConnected && (m_iPcmCaps == PCMCAPS_IDLE) )
+    {
+        EncodeCapsPacket(&Buffer);
+        m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
+        m_PcmCapsTime.Now();
+        m_iPcmCaps = PCMCAPS_PROBING;
+    }
+    else if ( (m_iPcmCaps == PCMCAPS_PROBING) && (m_PcmCapsTime.DurationSinceNow() >= (AMBED_CAPS_TIMEOUT/1000.0)) )
+    {
+        // no answer: legacy transcoder, keep that for this connection
+        m_iPcmCaps = PCMCAPS_NONE;
+        std::cout << "Transcoder does not answer CAPS, extended open disabled" << std::endl;
     }
     
     // keep client alive
@@ -244,65 +294,141 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
                     return NULL;
             }
 
-            // Serialize stream open requests — the shared m_bStreamOpened /
-            // m_StreamidOpenStream / m_PortOpenStream fields are single-use,
-            // so concurrent callers must wait their turn
-            Lock();
-
-            // send openstream request
-            m_bStreamOpened = false;
-            m_bWaitingForStream = true;
+            uint8 uiCodecOut[TRANSCODER_MAX_OUTPUTS] = { uiCodecOut1, uiCodecOut2, uiCodecOut3, CODEC_NONE };
             EncodeOpenstreamPacket(&Buffer, uiCodecIn, uiCodecOut1, uiCodecOut2, uiCodecOut3);
-            m_SemaphoreOpenStream.PreWaitFor();
-            m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
-
-            // wait for AMBEd response (holding mutex blocks other GetStream callers)
-            bool gotResponse = m_SemaphoreOpenStream.WaitFor(AMBED_OPENSTREAM_TIMEOUT);
-
-            // If primary wait timed out, give a brief second chance to catch
-            // responses that were in-flight. This preserves the semaphore's
-            // happens-before ordering for m_StreamidOpenStream/m_PortOpenStream
-            // (reading those fields without the semaphore signal is a data race).
-            if ( !gotResponse )
-            {
-                gotResponse = m_SemaphoreOpenStream.WaitFor(50);
-            }
-
-            // Clear waiting flag — any later response from Task() will be
-            // detected as orphaned and closed via AMBEDCS
-            m_bWaitingForStream = false;
-
-            if ( gotResponse && m_bStreamOpened )
-            {
-                std::cout << "ambed stream open on port " << m_PortOpenStream << std::endl;
-
-                stream = new CCodecStream(PacketStream, m_StreamidOpenStream, uiCodecIn, uiCodecOut1, uiCodecOut2, uiCodecOut3);
-
-                if ( stream->Init(m_PortOpenStream) )
-                {
-                    m_Streams.push_back(stream);
-                }
-                else
-                {
-                    EncodeClosestreamPacket(&Buffer, stream->GetStreamId());
-                    m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
-                    delete stream;
-                    stream = NULL;
-                }
-            }
-            else if ( gotResponse && !m_bStreamOpened )
-            {
-                std::cout << "ambed openstream failed (no suitable channel available)" << std::endl;
-            }
-            else
-            {
-                std::cout << "ambed openstream timeout" << std::endl;
-            }
-
-            Unlock();
+            stream = OpenStream(PacketStream, Buffer, 0, uiCodecIn, uiCodecOut);
         }
     }
     return stream;
+}
+
+CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecIn, uint32 uiCodecsOut)
+{
+    CBuffer     Buffer;
+
+    // without extended open, fall back to the legacy open unless the
+    // input is PCM, which only the extended open can carry
+    if ( !IsPcmCapable(uiCodecIn) )
+    {
+        if ( uiCodecIn != CODEC_PCM_S16LE_8K )
+        {
+            return GetStream(PacketStream, uiCodecIn);
+        }
+        if ( !m_bPcmUnavailableLogged.exchange(true) )
+        {
+            std::cout << "ambed has no extended open, PCM streams are not transcoded" << std::endl;
+        }
+        return NULL;
+    }
+
+    // ordered output list: ascending codec, input excluded, limited to
+    // what the transcoder announced
+    uint8 uiCodecOut[TRANSCODER_MAX_OUTPUTS] = { CODEC_NONE, CODEC_NONE, CODEC_NONE, CODEC_NONE };
+    uint32 wanted = uiCodecsOut & ~(1U << uiCodecIn);
+    uint32 served = 0;
+    int n = 0;
+    for ( uint8 c = CODEC_AMBEPLUS; (c <= CODEC_PCM_S16LE_8K) && (n < (int)m_uiPcmMaxOutputs); c++ )
+    {
+        if ( (wanted & m_uiPcmCodecs) & (1U << c) )
+        {
+            uiCodecOut[n++] = c;
+            served |= (1U << c);
+        }
+    }
+    if ( (wanted & ~served) && !m_bPcmPartialLogged.exchange(true) )
+    {
+        std::cout << "ambed extended open: codec mask 0x" << std::hex << (wanted & ~served) << std::dec << " not served" << std::endl;
+    }
+    if ( n == 0 )
+    {
+        return NULL;
+    }
+
+    // transaction ties the descriptor reply to this request, never 0
+    uint32 uiTransaction = ++m_uiLastTransaction;
+    if ( uiTransaction == 0 )
+    {
+        uiTransaction = ++m_uiLastTransaction;
+    }
+    EncodeOpenstreamPacket(&Buffer, uiCodecIn, uiCodecOut, uiTransaction);
+    return OpenStream(PacketStream, Buffer, uiTransaction, uiCodecIn, uiCodecOut);
+}
+
+CCodecStream *CTranscoder::OpenStream(CPacketStream *PacketStream, const CBuffer &Request, uint32 uiTransaction, uint8 uiCodecIn, const uint8 *uiCodecOut)
+{
+    CBuffer     Buffer;
+
+    CCodecStream *stream = NULL;
+
+    // Serialize stream open requests — the shared m_bStreamOpened /
+    // m_StreamidOpenStream / m_PortOpenStream fields are single-use,
+    // so concurrent callers must wait their turn
+    Lock();
+
+    // send openstream request
+    m_bStreamOpened = false;
+    m_uiOpenTransaction = uiTransaction;
+    m_bWaitingForStream = true;
+    m_SemaphoreOpenStream.PreWaitFor();
+    m_Socket.Send(Request, m_Ip, TRANSCODER_PORT);
+
+    // wait for AMBEd response (holding mutex blocks other GetStream callers)
+    bool gotResponse = m_SemaphoreOpenStream.WaitFor(AMBED_OPENSTREAM_TIMEOUT);
+
+    // If primary wait timed out, give a brief second chance to catch
+    // responses that were in-flight. This preserves the semaphore's
+    // happens-before ordering for m_StreamidOpenStream/m_PortOpenStream
+    // (reading those fields without the semaphore signal is a data race).
+    if ( !gotResponse )
+    {
+        gotResponse = m_SemaphoreOpenStream.WaitFor(50);
+    }
+
+    // Clear waiting flag — any later response from Task() will be
+    // detected as orphaned and closed via AMBEDCS
+    m_bWaitingForStream = false;
+
+    if ( gotResponse && m_bStreamOpened )
+    {
+        std::cout << "ambed stream open on port " << m_PortOpenStream << std::endl;
+
+        stream = new CCodecStream(PacketStream, m_StreamidOpenStream, uiCodecIn,
+                                  uiCodecOut[0], uiCodecOut[1], uiCodecOut[2], uiCodecOut[3]);
+
+        if ( stream->Init(m_PortOpenStream) )
+        {
+            m_Streams.push_back(stream);
+        }
+        else
+        {
+            EncodeClosestreamPacket(&Buffer, stream->GetStreamId());
+            m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
+            delete stream;
+            stream = NULL;
+        }
+    }
+    else if ( gotResponse && !m_bStreamOpened )
+    {
+        std::cout << "ambed openstream failed (no suitable channel available)" << std::endl;
+    }
+    else
+    {
+        std::cout << "ambed openstream timeout" << std::endl;
+    }
+
+    Unlock();
+    return stream;
+}
+
+bool CTranscoder::IsPcmCapable(uint8 uiCodecIn)
+{
+    // a stream opened right after connect waits for the pending probe
+    for ( int i = 0; (i <= AMBED_CAPS_TIMEOUT/10) && (m_iPcmCaps == PCMCAPS_PROBING); i++ )
+    {
+        CTimePoint::TaskSleepFor(10);
+    }
+    uint32 needed = (1U << CODEC_PCM_S16LE_8K) | (1U << uiCodecIn);
+    return m_bConnected && (m_iPcmCaps == PCMCAPS_OK) && ((m_uiPcmCodecs & needed) == needed);
 }
 
 void CTranscoder::ReleaseStream(CCodecStream *stream)
@@ -440,27 +566,52 @@ bool CTranscoder::IsValidKeepAlivePacket(const CBuffer &Buffer)
     return valid;
 }
 
-bool CTranscoder::IsValidStreamDescrPacket(const CBuffer &Buffer, uint16 *Id, uint16 *Port)
+bool CTranscoder::IsValidStreamDescrPacket(const CBuffer &Buffer, uint16 *Id, uint16 *Port, uint32 *Transaction)
 {
     uint8 tag[] = { 'A','M','B','E','D','S','T','D' };
     
     bool valid = false;
-    if ( (Buffer.size() == 14) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
+    // legacy 14 bytes, extended open reply adds a BE32 transaction
+    if ( ((Buffer.size() == 14) || (Buffer.size() == 18)) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
     {
         ::memcpy(Id, &Buffer.data()[8], sizeof(uint16));
         ::memcpy(Port, &Buffer.data()[10], sizeof(uint16));
         // uint8 CodecIn = Buffer.data()[12];
         // uint8 CodecOut = Buffer.data()[13];
+        *Transaction = (Buffer.size() == 18) ? GetBE32(&Buffer.data()[14]) : 0;
         valid = true;
     }
     return valid;
 }
 
-bool CTranscoder::IsValidNoStreamAvailablePacket(const CBuffer&Buffer)
+bool CTranscoder::IsValidNoStreamAvailablePacket(const CBuffer&Buffer, uint32 *Transaction)
 {
     uint8 tag[] = { 'A','M','B','E','D','B','U','S','Y' };
     
-    return  ( (Buffer.size() == 9) && (Buffer.Compare(tag, sizeof(tag)) == 0) );
+    bool valid = false;
+    // legacy 9 bytes, extended open reply adds a BE32 transaction
+    if ( ((Buffer.size() == 9) || (Buffer.size() == 13)) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
+    {
+        *Transaction = (Buffer.size() == 13) ? GetBE32(&Buffer.data()[9]) : 0;
+        valid = true;
+    }
+    return valid;
+}
+
+bool CTranscoder::IsValidCapsPacket(const CBuffer &Buffer, uint8 *MaxOutputs, uint32 *Codecs)
+{
+    uint8 tag[] = { 'A','M','B','E','D','C','A','P','S' };
+
+    // tag(9) + version 1 + max outputs (1..4) + BE32 mask of codecs 1..5
+    bool valid = false;
+    if ( (Buffer.size() == 15) && (Buffer.Compare(tag, sizeof(tag)) == 0) && (Buffer.data()[9] == 1) &&
+         (Buffer.data()[10] >= 1) && (Buffer.data()[10] <= TRANSCODER_MAX_OUTPUTS) )
+    {
+        *MaxOutputs = Buffer.data()[10];
+        *Codecs = GetBE32(&Buffer.data()[11]) & 0x3E;
+        valid = (*Codecs != 0);
+    }
+    return valid;
 }
 
 
@@ -475,6 +626,13 @@ void CTranscoder::EncodeKeepAlivePacket(CBuffer *Buffer)
     Buffer->Append((uint8 *)(const char *)g_Reflector.GetCallsign(), CALLSIGN_LEN);
 }
 
+void CTranscoder::EncodeCapsPacket(CBuffer *Buffer)
+{
+    uint8 tag[] = { 'A','M','B','E','D','C','A','P','S' };
+
+    Buffer->Set(tag, sizeof(tag));
+}
+
 void CTranscoder::EncodeOpenstreamPacket(CBuffer *Buffer, uint8 uiCodecIn, uint8 uiCodecOut1, uint8 uiCodecOut2, uint8 uiCodecOut3)
 {
     uint8 tag[] = { 'A','M','B','E','D','O','S' };
@@ -485,6 +643,14 @@ void CTranscoder::EncodeOpenstreamPacket(CBuffer *Buffer, uint8 uiCodecIn, uint8
     Buffer->Append((uint8)uiCodecOut1);
     Buffer->Append((uint8)uiCodecOut2);
     Buffer->Append((uint8)uiCodecOut3);
+}
+
+void CTranscoder::EncodeOpenstreamPacket(CBuffer *Buffer, uint8 uiCodecIn, const uint8 *uiCodecOut, uint32 uiTransaction)
+{
+    // legacy 19-byte open + 4th output + BE32 transaction = 24 bytes
+    EncodeOpenstreamPacket(Buffer, uiCodecIn, uiCodecOut[0], uiCodecOut[1], uiCodecOut[2]);
+    Buffer->Append((uint8)uiCodecOut[3]);
+    Buffer->Append((uint32)htonl(uiTransaction));
 }
 
 void CTranscoder::EncodeClosestreamPacket(CBuffer *Buffer, uint16 uiStreamId)

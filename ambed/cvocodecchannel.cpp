@@ -53,6 +53,9 @@ CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVoc
     m_pImbeThread = NULL;
     m_bImbeStopThread = false;
 
+    // PCM tap starts disabled, enabled per-stream as needed
+    m_bPcmEnabled = false;
+
     // PID FIFO desync drop counters — reset by PurgeAllQueues at
     // every Open/Close so each stream gets a fresh accounting epoch.
     m_PidFifoOrphanDrops = 0;
@@ -146,6 +149,27 @@ uint8 CVocodecChannel::GetCodecOut(void) const
 
 void CVocodecChannel::ProcessSignal(CVoicePacket& voicePacket)
 {
+    // PCM tap takes the native decoded speech, before gain/AGC/filter
+    if (m_bPcmEnabled && (voicePacket.GetVoiceSize() >= PCM_FRAME_SIZE))
+    {
+        // Convert big-endian PCM to little-endian
+        uint8 *rawVoice = voicePacket.GetVoice();
+        std::vector<uint8> pcm(PCM_FRAME_SIZE);
+        for (int i = 0; i < 160; i++)
+        {
+            pcm[i*2] = rawVoice[i*2 + 1];
+            pcm[i*2 + 1] = rawVoice[i*2];
+        }
+
+        // Push to PCM queue (drop oldest if full)
+        std::lock_guard<std::mutex> lock(m_PcmMutex);
+        if ( m_PcmQueue.size() >= SOFTWARE_QUEUE_MAX_DEPTH )
+        {
+            m_PcmQueue.pop();
+        }
+        m_PcmQueue.push(pcm);
+    }
+
     m_signalProcessor->Process(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
 
     // Codec2 encoding runs in a separate thread to avoid blocking the hardware interface.
@@ -422,6 +446,40 @@ bool CVocodecChannel::GetImbeData(uint8 *imbe)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// PCM tap control & queue access
+
+void CVocodecChannel::EnablePcm(bool bEnable)
+{
+    m_bPcmEnabled = bEnable;
+    if (!bEnable)
+    {
+        std::lock_guard<std::mutex> lock(m_PcmMutex);
+        while (!m_PcmQueue.empty())
+        {
+            m_PcmQueue.pop();
+        }
+    }
+}
+
+bool CVocodecChannel::HasPcmData(void)
+{
+    std::lock_guard<std::mutex> lock(m_PcmMutex);
+    return !m_PcmQueue.empty();
+}
+
+bool CVocodecChannel::GetPcmData(uint8 *pcm)
+{
+    std::lock_guard<std::mutex> lock(m_PcmMutex);
+    if (m_PcmQueue.empty())
+    {
+        return false;
+    }
+    ::memcpy(pcm, m_PcmQueue.front().data(), PCM_FRAME_SIZE);
+    m_PcmQueue.pop();
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Async IMBE encoder thread
 
 void CVocodecChannel::ImbeEncoderThread(CVocodecChannel *pChannel)
@@ -535,6 +593,15 @@ void CVocodecChannel::PurgeAllQueues(void)
         while (!m_ImbePcmQueue.empty())
         {
             m_ImbePcmQueue.pop();
+        }
+    }
+
+    // Clear PCM tap queue
+    {
+        std::lock_guard<std::mutex> lock(m_PcmMutex);
+        while (!m_PcmQueue.empty())
+        {
+            m_PcmQueue.pop();
         }
     }
 

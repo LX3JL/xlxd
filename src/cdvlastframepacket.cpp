@@ -78,6 +78,13 @@ CDvLastFramePacket::CDvLastFramePacket(const uint8 *codec2, uint16 sid, uint8 pi
 {
 }
 
+// PCM constructor
+
+CDvLastFramePacket::CDvLastFramePacket(uint16 sid, uint8 pid, const uint8 *pcm)
+    : CDvFramePacket(sid, pid, pcm)
+{
+}
+
 // copy constructor
     
 CDvLastFramePacket::CDvLastFramePacket(const CDvLastFramePacket &DvFrame)

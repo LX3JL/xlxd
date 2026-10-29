@@ -73,11 +73,18 @@
 #define CODEC_AMBE2PLUS                 2
 #define CODEC_CODEC2                    3
 #define CODEC_IMBE                      4
+#define CODEC_PCM_S16LE_8K              5                                   // extended streams only
 
 // Frame sizes --------------------------------------------------
 #define AMBE_FRAME_SIZE                 9
 #define CODEC2_FRAME_SIZE               8
 #define IMBE_FRAME_SIZE                 11
+#define PCM_FRAME_SIZE                  320                                 // 160 samples S16LE 8 kHz
+
+// Extended streams (24 bytes open) -----------------------------
+#define CAPS_VERSION                    1
+#define STREAM_MAX_OUTPUTS              4
+#define SOFTWARE_MAX_STREAMS            4                                   // software only streams when no vocodec hardware
 
 // Transcoding speech gains (hardware vocodec channels: AMBE decode -> PCM -> AMBE encode)
 #define CODECGAIN_AMBEPLUS              -10                                 // in dB (D-Star)

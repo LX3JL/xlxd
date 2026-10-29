@@ -43,7 +43,7 @@ class CStream
 public:
     // constructors
     CStream();
-    CStream(uint16, const CCallsign &, const CIp &, uint8, uint8, uint8, uint8);
+    CStream(uint16, const CCallsign &, const CIp &, uint8, uint8, uint8, uint8, uint8 = CODEC_NONE);
 
     // destructor
     virtual ~CStream();
@@ -60,6 +60,14 @@ public:
     uint8   GetCodecOut1(void) const    { return m_uiCodecOut1; }
     uint8   GetCodecOut2(void) const    { return m_uiCodecOut2; }
     uint8   GetCodecOut3(void) const    { return m_uiCodecOut3; }
+    bool    HasCodecOut(uint8) const;
+
+    // extended streams (24 bytes open)
+    void    SetTransaction(uint32 ui)   { m_bExtended = true; m_uiTransaction = ui; }
+    bool    IsExtended(void) const      { return m_bExtended; }
+    bool    IsTransaction(const CIp &Ip, uint32 ui, uint8 in, const uint8 *out) const
+                                        { return m_bExtended && (m_Ip == Ip) && (m_uiTransaction == ui) && (m_uiCodecIn == in) &&
+                                                 (m_uiCodecOut1 == out[0]) && (m_uiCodecOut2 == out[1]) && (m_uiCodecOut3 == out[2]) && (m_uiCodecOut4 == out[3]); }
 
     // activity timer
     bool    IsActive(void) const        { return m_LastActivity.DurationSinceNow() <= STREAM_ACTIVITY_TIMEOUT; }
@@ -76,12 +84,18 @@ protected:
 
     // packet encoding helpers
     void EncodeDvFramePacket(CBuffer *, uint8, uint8 *, uint8 *, uint8 *);
+    void EncodeDvFramePacket(CBuffer *, uint8, uint8 *[]);
+    bool SendDvFramePacket(CAmbePacket *);
+    void PatchDvFramePacket(CBuffer *, CVocodecChannel *, uint8);
 
     // Codec2 input handling
     void TaskCodec2Input(void);
 
     // IMBE input handling
     void TaskImbeInput(void);
+
+    // extended Codec2, IMBE or PCM input handling
+    void TaskSoftwareInput(void);
 
 protected:
     // data
@@ -92,6 +106,9 @@ protected:
     uint8           m_uiCodecOut1;
     uint8           m_uiCodecOut2;
     uint8           m_uiCodecOut3;
+    uint8           m_uiCodecOut4;
+    bool            m_bExtended;
+    uint32          m_uiTransaction;
     CVocodecChannel *m_VocodecChannel;
 
     // Codec2 input mode: two encoder channels + decoder + signal processors + IMBE encoder
@@ -107,6 +124,9 @@ protected:
     imbe_vocoder    *m_pImbeDecoder;     // Software IMBE decoder
     CCodec2         *m_pCodec2Encoder;   // Software Codec2 encoder for IMBE input
     std::queue<std::vector<uint8>> m_Codec2Queue;  // Queue for Codec2 data in IMBE input mode
+
+    // extended software input: replies waiting for hardware AMBE frames
+    std::queue<CBuffer> m_ReplyQueue;
 
     // Precomputed gain multipliers (avoid pow() per packet)
     float           m_fCodec2DecodeGain;    // Codec2 decode output gain (Codec2 input mode)

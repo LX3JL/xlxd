@@ -181,6 +181,24 @@ CDvFramePacket::CDvFramePacket(uint16 sid, const uint8 *imbe)
     m_bHasCodec2 = false;
 }
 
+// pcm constructor
+
+CDvFramePacket::CDvFramePacket(uint16 sid, uint8 pid, const uint8 *pcm)
+: CPacket(sid, pid)
+{
+    ::memset(m_uiAmbe, 0, sizeof(m_uiAmbe));
+    ::memset(m_uiDvData, 0, sizeof(m_uiDvData));
+    m_bHasAmbe = false;
+    ::memset(m_uiAmbePlus, 0, sizeof(m_uiAmbePlus));
+    ::memset(m_uiDvSync, 0, sizeof(m_uiDvSync));
+    m_bHasAmbePlus = false;
+    ::memset(m_uiCodec2, 0, sizeof(m_uiCodec2));
+    m_bHasCodec2 = false;
+    ::memset(m_uiImbe, 0, sizeof(m_uiImbe));
+    m_bHasImbe = false;
+    SetAmbe(CODEC_PCM_S16LE_8K, pcm);
+}
+
 // copy constructor
 
 CDvFramePacket::CDvFramePacket(const CDvFramePacket &DvFrame)
@@ -196,6 +214,7 @@ CDvFramePacket::CDvFramePacket(const CDvFramePacket &DvFrame)
     m_bHasCodec2 = DvFrame.m_bHasCodec2;
     ::memcpy(m_uiImbe, DvFrame.m_uiImbe, sizeof(m_uiImbe));
     m_bHasImbe = DvFrame.m_bHasImbe;
+    m_Pcm = DvFrame.m_Pcm;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -217,6 +236,7 @@ const uint8 *CDvFramePacket::GetAmbe(uint8 uiCodec) const
         case CODEC_AMBE2PLUS:   return m_uiAmbePlus;
         case CODEC_CODEC2:      return m_uiCodec2;
         case CODEC_IMBE:        return m_uiImbe;
+        case CODEC_PCM_S16LE_8K: return GetPcm();
         default:                return NULL;
     }
 }
@@ -229,7 +249,7 @@ void CDvFramePacket::SetDvData(uint8 *DvData)
     ::memcpy(m_uiDvData, DvData, sizeof(m_uiDvData));
 }
 
-void CDvFramePacket::SetAmbe(uint8 uiCodec, uint8 *Ambe)
+void CDvFramePacket::SetAmbe(uint8 uiCodec, const uint8 *Ambe)
 {
     // Each byte-write also sets the matching Has* flag. The flag
     // assignment is bound to the same case branch as the memcpy so
@@ -254,6 +274,14 @@ void CDvFramePacket::SetAmbe(uint8 uiCodec, uint8 *Ambe)
             ::memcpy(m_uiImbe, Ambe, sizeof(m_uiImbe));
             m_bHasImbe = true;
             break;
+        case CODEC_PCM_S16LE_8K:
+        {
+            // new buffer: duplicates already routed keep the old one
+            std::shared_ptr<std::array<uint8, PCM_FRAME_SIZE>> pcm = std::make_shared<std::array<uint8, PCM_FRAME_SIZE>>();
+            ::memcpy(pcm->data(), Ambe, PCM_FRAME_SIZE);
+            m_Pcm = pcm;
+            break;
+        }
     }
 }
 
@@ -269,6 +297,10 @@ void CDvFramePacket::ConformAvailableCodecs(uint32 mask)
     m_bHasAmbePlus = (mask & (1U << CODEC_AMBE2PLUS)) != 0U;
     m_bHasCodec2   = (mask & (1U << CODEC_CODEC2))    != 0U;
     m_bHasImbe     = (mask & (1U << CODEC_IMBE))      != 0U;
+    if ( (mask & (1U << CODEC_PCM_S16LE_8K)) == 0U )
+    {
+        m_Pcm.reset();
+    }
 }
 
 

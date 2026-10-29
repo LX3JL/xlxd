@@ -35,6 +35,7 @@
 #include "cm17protocol.h"
 #include "cnxdnprotocol.h"
 #include "cp25protocol.h"
+#include "cusrpprotocol.h"
 #include "cprotocols.h"
 
 
@@ -132,6 +133,11 @@ bool CProtocols::Init(void)
         delete m_Protocols[11];
         m_Protocols[11] = new CP25Protocol;
         ok &= m_Protocols[11]->Init();
+
+        // create and initialize USRP (endpoints from xlxd.usrp, if any)
+        delete m_Protocols[12];
+        m_Protocols[12] = new CUsrpProtocol;
+        ok &= m_Protocols[12]->Init();
     }
     m_Mutex.unlock();
    

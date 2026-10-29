@@ -72,6 +72,7 @@ public:
 
     // open & close
     bool Open(uint16);
+    bool Open(uint16, const char *);
     void Close(void);
     int  GetSocket(void)        { return m_Socket; }
 

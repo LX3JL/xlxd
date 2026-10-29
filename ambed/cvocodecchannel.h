@@ -165,6 +165,11 @@ public:
     bool GetImbeData(uint8 *imbe);
     bool IsImbeEnabled(void) const          { return m_bImbeEnabled; }
 
+    // PCM queue (native decoded speech, S16LE)
+    void EnablePcm(bool bEnable);
+    bool HasPcmData(void);
+    bool GetPcmData(uint8 *pcm);
+
     // operators
     //virtual bool operator ==(const CVocodecChannel &) const   { return false; }
     
@@ -255,6 +260,11 @@ protected:
     std::queue<std::vector<int16_t>> m_ImbePcmQueue;  // PCM samples waiting to be encoded
     static void ImbeEncoderThread(CVocodecChannel *pChannel);
     void ImbeEncoderTask(void);
+
+    // PCM tap (decoded speech before signal processing)
+    std::atomic<bool>   m_bPcmEnabled;
+    std::mutex          m_PcmMutex;
+    std::queue<std::vector<uint8>> m_PcmQueue;
 
 private:
     CSignalProcessor* m_signalProcessor;

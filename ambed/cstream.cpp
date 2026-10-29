@@ -35,6 +35,32 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
+// frame size of a codec on the wire
+static int FrameSize(uint8 codec)
+{
+    switch ( codec )
+    {
+        case CODEC_AMBEPLUS:
+        case CODEC_AMBE2PLUS:       return AMBE_FRAME_SIZE;
+        case CODEC_CODEC2:          return CODEC2_FRAME_SIZE;
+        case CODEC_IMBE:            return IMBE_FRAME_SIZE;
+        case CODEC_PCM_S16LE_8K:    return PCM_FRAME_SIZE;
+        default:                    return 0;
+    }
+}
+
+// apply gain to 160 PCM samples, clipped to int16 range
+static void ScalePcm(const int16_t *in, int16_t *out, float gain)
+{
+    for (int i = 0; i < 160; i++)
+    {
+        int32_t sample = (int32_t)(in[i] * gain);
+        if (sample > 32767) sample = 32767;
+        else if (sample < -32768) sample = -32768;
+        out[i] = (int16_t)sample;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
@@ -46,6 +72,9 @@ CStream::CStream()
     m_uiCodecOut1 = CODEC_NONE;
     m_uiCodecOut2 = CODEC_NONE;
     m_uiCodecOut3 = CODEC_NONE;
+    m_uiCodecOut4 = CODEC_NONE;
+    m_bExtended = false;
+    m_uiTransaction = 0;
     m_bStopThread = false;
     m_pThread = NULL;
     m_VocodecChannel = NULL;
@@ -68,7 +97,7 @@ CStream::CStream()
     m_nCodec2QueueSize = 0;
 }
 
-CStream::CStream(uint16 uiId, const CCallsign &Callsign, const CIp &Ip, uint8 uiCodecIn, uint8 uiCodecOut1, uint8 uiCodecOut2, uint8 uiCodecOut3)
+CStream::CStream(uint16 uiId, const CCallsign &Callsign, const CIp &Ip, uint8 uiCodecIn, uint8 uiCodecOut1, uint8 uiCodecOut2, uint8 uiCodecOut3, uint8 uiCodecOut4)
 {
     m_uiId = uiId;
     m_Callsign = Callsign;
@@ -78,6 +107,9 @@ CStream::CStream(uint16 uiId, const CCallsign &Callsign, const CIp &Ip, uint8 ui
     m_uiCodecOut1 = uiCodecOut1;
     m_uiCodecOut2 = uiCodecOut2;
     m_uiCodecOut3 = uiCodecOut3;
+    m_uiCodecOut4 = uiCodecOut4;
+    m_bExtended = false;
+    m_uiTransaction = 0;
     m_bStopThread = false;
     m_pThread = NULL;
     m_VocodecChannel = NULL;
@@ -122,8 +154,58 @@ bool CStream::Init(uint16 uiPort)
     ok = m_Socket.Open(g_AmbeServer.GetListenIp(), uiPort);
     if ( ok )
     {
+        // Extended Codec2, IMBE or PCM input: software decode, encoder channels only for requested AMBE outputs
+        if ( m_bExtended && (m_uiCodecIn != CODEC_AMBEPLUS) && (m_uiCodecIn != CODEC_AMBE2PLUS) )
+        {
+            if ( HasCodecOut(CODEC_AMBEPLUS) )
+                ok &= ((m_EncoderChannel1 = g_Vocodecs.OpenEncoderChannel(CODEC_AMBEPLUS)) != NULL);
+            if ( HasCodecOut(CODEC_AMBE2PLUS) )
+                ok &= ((m_EncoderChannel2 = g_Vocodecs.OpenEncoderChannel(CODEC_AMBE2PLUS)) != NULL);
+
+            if ( ok )
+            {
+                // store port
+                m_uiPort = uiPort;
+
+                // same gains as the legacy Codec2/IMBE input modes, PCM input is used as is
+                if ( m_uiCodecIn == CODEC_CODEC2 )
+                {
+                    m_pCodec2Decoder = new CCodec2(true);
+                    m_fCodec2DecodeGain = pow(10.0f, CODEC2_DECODE_GAIN / 20.0f);
+                    m_fImbeGain = pow(10.0f, CODEC2_TO_IMBE_GAIN / 20.0f);
+                    m_pSignalProcessor1 = new CSignalProcessor((float)CODEC2_TO_AMBEPLUS_GAIN);
+                    m_pSignalProcessor2 = new CSignalProcessor((float)CODEC2_TO_AMBE2PLUS_GAIN);
+                }
+                else if ( m_uiCodecIn == CODEC_IMBE )
+                {
+                    m_pImbeDecoder = new imbe_vocoder();
+                    m_fImbeGain = pow(10.0f, IMBE_DECODE_GAIN / 20.0f);
+                    m_fCodec2Gain = pow(10.0f, IMBE_TO_CODEC2_GAIN / 20.0f);
+                    m_pSignalProcessor1 = new CSignalProcessor((float)IMBE_TO_AMBEPLUS_GAIN);
+                    m_pSignalProcessor2 = new CSignalProcessor((float)IMBE_TO_AMBE2PLUS_GAIN);
+                }
+                if ( HasCodecOut(CODEC_CODEC2) )
+                    m_pCodec2Encoder = new CCodec2(true);
+                if ( HasCodecOut(CODEC_IMBE) )
+                    m_pImbeEncoder = new imbe_vocoder();
+
+                // start thread
+                m_pThread = new std::thread(CStream::Thread, this);
+
+                // init timeout system
+                m_LastActivity.Now();
+                m_iTotalPackets = 0;
+                m_iLostPackets = 0;
+            }
+            else
+            {
+                std::cout << "Error opening stream : no suitable encoder channels available" << std::endl;
+                if (m_EncoderChannel1 != NULL) { m_EncoderChannel1->Close(); m_EncoderChannel1 = NULL; }
+                if (m_EncoderChannel2 != NULL) { m_EncoderChannel2->Close(); m_EncoderChannel2 = NULL; }
+            }
+        }
         // Codec2 input mode: need two encoder channels + software decoder + software IMBE encoder
-        if (m_uiCodecIn == CODEC_CODEC2)
+        else if (m_uiCodecIn == CODEC_CODEC2)
         {
             // Create Codec2 software decoder
             m_pCodec2Decoder = new CCodec2(true);  // true = 3200bps mode
@@ -244,7 +326,13 @@ bool CStream::Init(uint16 uiPort)
         else
         {
             // Normal AMBE input mode: open a VocodecChannel for hardware transcoding
-            ok &= ((m_VocodecChannel = g_Vocodecs.OpenChannel(m_uiCodecIn, m_uiCodecOut1)) != NULL);
+            // extended streams always pair with the other AMBE codec, dropped if not requested
+            uint8 uiCodecHw = m_uiCodecOut1;
+            if ( m_bExtended )
+            {
+                uiCodecHw = (m_uiCodecIn == CODEC_AMBEPLUS) ? CODEC_AMBE2PLUS : CODEC_AMBEPLUS;
+            }
+            ok &= ((m_VocodecChannel = g_Vocodecs.OpenChannel(m_uiCodecIn, uiCodecHw)) != NULL);
 
             if ( ok )
             {
@@ -252,17 +340,23 @@ bool CStream::Init(uint16 uiPort)
                 m_uiPort = uiPort;
 
                 // Enable Codec2 encoding if second output is Codec2
-                if (m_uiCodecOut2 == CODEC_CODEC2)
+                if (HasCodecOut(CODEC_CODEC2))
                 {
                     m_VocodecChannel->EnableCodec2(true);
                     std::cout << "Codec2 software encoding enabled for stream" << std::endl;
                 }
 
                 // Enable IMBE encoding if third output is IMBE
-                if (m_uiCodecOut3 == CODEC_IMBE)
+                if (HasCodecOut(CODEC_IMBE))
                 {
                     m_VocodecChannel->EnableImbe(true);
                     std::cout << "IMBE software encoding enabled for stream" << std::endl;
+                }
+
+                // Enable PCM tap if PCM is requested
+                if (HasCodecOut(CODEC_PCM_S16LE_8K))
+                {
+                    m_VocodecChannel->EnablePcm(true);
                 }
 
                 // start thread
@@ -300,11 +394,10 @@ void CStream::Close(void)
     if ( m_pThread == NULL )
         return;
 
-    // For IMBE/Codec2 input modes, wait for encoder queues to drain
+    // For IMBE/Codec2/PCM input modes, wait for encoder queues to drain
     // This ensures packets still in DVSI hardware FIFOs get processed and sent back
     // The thread must keep running during drain to collect hardware responses
-    if ( (m_uiCodecIn == CODEC_IMBE || m_uiCodecIn == CODEC_CODEC2) &&
-         m_EncoderChannel1 != NULL && m_EncoderChannel2 != NULL )
+    if ( m_EncoderChannel1 != NULL || m_EncoderChannel2 != NULL )
     {
         const int MAX_DRAIN_MS = 500;
         const int DRAIN_POLL_MS = 10;
@@ -314,13 +407,17 @@ void CStream::Close(void)
         // Wait for voice queues to drain (PCM waiting to be sent to hardware)
         while ( waitedMs < MAX_DRAIN_MS )
         {
-            CPacketQueue *v1 = m_EncoderChannel1->GetVoiceQueue();
-            bool v1e = v1->empty();
-            m_EncoderChannel1->ReleaseVoiceQueue();
-
-            CPacketQueue *v2 = m_EncoderChannel2->GetVoiceQueue();
-            bool v2e = v2->empty();
-            m_EncoderChannel2->ReleaseVoiceQueue();
+            bool v1e = true, v2e = true;
+            if ( m_EncoderChannel1 != NULL )
+            {
+                v1e = m_EncoderChannel1->GetVoiceQueue()->empty();
+                m_EncoderChannel1->ReleaseVoiceQueue();
+            }
+            if ( m_EncoderChannel2 != NULL )
+            {
+                v2e = m_EncoderChannel2->GetVoiceQueue()->empty();
+                m_EncoderChannel2->ReleaseVoiceQueue();
+            }
 
             if ( v1e && v2e )
                 break;
@@ -338,13 +435,17 @@ void CStream::Close(void)
         waitedMs = 0;
         while ( waitedMs < MAX_DRAIN_MS )
         {
-            CPacketQueue *q1 = m_EncoderChannel1->GetPacketQueueOut();
-            bool q1e = q1->empty();
-            m_EncoderChannel1->ReleasePacketQueueOut();
-
-            CPacketQueue *q2 = m_EncoderChannel2->GetPacketQueueOut();
-            bool q2e = q2->empty();
-            m_EncoderChannel2->ReleasePacketQueueOut();
+            bool q1e = true, q2e = true;
+            if ( m_EncoderChannel1 != NULL )
+            {
+                q1e = m_EncoderChannel1->GetPacketQueueOut()->empty();
+                m_EncoderChannel1->ReleasePacketQueueOut();
+            }
+            if ( m_EncoderChannel2 != NULL )
+            {
+                q2e = m_EncoderChannel2->GetPacketQueueOut()->empty();
+                m_EncoderChannel2->ReleasePacketQueueOut();
+            }
 
             bool swQueueEmpty;
             if (m_uiCodecIn == CODEC_CODEC2)
@@ -453,6 +554,7 @@ void CStream::Close(void)
     {
         m_VocodecChannel->EnableCodec2(false);
         m_VocodecChannel->EnableImbe(false);
+        m_VocodecChannel->EnablePcm(false);
         m_VocodecChannel->Close();
         m_VocodecChannel = NULL;
     }
@@ -477,6 +579,7 @@ void CStream::Close(void)
     // Clear software queues and reset counters
     while ( !m_ImbeQueue.empty() ) m_ImbeQueue.pop();
     while ( !m_Codec2Queue.empty() ) m_Codec2Queue.pop();
+    while ( !m_ReplyQueue.empty() ) m_ReplyQueue.pop();
     m_nImbeQueueSize = 0;
     m_nCodec2QueueSize = 0;
 
@@ -513,7 +616,11 @@ void CStream::Thread(CStream *This)
 void CStream::Task(void)
 {
     // Route to appropriate task handler based on input codec
-    if (m_uiCodecIn == CODEC_CODEC2)
+    if (m_bExtended && (m_uiCodecIn != CODEC_AMBEPLUS) && (m_uiCodecIn != CODEC_AMBE2PLUS))
+    {
+        TaskSoftwareInput();
+    }
+    else if (m_uiCodecIn == CODEC_CODEC2)
     {
         TaskCodec2Input();
     }
@@ -528,8 +635,6 @@ void CStream::Task(void)
         CIp         Ip;
         uint8       uiPid;
         uint8       Ambe[AMBE_FRAME_SIZE];
-        uint8       Codec2[CODEC2_FRAME_SIZE];
-        uint8       Imbe[IMBE_FRAME_SIZE];
         CAmbePacket *packet;
         CPacketQueue *queue;
 
@@ -554,21 +659,9 @@ void CStream::Task(void)
         // Check if we have a staged packet waiting for software codecs
         if ( m_pStagedPacket != NULL )
         {
-            bool codec2Ready = (m_uiCodecOut2 != CODEC_CODEC2) || m_VocodecChannel->HasCodec2Data();
-            bool imbeReady   = (m_uiCodecOut3 != CODEC_IMBE)   || m_VocodecChannel->HasImbeData();
-
-            if ( codec2Ready && imbeReady )
+            if ( SendDvFramePacket(m_pStagedPacket) )
             {
-                // software codecs caught up — get the data and send
-                ::memset(Codec2, 0, CODEC2_FRAME_SIZE);
-                ::memset(Imbe, 0, IMBE_FRAME_SIZE);
-                if (m_uiCodecOut2 == CODEC_CODEC2)
-                    m_VocodecChannel->GetCodec2Data(Codec2);
-                if (m_uiCodecOut3 == CODEC_IMBE)
-                    m_VocodecChannel->GetImbeData(Imbe);
-
-                EncodeDvFramePacket(&Buffer, m_pStagedPacket->GetPid(), m_pStagedPacket->GetAmbe(), Codec2, Imbe);
-                m_Socket.SendVoice(Buffer, m_Ip, m_uiPort);
+                // software codecs caught up — sent
                 delete m_pStagedPacket;
                 m_pStagedPacket = NULL;
             }
@@ -590,22 +683,9 @@ void CStream::Task(void)
                 packet = (CAmbePacket *)queue->front();
                 queue->pop();
 
-                // check if software codecs are ready (peek, don't consume)
-                bool codec2Ready = (m_uiCodecOut2 != CODEC_CODEC2) || m_VocodecChannel->HasCodec2Data();
-                bool imbeReady   = (m_uiCodecOut3 != CODEC_IMBE)   || m_VocodecChannel->HasImbeData();
-
-                if ( codec2Ready && imbeReady )
+                // all codecs ready — send immediately
+                if ( SendDvFramePacket(packet) )
                 {
-                    // all codecs ready — get the data and send immediately
-                    ::memset(Codec2, 0, CODEC2_FRAME_SIZE);
-                    ::memset(Imbe, 0, IMBE_FRAME_SIZE);
-                    if (m_uiCodecOut2 == CODEC_CODEC2)
-                        m_VocodecChannel->GetCodec2Data(Codec2);
-                    if (m_uiCodecOut3 == CODEC_IMBE)
-                        m_VocodecChannel->GetImbeData(Imbe);
-
-                    EncodeDvFramePacket(&Buffer, packet->GetPid(), packet->GetAmbe(), Codec2, Imbe);
-                    m_Socket.SendVoice(Buffer, m_Ip, m_uiPort);
                     delete packet;
                 }
                 else
@@ -945,17 +1025,145 @@ void CStream::TaskImbeInput(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// extended Codec2, IMBE or PCM input handling
+
+void CStream::TaskSoftwareInput(void)
+{
+    CBuffer     Buffer;
+    CIp         Ip;
+    uint8       uiPid;
+    uint8       Frame[PCM_FRAME_SIZE];
+    uint8       Ambe[AMBE_FRAME_SIZE];
+    uint8       Codec2[CODEC2_FRAME_SIZE];
+    uint8       Imbe[IMBE_FRAME_SIZE];
+    uint8       Pcm[PCM_FRAME_SIZE];
+    int16_t     pcmNative[160];
+    int16_t     pcmAudio[160];
+    int16_t     pcmScaled[160];
+    CVocodecChannel *Channels[] = { m_EncoderChannel1, m_EncoderChannel2 };
+    CSignalProcessor *Processors[] = { m_pSignalProcessor1, m_pSignalProcessor2 };
+
+    // anything coming in from codec client ?
+    if ( (m_Socket.Receive(&Buffer, &Ip, 1) != -1) && IsValidDvFramePacket(Buffer, &uiPid, Frame) )
+    {
+        m_LastActivity.Now();
+        m_iTotalPackets++;
+
+        // Software decode to native PCM (PCM input is S16LE)
+        if ( m_uiCodecIn == CODEC_CODEC2 )
+        {
+            m_pCodec2Decoder->codec2_decode(pcmNative, Frame);
+        }
+        else if ( m_uiCodecIn == CODEC_IMBE )
+        {
+            m_pImbeDecoder->decode_4400(pcmNative, Frame);
+        }
+        else
+        {
+            for (int i = 0; i < 160; i++)
+                pcmNative[i] = (int16_t)(Frame[i*2] | (Frame[i*2 + 1] << 8));
+        }
+
+        // PCM output is the native decoded speech, S16LE
+        for (int i = 0; i < 160; i++)
+        {
+            Pcm[i*2] = (uint8)((uint16_t)pcmNative[i] & 0xFF);
+            Pcm[i*2 + 1] = (uint8)(((uint16_t)pcmNative[i] >> 8) & 0xFF);
+        }
+
+        // decode gain, then software encoders (m_fImbeGain is the IMBE decode gain for IMBE input)
+        ScalePcm(pcmNative, pcmAudio, (m_uiCodecIn == CODEC_IMBE) ? m_fImbeGain : m_fCodec2DecodeGain);
+        if ( m_pCodec2Encoder != NULL )
+        {
+            ScalePcm(pcmAudio, pcmScaled, m_fCodec2Gain);
+            m_pCodec2Encoder->codec2_encode(Codec2, pcmScaled);
+        }
+        if ( m_pImbeEncoder != NULL )
+        {
+            ScalePcm(pcmAudio, pcmScaled, m_fImbeGain);
+            m_pImbeEncoder->encode_4400(pcmScaled, Imbe);
+        }
+
+        // reply in open order, AMBE slots are filled when the encoder channels return
+        ::memset(Ambe, 0, AMBE_FRAME_SIZE);
+        uint8 *Frames[] = { NULL, Ambe, Ambe, Codec2, Imbe, Pcm };
+        EncodeDvFramePacket(&Buffer, uiPid, Frames);
+        if ( (m_EncoderChannel1 == NULL) && (m_EncoderChannel2 == NULL) )
+        {
+            m_Socket.SendVoice(Buffer, m_Ip, m_uiPort);
+        }
+        else
+        {
+            // drop oldest if queue exceeds max depth (hardware stall protection)
+            if ( m_ReplyQueue.size() >= SOFTWARE_QUEUE_MAX_DEPTH )
+            {
+                m_ReplyQueue.pop();
+            }
+            m_ReplyQueue.push(Buffer);
+
+            // push PCM to the encoder channels, DVSI hardware expects big-endian PCM
+            for ( int c = 0; c < 2; c++ )
+            {
+                if ( Channels[c] != NULL )
+                {
+                    uint8 pcmBytes[PCM_FRAME_SIZE];
+                    for (int i = 0; i < 160; i++)
+                    {
+                        pcmBytes[i*2] = (uint8)(((uint16_t)pcmAudio[i] >> 8) & 0xFF);
+                        pcmBytes[i*2 + 1] = (uint8)((uint16_t)pcmAudio[i] & 0xFF);
+                    }
+                    if ( Processors[c] != NULL )
+                    {
+                        Processors[c]->Process(pcmBytes, PCM_FRAME_SIZE);
+                    }
+                    CVoicePacket *voicePacket = new CVoicePacket(pcmBytes, PCM_FRAME_SIZE);
+                    voicePacket->SetChannel(Channels[c]->GetChannelOut());
+                    Channels[c]->PushPid(uiPid);
+                    CPacketQueue *queue = Channels[c]->GetVoiceQueue();
+                    queue->push(voicePacket);
+                    Channels[c]->ReleaseVoiceQueue();
+                }
+            }
+        }
+    }
+
+    // send queued replies once every open encoder channel has its frame back
+    // TOCTOU safety: only this thread pops from these queues; USB threads only push
+    for ( ;; )
+    {
+        bool ready = !m_ReplyQueue.empty();
+        for ( int c = 0; (c < 2) && ready; c++ )
+        {
+            if ( Channels[c] != NULL )
+            {
+                ready = !Channels[c]->GetPacketQueueOut()->empty();
+                Channels[c]->ReleasePacketQueueOut();
+            }
+        }
+        if ( !ready )
+        {
+            break;
+        }
+        PatchDvFramePacket(&m_ReplyQueue.front(), m_EncoderChannel1, CODEC_AMBEPLUS);
+        PatchDvFramePacket(&m_ReplyQueue.front(), m_EncoderChannel2, CODEC_AMBE2PLUS);
+        m_Socket.SendVoice(m_ReplyQueue.front(), m_Ip, m_uiPort);
+        m_ReplyQueue.pop();
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // packet decoding helpers
 
-bool CStream::IsValidDvFramePacket(const CBuffer &Buffer, uint8 *pid, uint8 *ambe)
+bool CStream::IsValidDvFramePacket(const CBuffer &Buffer, uint8 *pid, uint8 *frame)
 {
     bool valid = false;
 
-    if ( Buffer.size() == 11 )
+    // codec(1) + pid(1) + frame of the input codec
+    if ( Buffer.size() == (size_t)(2 + FrameSize(GetCodecIn())) )
     {
         uint8 codec = Buffer.data()[0];
         *pid = Buffer.data()[1];
-        ::memcpy(ambe, &(Buffer.data()[2]), 9);
+        ::memcpy(frame, &(Buffer.data()[2]), Buffer.size() - 2);
         valid = (codec == GetCodecIn());
     }
 
@@ -1017,3 +1225,95 @@ void CStream::EncodeDvFramePacket(CBuffer *Buffer, uint8 Pid, uint8 *Ambe, uint8
     Buffer->Append(Imbe, IMBE_FRAME_SIZE);
 }
 
+void CStream::EncodeDvFramePacket(CBuffer *Buffer, uint8 Pid, uint8 *Frames[])
+{
+    uint8 Codecs[] = { m_uiCodecOut1, m_uiCodecOut2, m_uiCodecOut3, m_uiCodecOut4 };
+
+    // Extended response format, outputs in open order (Frames indexed by codec):
+    // codec1(1) + pid(1) + frame1 + { codecN(1) + frameN } for each further output
+    Buffer->clear();
+    for ( int i = 0; (i < STREAM_MAX_OUTPUTS) && (Codecs[i] != CODEC_NONE); i++ )
+    {
+        Buffer->Append((uint8)Codecs[i]);
+        if ( i == 0 )
+        {
+            Buffer->Append((uint8)Pid);
+        }
+        Buffer->Append(Frames[Codecs[i]], FrameSize(Codecs[i]));
+    }
+}
+
+bool CStream::SendDvFramePacket(CAmbePacket *packet)
+{
+    CBuffer     Buffer;
+    uint8       Codec2[CODEC2_FRAME_SIZE];
+    uint8       Imbe[IMBE_FRAME_SIZE];
+    uint8       Pcm[PCM_FRAME_SIZE];
+
+    // check if software codecs are ready (peek, don't consume)
+    bool codec2Ready = !HasCodecOut(CODEC_CODEC2) || m_VocodecChannel->HasCodec2Data();
+    bool imbeReady   = !HasCodecOut(CODEC_IMBE)   || m_VocodecChannel->HasImbeData();
+    bool pcmReady    = !HasCodecOut(CODEC_PCM_S16LE_8K) || m_VocodecChannel->HasPcmData();
+    if ( !(codec2Ready && imbeReady && pcmReady) )
+    {
+        return false;
+    }
+
+    // get the data and send
+    ::memset(Codec2, 0, CODEC2_FRAME_SIZE);
+    ::memset(Imbe, 0, IMBE_FRAME_SIZE);
+    if ( HasCodecOut(CODEC_CODEC2) )
+        m_VocodecChannel->GetCodec2Data(Codec2);
+    if ( HasCodecOut(CODEC_IMBE) )
+        m_VocodecChannel->GetImbeData(Imbe);
+    if ( m_bExtended )
+    {
+        // the hardware frame is the other AMBE codec, input codec is never an output
+        uint8 *Frames[] = { NULL, packet->GetAmbe(), packet->GetAmbe(), Codec2, Imbe, Pcm };
+        if ( HasCodecOut(CODEC_PCM_S16LE_8K) )
+            m_VocodecChannel->GetPcmData(Pcm);
+        EncodeDvFramePacket(&Buffer, packet->GetPid(), Frames);
+    }
+    else
+    {
+        EncodeDvFramePacket(&Buffer, packet->GetPid(), packet->GetAmbe(), Codec2, Imbe);
+    }
+    m_Socket.SendVoice(Buffer, m_Ip, m_uiPort);
+    return true;
+}
+
+void CStream::PatchDvFramePacket(CBuffer *Buffer, CVocodecChannel *Channel, uint8 Codec)
+{
+    uint8 Codecs[] = { m_uiCodecOut1, m_uiCodecOut2, m_uiCodecOut3, m_uiCodecOut4 };
+
+    // pop the next hardware AMBE frame into its slot of a queued extended reply
+    if ( Channel != NULL )
+    {
+        int offset = 2;
+        for ( int i = 0; (i < STREAM_MAX_OUTPUTS) && (Codecs[i] != Codec); i++ )
+        {
+            offset += FrameSize(Codecs[i]) + 1;
+        }
+        CPacketQueue *queue = Channel->GetPacketQueueOut();
+        CAmbePacket *packet = (CAmbePacket *)queue->front();
+        queue->pop();
+        Channel->ReleasePacketQueueOut();
+        ::memcpy(Buffer->data() + offset, packet->GetAmbe(), AMBE_FRAME_SIZE);
+        delete packet;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// codec helpers
+
+bool CStream::HasCodecOut(uint8 uiCodec) const
+{
+    // legacy streams only carry software Codec2 as 2nd and IMBE as 3rd output
+    if ( !m_bExtended )
+    {
+        return ((uiCodec == CODEC_CODEC2) && (m_uiCodecOut2 == CODEC_CODEC2)) ||
+               ((uiCodec == CODEC_IMBE) && (m_uiCodecOut3 == CODEC_IMBE));
+    }
+    return (m_uiCodecOut1 == uiCodec) || (m_uiCodecOut2 == uiCodec) ||
+           (m_uiCodecOut3 == uiCodec) || (m_uiCodecOut4 == uiCodec);
+}

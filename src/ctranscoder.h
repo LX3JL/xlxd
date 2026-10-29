@@ -33,6 +33,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
+// extended open (PCM) capability of the connected transcoder
+#define PCMCAPS_IDLE                0   // not probed on this connection
+#define PCMCAPS_PROBING             1   // CAPS sent, waiting for reply
+#define PCMCAPS_NONE                2   // no or invalid reply: legacy only
+#define PCMCAPS_OK                  3   // extended open available
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // class
@@ -58,9 +63,11 @@ public:
     
     // status
     bool IsConnected(void) const        { return m_bConnected.load(); }
+    void SetPcmWanted(void)             { m_bPcmWanted = true; }
     
     // manage streams
     CCodecStream *GetStream(CPacketStream *, uint8);
+    CCodecStream *GetStream(CPacketStream *, uint8, uint32);
     void ReleaseStream(CCodecStream *);
     
     // task
@@ -68,17 +75,24 @@ public:
     void Task(void);
 
 protected:
+    // manage streams
+    CCodecStream *OpenStream(CPacketStream *, const CBuffer &, uint32, uint8, const uint8 *);
+    bool IsPcmCapable(uint8);
+
     // keepalive helpers
     void HandleKeepalives(void);
 
     // packet decoding helpers
     bool IsValidKeepAlivePacket(const CBuffer &);
-    bool IsValidStreamDescrPacket(const CBuffer &, uint16 *, uint16 *);
-    bool IsValidNoStreamAvailablePacket(const CBuffer&);
+    bool IsValidStreamDescrPacket(const CBuffer &, uint16 *, uint16 *, uint32 *);
+    bool IsValidNoStreamAvailablePacket(const CBuffer&, uint32 *);
+    bool IsValidCapsPacket(const CBuffer &, uint8 *, uint32 *);
 
     // packet encoding helpers
     void EncodeKeepAlivePacket(CBuffer *);
+    void EncodeCapsPacket(CBuffer *);
     void EncodeOpenstreamPacket(CBuffer *, uint8, uint8, uint8, uint8);
+    void EncodeOpenstreamPacket(CBuffer *, uint8, const uint8 *, uint32);
     void EncodeClosestreamPacket(CBuffer *, uint16);
     
 protected:
@@ -92,6 +106,17 @@ protected:
     std::atomic<bool> m_bWaitingForStream;  // true while GetStream is waiting for a response
     std::atomic<uint16> m_StreamidOpenStream;
     std::atomic<uint16> m_PortOpenStream;
+    std::atomic<uint32> m_uiOpenTransaction;    // 0 = legacy open
+    std::atomic<uint32> m_uiLastTransaction;
+
+    // extended open capability, probed once per connection
+    std::atomic<bool> m_bPcmWanted;
+    std::atomic<int> m_iPcmCaps;
+    std::atomic<uint8> m_uiPcmMaxOutputs;
+    std::atomic<uint32> m_uiPcmCodecs;
+    std::atomic<bool> m_bPcmUnavailableLogged;
+    std::atomic<bool> m_bPcmPartialLogged;
+    CTimePoint      m_PcmCapsTime;
     
     // thread
     std::atomic<bool> m_bStopThread;

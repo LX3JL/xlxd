@@ -47,6 +47,8 @@ public:
     CDvLastFramePacket(uint16, uint8, const uint8 *, const uint8 *, uint8, uint8, const uint8 *, const uint8 *);
     // M17 constructor
     CDvLastFramePacket(const uint8 *codec2, uint16 sid, uint8 pid);
+    // PCM constructor
+    CDvLastFramePacket(uint16 sid, uint8 pid, const uint8 *pcm);
     CDvLastFramePacket(const CDvLastFramePacket &);
     
     // destructor

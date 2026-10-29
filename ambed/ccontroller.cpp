@@ -128,6 +128,8 @@ void CController::Task(void)
     uint8       CodecOut1;
     uint8       CodecOut2;
     uint8       CodecOut3;
+    uint8       CodecsOut[STREAM_MAX_OUTPUTS];
+    uint32      Transaction;
     uint16      StreamId;
     CStream     *Stream;
 
@@ -135,7 +137,48 @@ void CController::Task(void)
     if ( m_Socket.Receive(&Buffer, &Ip, 20) != -1 )
     {
         // crack packet
-        if ( IsValidOpenstreamPacket(Buffer, &Callsign, &CodecIn, &CodecOut1, &CodecOut2, &CodecOut3) )
+        if ( IsValidCapsPacket(Buffer) )
+        {
+            EncodeCapsPacket(&Buffer);
+            m_Socket.Send(Buffer, Ip);
+        }
+        else if ( IsValidExtOpenstreamPacket(Buffer, &Callsign, &CodecIn, CodecsOut, &Transaction) )
+        {
+            // an extended open always gets a reply, CodecIn is CODEC_NONE when invalid
+            Stream = NULL;
+            if ( CodecIn != CODEC_NONE )
+            {
+                // retransmitted open: same peer, transaction and codecs get the same stream
+                Lock();
+                for ( size_t i = 0; (i < m_Streams.size()) && (Stream == NULL); i++ )
+                {
+                    if ( m_Streams[i]->IsTransaction(Ip, Transaction, CodecIn, CodecsOut) )
+                    {
+                        Stream = m_Streams[i];
+                    }
+                }
+                Unlock();
+                if ( Stream == NULL )
+                {
+                    std::cout << "Extended stream Open from " << Callsign << " at " << Ip << " CodecIn=" << (int)CodecIn
+                              << " Out=" << (int)CodecsOut[0] << "," << (int)CodecsOut[1] << "," << (int)CodecsOut[2] << "," << (int)CodecsOut[3] << std::endl;
+                    Stream = OpenStream(Callsign, Ip, CodecIn, CodecsOut[0], CodecsOut[1], CodecsOut[2], CodecsOut[3], true, Transaction);
+                }
+            }
+
+            // send back details
+            if ( Stream != NULL )
+            {
+                EncodeStreamDescrPacket(&Buffer, *Stream);
+            }
+            else
+            {
+                EncodeNoStreamAvailablePacket(&Buffer);
+            }
+            Buffer.Append((uint32)htonl(Transaction));
+            m_Socket.Send(Buffer, Ip);
+        }
+        else if ( IsValidOpenstreamPacket(Buffer, &Callsign, &CodecIn, &CodecOut1, &CodecOut2, &CodecOut3) )
         {
             std::cout << "Stream Open from " << Callsign << " at " << Ip
                       << " CodecIn=" << (int)CodecIn
@@ -209,21 +252,32 @@ void CController::Task(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // streams management
 
-CStream *CController::OpenStream(const CCallsign &Callsign, const CIp &Ip, uint8 CodecIn, uint8 CodecOut1, uint8 CodecOut2, uint8 CodecOut3)
+CStream *CController::OpenStream(const CCallsign &Callsign, const CIp &Ip, uint8 CodecIn, uint8 CodecOut1, uint8 CodecOut2, uint8 CodecOut3, uint8 CodecOut4, bool Extended, uint32 Transaction)
 {
     CStream *stream = NULL;
 
-    // check capacity
-    if ( m_Streams.size() >= (size_t)m_uiMaxStreams )
+    // with no vocodec hardware, extended streams still get a few software only slots
+    uint16 uiMaxStreams = m_uiMaxStreams;
+    if ( (uiMaxStreams == 0) && Extended )
     {
-        std::cout << "Max streams reached (" << m_uiMaxStreams << "), rejecting" << std::endl;
+        uiMaxStreams = SOFTWARE_MAX_STREAMS;
+    }
+
+    // check capacity
+    if ( m_Streams.size() >= (size_t)uiMaxStreams )
+    {
+        std::cout << "Max streams reached (" << uiMaxStreams << "), rejecting" << std::endl;
         return NULL;
     }
 
     // create a new stream
     m_uiLastStreamId = (m_uiLastStreamId + 1);
-    m_uiLastStreamId = (m_uiLastStreamId > m_uiMaxStreams) ? 1 : m_uiLastStreamId;
-    stream = new CStream(m_uiLastStreamId, Callsign, Ip, CodecIn, CodecOut1, CodecOut2, CodecOut3);
+    m_uiLastStreamId = (m_uiLastStreamId > uiMaxStreams) ? 1 : m_uiLastStreamId;
+    stream = new CStream(m_uiLastStreamId, Callsign, Ip, CodecIn, CodecOut1, CodecOut2, CodecOut3, CodecOut4);
+    if ( Extended )
+    {
+        stream->SetTransaction(Transaction);
+    }
     if ( stream->Init(TRANSCODER_PORT+m_uiLastStreamId) )
     {
         std::cout << "Opened stream " << m_uiLastStreamId << std::endl;
@@ -294,6 +348,45 @@ void CController::CloseStream(uint16 StreamId)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // packet decoding helpers
+
+bool CController::IsValidCapsPacket(const CBuffer &Buffer)
+{
+    uint8 tag[] = { 'A','M','B','E','D','C','A','P','S' };
+
+    return ( (Buffer.size() == 9) && (Buffer.Compare(tag, sizeof(tag)) == 0) );
+}
+
+bool CController::IsValidExtOpenstreamPacket(const CBuffer &Buffer, CCallsign *Callsign, uint8 *CodecIn, uint8 *CodecsOut, uint32 *Transaction)
+{
+    uint8 tag[] = { 'A','M','B','E','D','O','S' };
+
+    bool valid = false;
+    // Extended format: 24 bytes, callsign + codecin + 4 zero padded output codecs + BE32 transaction
+    if ( (Buffer.size() == 24) && (Buffer.Compare(tag, sizeof(tag)) == 0) )
+    {
+        Callsign->SetCallsign(&(Buffer.data()[7]), 8);
+        *CodecIn = Buffer.data()[15];
+        ::memcpy(CodecsOut, &(Buffer.data()[16]), STREAM_MAX_OUTPUTS);
+        ::memcpy(Transaction, &(Buffer.data()[20]), sizeof(uint32));
+        *Transaction = ntohl(*Transaction);
+
+        // outputs: at least one, no gaps, distinct and different from input
+        int n = 0;
+        while ( (n < STREAM_MAX_OUTPUTS) && (CodecsOut[n] != CODEC_NONE) ) n++;
+        bool ok = Callsign->IsValid() && IsValidExtCodec(*CodecIn) && (n > 0);
+        for ( int i = 0; (i < STREAM_MAX_OUTPUTS) && ok; i++ )
+        {
+            ok = (i >= n) ? (CodecsOut[i] == CODEC_NONE) :
+                 (IsValidExtCodec(CodecsOut[i]) && (CodecsOut[i] != *CodecIn) && (::memchr(CodecsOut, CodecsOut[i], i) == NULL));
+        }
+        if ( !ok )
+        {
+            *CodecIn = CODEC_NONE;
+        }
+        valid = true;
+    }
+    return valid;
+}
 
 bool CController::IsValidKeepAlivePacket(const CBuffer &Buffer, CCallsign *Callsign)
 {
@@ -407,6 +500,23 @@ void CController::EncodeNoStreamAvailablePacket(CBuffer *Buffer)
     Buffer->Set(tag, sizeof(tag));
 }
 
+void CController::EncodeCapsPacket(CBuffer *Buffer)
+{
+    uint8 tag[] = { 'A','M','B','E','D','C','A','P','S' };
+
+    // codec mask, bit n = codec n
+    // Codec2, IMBE and PCM are software, vocodec channels always come in AMBE+ / AMBE2+ pairs
+    uint32 mask = (1 << CODEC_CODEC2) | (1 << CODEC_IMBE) | (1 << CODEC_PCM_S16LE_8K);
+    if ( g_Vocodecs.GetNbChannels() > 0 )
+    {
+        mask |= (1 << CODEC_AMBEPLUS) | (1 << CODEC_AMBE2PLUS);
+    }
+    Buffer->Set(tag, sizeof(tag));
+    Buffer->Append((uint8)CAPS_VERSION);
+    Buffer->Append((uint8)STREAM_MAX_OUTPUTS);
+    Buffer->Append((uint32)htonl(mask));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // codec helpers
@@ -419,5 +529,10 @@ bool CController::IsValidCodecIn(uint8 codec)
 bool CController::IsValidCodecOut(uint8 codec)
 {
     return ((codec == CODEC_AMBEPLUS) || (codec == CODEC_AMBE2PLUS) || (codec == CODEC_CODEC2) || (codec == CODEC_IMBE));
+}
+
+bool CController::IsValidExtCodec(uint8 codec)
+{
+    return (IsValidCodecIn(codec) || (codec == CODEC_PCM_S16LE_8K));
 }
 

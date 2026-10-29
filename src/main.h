@@ -83,7 +83,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define MAX_REJECT_TRACKERS             4096                                // max tracked IPs for progressive ignore
 
 // protocols ---------------------------------------------------
-#define NB_OF_PROTOCOLS                 12
+#define NB_OF_PROTOCOLS                 13
 #define PROTOCOL_ANY                    -1
 #define PROTOCOL_NONE                   0
 #define PROTOCOL_DEXTRA                 1
@@ -98,6 +98,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define PROTOCOL_M17                    10
 #define PROTOCOL_NXDN                   11
 #define PROTOCOL_P25                    12
+#define PROTOCOL_USRP                   13
 
 // DExtra - timing matched to ircDDBGateway (10s poll, 60s timeout)
 #define DEXTRA_PORT                     30001                               // UDP port
@@ -189,6 +190,12 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define P25_PEER_KEEPALIVE_TIMEOUT      (P25_PEER_KEEPALIVE_PERIOD*6)       // in seconds
 #define P25_PEER_RECONNECT_PERIOD       5                                   // in seconds
 
+// USRP (app_rpt chan_usrp) - endpoints are listed in USRPOPTIONS_PATH
+#define USRP_HEADER_SIZE                32                                  // "USRP" + 7 x BE32 fields
+#define USRP_VOICE_SIZE                 (USRP_HEADER_SIZE+PCM_FRAME_SIZE)   // keyed voice frame
+#define USRP_RX_TIMEOUT                 100                                 // in ms without voice = unkey
+#define USRP_TX_TIMEOUT                 100                                 // in ms without PCM = unkey
+
 // AMBE gain adjustments for cross-mode audio levels (in dB)
 #define GAIN_NXDN_TO_DMR                -3                                  // in dB
 #define GAIN_DMR_TO_NXDN                -3                                  // in dB
@@ -207,11 +214,14 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define CODEC_AMBE2PLUS                 2                                   // DMR
 #define CODEC_CODEC2                    3                                   // M17
 #define CODEC_IMBE                      4                                   // P25
+#define CODEC_PCM_S16LE_8K              5                                   // raw PCM (USRP)
 
 // transcoder packet sizes --------------------------------------
 #define AMBE_FRAME_SIZE                 9                                   // AMBE+/AMBE2+ frame
 #define CODEC2_FRAME_SIZE               8                                   // Codec2 3200bps frame
 #define IMBE_FRAME_SIZE                 11                                  // IMBE 88-bit frame
+#define PCM_FRAME_SIZE                  320                                 // 160 samples S16LE at 8 kHz
+#define TRANSCODER_MAX_OUTPUTS          4                                   // outputs per extended open
 #define TRANSCODER_PACKET_SIZE_LEGACY   11                                  // codec(1)+pid(1)+ambe(9)
 #define TRANSCODER_PACKET_SIZE_MULTI    20                                  // codec1(1)+pid(1)+ambe(9)+codec2(1)+codec2(8)
 #define TRANSCODER_PACKET_SIZE_C2IN     21                                  // codec1(1)+pid(1)+ambe(9)+codec2(1)+ambe(9) - Codec2 input
@@ -243,6 +253,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"
 #define INTERLINKLIST_PATH              "/xlxd/xlxd.interlink"
 #define TERMINALOPTIONS_PATH            "/xlxd/xlxd.terminal"
+#define USRPOPTIONS_PATH                "/xlxd/xlxd.usrp"
 #define DEBUGDUMP_PATH                  "/var/log/xlxd.debug"
 
 // system constants ---------------------------------------------

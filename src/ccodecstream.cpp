@@ -85,16 +85,17 @@ static bool BoundedJoin(std::thread *t, int timeoutMs)
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CCodecStream::CCodecStream(CPacketStream *PacketStream, uint16 uiId, uint8 uiCodecIn, uint8 uiCodecOut1, uint8 uiCodecOut2, uint8 uiCodecOut3)
+CCodecStream::CCodecStream(CPacketStream *PacketStream, uint16 uiId, uint8 uiCodecIn, uint8 uiCodecOut1, uint8 uiCodecOut2, uint8 uiCodecOut3, uint8 uiCodecOut4)
 {
     m_bStopThread = false;
     m_pThread = NULL;
     m_uiStreamId = uiId;
     m_uiPid = 0;
     m_uiCodecIn = uiCodecIn;
-    m_uiCodecOut1 = uiCodecOut1;
-    m_uiCodecOut2 = uiCodecOut2;
-    m_uiCodecOut3 = uiCodecOut3;
+    m_uiCodecOut[0] = uiCodecOut1;
+    m_uiCodecOut[1] = uiCodecOut2;
+    m_uiCodecOut[2] = uiCodecOut3;
+    m_uiCodecOut[3] = uiCodecOut4;
     m_bConnected = false;
     m_fPingMin = -1;
     m_fPingMax = -1;
@@ -590,9 +591,7 @@ void CCodecStream::Task(void)
 {
     CBuffer Buffer;
     CIp     Ip;
-    uint8   Ambe1[AMBE_FRAME_SIZE];
-    uint8   Ambe2[AMBE_FRAME_SIZE];
-    uint8   Ambe3[IMBE_SIZE];
+    const uint8 *Frames[TRANSCODER_MAX_OUTPUTS];
     uint8   DStarSync[] = { 0x55,0x2D,0x16 };
 
     // ---- Phase 1: handle ambed response (lookup + slot-fill in place) ----
@@ -610,7 +609,7 @@ void CCodecStream::Task(void)
     // regardless of arrival order or interleaved drops.
     if ( m_Socket.Receive(&Buffer, &Ip, 5) != -1 )
     {
-        if ( IsValidAmbePacket(Buffer, Ambe1, Ambe2, Ambe3) )
+        if ( IsValidAmbePacket(Buffer, Frames) )
         {
             m_TimeoutTimer.Now();
 
@@ -676,7 +675,7 @@ void CCodecStream::Task(void)
                 //   HasAmbePlusData() ↔ m_bHasAmbePlus ↔ AMBE+2 (DMR family)
                 // The "Plus" suffix in m_uiAmbePlus refers to "+2", not
                 // "+". Easy to misread; don't swap them.
-                auto fillIfMissing = [&](uint8 codec, uint8 *data) {
+                auto fillIfMissing = [&](uint8 codec, const uint8 *data) {
                     switch (codec)
                     {
                         case CODEC_AMBEPLUS:
@@ -695,11 +694,16 @@ void CCodecStream::Task(void)
                             if ( !Packet->HasImbeData() )
                                 Packet->SetAmbe(codec, data);
                             break;
+                        case CODEC_PCM_S16LE_8K:
+                            if ( !Packet->HasPcmData() )
+                                Packet->SetAmbe(codec, data);
+                            break;
                     }
                 };
-                fillIfMissing(m_uiCodecOut1, Ambe1);
-                fillIfMissing(m_uiCodecOut2, Ambe2);
-                fillIfMissing(m_uiCodecOut3, Ambe3);
+                for ( int i = 0; i < TRANSCODER_MAX_OUTPUTS; i++ )
+                {
+                    fillIfMissing(m_uiCodecOut[i], Frames[i]);
+                }
                 m_PendingTranscode.erase(it);
             }
             else
@@ -973,7 +977,7 @@ void CCodecStream::Task(void)
         //
         // m_SlowData and m_uiSlowDataCycle are touched only here in
         // Phase 3 of Task() — single-threaded, no lock needed.
-        if ( m_uiCodecOut1 == CODEC_AMBEPLUS || m_uiCodecOut2 == CODEC_AMBEPLUS )
+        if ( HasCodecOut(CODEC_AMBEPLUS) )
         {
             // Lazy-init on the first AMBE+ output frame of the stream —
             // the header is guaranteed to be cached in the packet
@@ -1193,124 +1197,32 @@ void CCodecStream::Task(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 /// packet decoding helpers
 
-bool CCodecStream::IsValidAmbePacket(const CBuffer &Buffer, uint8 *Ambe1, uint8 *Ambe2, uint8 *Ambe3)
+bool CCodecStream::IsValidAmbePacket(const CBuffer &Buffer, const uint8 **Frames)
 {
-    bool valid = false;
-
-    // New 3-codec response format:
-    // codec1(1) + pid(1) + ambe1(9) + codec2(1) + codec2_data(8) + codec3(1) + imbe(11) = 32 bytes
-    if ( Buffer.size() == TRANSCODER_PACKET_SIZE_3CODEC )
+    // Response layout, outputs in open order:
+    //   codec1(1) + pid(1) + frame1 [ + codec2(1) + frame2 [ + ... ] ]
+    // with each frame sized by its codec. ambed may return only the
+    // first n outputs (legacy 1/2/3-codec replies); the missing slots
+    // are zero filled, as the legacy fixed-size parsers did.
+    static const uint8 zero[PCM_FRAME_SIZE] = { 0 };
+    size_t offset = 0;
+    int n = 0;
+    for ( ; (n < TRANSCODER_MAX_OUTPUTS) && (m_uiCodecOut[n] != CODEC_NONE) && (offset < Buffer.size()); n++ )
     {
-        uint8 codec1 = Buffer.data()[TRANSCODER_PACKET_CODEC_OFFSET];
-        uint8 codec2 = Buffer.data()[TRANSCODER_PACKET_CODEC2_OFFSET];
-        uint8 codec3 = Buffer.data()[TRANSCODER_PACKET_CODEC3_OFFSET];
-
-        // verify codecs match what we requested
-        if ( codec1 == m_uiCodecOut1 && codec2 == m_uiCodecOut2 && codec3 == m_uiCodecOut3 )
+        size_t frame = offset + ((n == 0) ? 2 : 1);
+        size_t size = (size_t)GetCodecFrameSize(m_uiCodecOut[n]);
+        if ( (Buffer.data()[offset] != m_uiCodecOut[n]) || (frame + size > Buffer.size()) )
         {
-            // first output is 9 bytes (AMBE+ or AMBE2+)
-            ::memcpy(Ambe1, &(Buffer.data()[TRANSCODER_PACKET_AMBE1_OFFSET]), AMBE_FRAME_SIZE);
-            // second output is 8 bytes (Codec2)
-            ::memcpy(Ambe2, &(Buffer.data()[TRANSCODER_PACKET_AMBE2_OFFSET]), CODEC2_FRAME_SIZE);
-            // third output is 11 bytes (IMBE)
-            ::memcpy(Ambe3, &(Buffer.data()[TRANSCODER_PACKET_AMBE3_OFFSET]), IMBE_SIZE);
-            valid = true;
+            return false;
         }
+        Frames[n] = &(Buffer.data()[frame]);
+        offset = frame + size;
     }
-    // IMBE input response: codec1(1) + pid(1) + ambe1(9) + codec2(1) + ambe2(9) + codec3(1) + codec2_data(8) = 30 bytes
-    // Outputs are AMBE+, AMBE2+, and Codec2 for D-Star, DMR, M17
-    // Note: IMBEIN has different offsets than 3CODEC because ambe2 is 9 bytes (vs 8 byte codec2_data in 3CODEC)
-    //   IMBEIN: codec3 at offset 21, codec2_data at offset 22
-    //   3CODEC: codec3 at offset 20, imbe at offset 21
-    else if ( Buffer.size() == TRANSCODER_PACKET_SIZE_IMBEIN )
+    for ( int i = n; i < TRANSCODER_MAX_OUTPUTS; i++ )
     {
-        uint8 codec1 = Buffer.data()[TRANSCODER_PACKET_CODEC_OFFSET];
-        uint8 codec2 = Buffer.data()[TRANSCODER_PACKET_CODEC2_OFFSET];
-        uint8 codec3 = Buffer.data()[21];  // IMBEIN: codec3 at offset 21 (after 9-byte ambe2)
-
-        // verify codecs match what we requested
-        if ( codec1 == m_uiCodecOut1 && codec2 == m_uiCodecOut2 && codec3 == m_uiCodecOut3 )
-        {
-            // first output is 9 bytes (AMBE+)
-            ::memcpy(Ambe1, &(Buffer.data()[TRANSCODER_PACKET_AMBE1_OFFSET]), AMBE_FRAME_SIZE);
-            // second output is 9 bytes (AMBE2+)
-            ::memcpy(Ambe2, &(Buffer.data()[TRANSCODER_PACKET_AMBE2_OFFSET]), AMBE_FRAME_SIZE);
-            // third output is 8 bytes (Codec2) at offset 22
-            ::memcpy(Ambe3, &(Buffer.data()[22]), CODEC2_FRAME_SIZE);
-            valid = true;
-        }
+        Frames[i] = zero;
     }
-    // Codec2 input 3-codec response: codec1(1) + pid(1) + ambe1(9) + codec2(1) + ambe2(9) + codec3(1) + imbe(11) = 33 bytes
-    // Outputs are AMBE+, AMBE2+, and IMBE for D-Star, DMR, P25
-    else if ( Buffer.size() == TRANSCODER_PACKET_SIZE_C2IN_3CODEC )
-    {
-        uint8 codec1 = Buffer.data()[TRANSCODER_PACKET_CODEC_OFFSET];
-        uint8 codec2 = Buffer.data()[TRANSCODER_PACKET_CODEC2_OFFSET];
-        uint8 codec3 = Buffer.data()[21];  // C2IN_3CODEC: codec3 at offset 21 (after 9-byte ambe2)
-
-        // verify codecs match what we requested
-        if ( codec1 == m_uiCodecOut1 && codec2 == m_uiCodecOut2 && codec3 == m_uiCodecOut3 )
-        {
-            // first output is 9 bytes (AMBE+)
-            ::memcpy(Ambe1, &(Buffer.data()[TRANSCODER_PACKET_AMBE1_OFFSET]), AMBE_FRAME_SIZE);
-            // second output is 9 bytes (AMBE2+)
-            ::memcpy(Ambe2, &(Buffer.data()[TRANSCODER_PACKET_AMBE2_OFFSET]), AMBE_FRAME_SIZE);
-            // third output is 11 bytes (IMBE) at offset 22
-            ::memcpy(Ambe3, &(Buffer.data()[22]), IMBE_SIZE);
-            valid = true;
-        }
-    }
-    // Codec2 input 2-codec response (legacy): codec1(1) + pid(1) + ambe1(9) + codec2(1) + ambe2(9) = 21 bytes
-    // Both outputs are AMBE codecs (AMBE+ and AMBE2+)
-    else if ( Buffer.size() == TRANSCODER_PACKET_SIZE_C2IN )
-    {
-        uint8 codec1 = Buffer.data()[TRANSCODER_PACKET_CODEC_OFFSET];
-        uint8 codec2 = Buffer.data()[TRANSCODER_PACKET_CODEC2_OFFSET];
-
-        // verify codecs match what we requested
-        if ( codec1 == m_uiCodecOut1 && codec2 == m_uiCodecOut2 )
-        {
-            // first output is 9 bytes (AMBE+ or AMBE2+)
-            ::memcpy(Ambe1, &(Buffer.data()[TRANSCODER_PACKET_AMBE1_OFFSET]), AMBE_FRAME_SIZE);
-            // second output is also 9 bytes (AMBE+ or AMBE2+)
-            ::memcpy(Ambe2, &(Buffer.data()[TRANSCODER_PACKET_AMBE2_OFFSET]), AMBE_FRAME_SIZE);
-            // no third codec
-            ::memset(Ambe3, 0, IMBE_SIZE);
-            valid = true;
-        }
-    }
-    // AMBE input response: codec1(1) + pid(1) + ambe1(9) + codec2(1) + codec2(8) = 20 bytes
-    // First output is AMBE, second output is Codec2
-    else if ( Buffer.size() == TRANSCODER_PACKET_SIZE_MULTI )
-    {
-        uint8 codec1 = Buffer.data()[TRANSCODER_PACKET_CODEC_OFFSET];
-        uint8 codec2 = Buffer.data()[TRANSCODER_PACKET_CODEC2_OFFSET];
-
-        // verify codecs match what we requested
-        if ( codec1 == m_uiCodecOut1 && codec2 == m_uiCodecOut2 )
-        {
-            // first output is 9 bytes (AMBE+ or AMBE2+)
-            ::memcpy(Ambe1, &(Buffer.data()[TRANSCODER_PACKET_AMBE1_OFFSET]), AMBE_FRAME_SIZE);
-            // second output is 8 bytes (Codec2)
-            ::memcpy(Ambe2, &(Buffer.data()[TRANSCODER_PACKET_AMBE2_OFFSET]), CODEC2_FRAME_SIZE);
-            // no third codec
-            ::memset(Ambe3, 0, IMBE_SIZE);
-            valid = true;
-        }
-    }
-    // Legacy single-codec response for backward compatibility
-    else if ( Buffer.size() == TRANSCODER_PACKET_SIZE_LEGACY )
-    {
-        uint8 codec = Buffer.data()[TRANSCODER_PACKET_CODEC_OFFSET];
-        if ( codec == m_uiCodecOut1 )
-        {
-            ::memcpy(Ambe1, &(Buffer.data()[TRANSCODER_PACKET_AMBE1_OFFSET]), AMBE_FRAME_SIZE);
-            ::memset(Ambe2, 0, CODEC2_FRAME_SIZE);
-            ::memset(Ambe3, 0, IMBE_SIZE);
-            valid = true;
-        }
-    }
-    return valid;
+    return (n > 0) && (offset == Buffer.size());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1321,21 +1233,36 @@ void CCodecStream::EncodeAmbePacket(CBuffer *Buffer, const uint8 *Ambe)
     Buffer->clear();
     Buffer->Append(m_uiCodecIn);
     Buffer->Append(m_uiPid);
-
-    // Use correct size based on input codec
-    if ( m_uiCodecIn == CODEC_CODEC2 )
-    {
-        Buffer->Append((uint8 *)Ambe, CODEC2_FRAME_SIZE);  // 8 bytes for Codec2
-    }
-    else if ( m_uiCodecIn == CODEC_IMBE )
-    {
-        Buffer->Append((uint8 *)Ambe, IMBE_SIZE);          // 11 bytes for IMBE
-    }
-    else
-    {
-        Buffer->Append((uint8 *)Ambe, AMBE_FRAME_SIZE);    // 9 bytes for AMBE
-    }
+    Buffer->Append((uint8 *)Ambe, GetCodecFrameSize(m_uiCodecIn));
 
     // increment PID for next packet (wraps at 256)
     m_uiPid++;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// codec helpers
+
+int CCodecStream::GetCodecFrameSize(uint8 uiCodec)
+{
+    switch ( uiCodec )
+    {
+        case CODEC_AMBEPLUS:
+        case CODEC_AMBE2PLUS:       return AMBE_FRAME_SIZE;
+        case CODEC_CODEC2:          return CODEC2_FRAME_SIZE;
+        case CODEC_IMBE:            return IMBE_FRAME_SIZE;
+        case CODEC_PCM_S16LE_8K:    return PCM_FRAME_SIZE;
+        default:                    return 0;
+    }
+}
+
+bool CCodecStream::HasCodecOut(uint8 uiCodec) const
+{
+    for ( int i = 0; i < TRANSCODER_MAX_OUTPUTS; i++ )
+    {
+        if ( m_uiCodecOut[i] == uiCodec )
+        {
+            return true;
+        }
+    }
+    return false;
 }

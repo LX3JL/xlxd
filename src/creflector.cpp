@@ -1078,6 +1078,9 @@ uint32 CReflector::GetNeededCodecsOnModule(char module) const
             case PROTOCOL_P25:
                 needed |= (1U << CODEC_IMBE);
                 break;
+            case PROTOCOL_USRP:
+                needed |= (1U << CODEC_PCM_S16LE_8K);
+                break;
             default:
                 // D-Star (DEXTRA/DPLUS/DCS/G3), DMR (MMDVM/PLUS),
                 // YSF, NXDN, XLX, IMRS — covered by the always-on

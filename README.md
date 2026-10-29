@@ -22,6 +22,8 @@ The sources are published under GPL Licenses.
 - **DCS**: DCS Reflector Peering (peer-only, same AMBE+ codec as D-Star - no transcoding needed)
 - **M17**: Full M17 protocol support with Codec2 software transcoding
 - **XLX Interlink**: Protocol for linking reflectors (revision 3 with M17 Codec2 support)
+- **USRP (optional)**: Module-bound PCM audio + PTT endpoints for analog front ends such as AllStar app_rpt
+  (needs a PCM-capable transcoder, see [docs/usrp.md](docs/usrp.md) and [config/xlxd.usrp.example](config/xlxd.usrp.example))
 
 ---
 

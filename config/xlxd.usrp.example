@@ -1,0 +1,3 @@
+# module bind_ip bind_port peer_ip peer_port source_callsign
+A 127.0.0.1 34001 127.0.0.1 32001 N0CALL
+B 127.0.0.1 34002 127.0.0.1 32002 N0CALL

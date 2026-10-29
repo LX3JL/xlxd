@@ -83,7 +83,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define MAX_REJECT_TRACKERS             4096                                // max tracked IPs for progressive ignore
 
 // protocols ---------------------------------------------------
-#define NB_OF_PROTOCOLS                 12
+#define NB_OF_PROTOCOLS                 13
 #define PROTOCOL_ANY                    -1
 #define PROTOCOL_NONE                   0
 #define PROTOCOL_DEXTRA                 1
@@ -98,6 +98,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define PROTOCOL_M17                    10
 #define PROTOCOL_NXDN                   11
 #define PROTOCOL_P25                    12
+#define PROTOCOL_USRP                   13
 
 // DExtra - timing matched to ircDDBGateway (10s poll, 60s timeout)
 #define DEXTRA_PORT                     30001                               // UDP port
@@ -189,6 +190,12 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define P25_PEER_KEEPALIVE_TIMEOUT      (P25_PEER_KEEPALIVE_PERIOD*6)       // in seconds
 #define P25_PEER_RECONNECT_PERIOD       5                                   // in seconds
 
+// USRP (app_rpt chan_usrp) - endpoints are listed in USRPOPTIONS_PATH
+#define USRP_HEADER_SIZE                32                                  // "USRP" + 7 x BE32 fields
+#define USRP_VOICE_SIZE                 (USRP_HEADER_SIZE+PCM_FRAME_SIZE)   // keyed voice frame
+#define USRP_RX_TIMEOUT                 100                                 // in ms without voice = unkey
+#define USRP_TX_TIMEOUT                 100                                 // in ms without PCM = unkey
+
 // AMBE gain adjustments for cross-mode audio levels (in dB)
 #define GAIN_NXDN_TO_DMR                -3                                  // in dB
 #define GAIN_DMR_TO_NXDN                -3                                  // in dB
@@ -246,6 +253,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"
 #define INTERLINKLIST_PATH              "/xlxd/xlxd.interlink"
 #define TERMINALOPTIONS_PATH            "/xlxd/xlxd.terminal"
+#define USRPOPTIONS_PATH                "/xlxd/xlxd.usrp"
 #define DEBUGDUMP_PATH                  "/var/log/xlxd.debug"
 
 // system constants ---------------------------------------------

@@ -62,7 +62,7 @@ public:
     uint8   GetCodecOut3(void) const    { return m_uiCodecOut3; }
 
     // activity timer
-    bool    IsActive(void) const        { return m_LastActivity.DurationSinceNow() <= STREAM_ACTIVITY_TIMEOUT; }
+    bool    IsActive(void) const        { return m_LastActivity.DurationSinceNow() <= m_iActivityTimeout; }
 
     // task
     static void Thread(CStream *);
@@ -83,6 +83,9 @@ protected:
     // IMBE input handling
     void TaskImbeInput(void);
 
+    // Codec2 and IMBE input: PCM to the hardware encoders
+    void PushEncoderPcm(CVocodecChannel *, uint8 uiCodecOut, const uint8 *pcmBytes);
+
 protected:
     // data
     uint16          m_uiId;
@@ -98,8 +101,7 @@ protected:
     CVocodecChannel *m_EncoderChannel1;  // AMBE+ encoder
     CVocodecChannel *m_EncoderChannel2;  // AMBE2+ encoder
     CCodec2         *m_pCodec2Decoder;   // Software Codec2 decoder
-    CSignalProcessor *m_pSignalProcessor1;  // Gain for AMBE+ output
-    CSignalProcessor *m_pSignalProcessor2;  // Gain for AMBE2+ output
+    CSignalProcessor *m_pSignalProcessor;   // Decode gain, filter, AGC and encode gains
     imbe_vocoder    *m_pImbeEncoder;     // Software IMBE encoder for Codec2 input
     std::queue<std::vector<uint8>> m_ImbeQueue;  // Queue for IMBE data in Codec2 input mode
 
@@ -108,14 +110,12 @@ protected:
     CCodec2         *m_pCodec2Encoder;   // Software Codec2 encoder for IMBE input
     std::queue<std::vector<uint8>> m_Codec2Queue;  // Queue for Codec2 data in IMBE input mode
 
-    // Precomputed gain multipliers (avoid pow() per packet)
-    float           m_fCodec2DecodeGain;    // Codec2 decode output gain (Codec2 input mode)
-    float           m_fImbeGain;            // IMBE encode/decode gain
-    float           m_fCodec2Gain;          // Codec2 encode gain (IMBE input mode)
-
     // Atomic counters for software queue sizes (for thread-safe drain checks in Close())
     std::atomic<int> m_nImbeQueueSize;
     std::atomic<int> m_nCodec2QueueSize;
+
+    // activity timeout, in seconds
+    int             m_iActivityTimeout;
 
     // client details
     CCallsign       m_Callsign;

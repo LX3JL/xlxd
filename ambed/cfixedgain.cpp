@@ -38,7 +38,7 @@ CFixedGain::CFixedGain(float gaindB)
 ////////////////////////////////////////////////////////////////////////////////////////
 // processing
  
-inline void CFixedGain::ProcessSampleBlock(uint8* voice, int length)
+void CFixedGain::ProcessSampleBlock(uint8* voice, int length)
 {
     for(int i = 0; i < length; i += 2)
     {

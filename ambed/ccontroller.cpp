@@ -27,6 +27,7 @@
 #include "ctimepoint.h"
 #include "cvocodecs.h"
 #include "ccontroller.h"
+#include "cconfig.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +71,7 @@ bool CController::Init(void)
     std::cout << "Max concurrent streams: " << m_uiMaxStreams << " (from " << nbChannels << " vocoder channels)" << std::endl;
 
     // create our socket
-    ok = m_Socket.Open(m_Ip, TRANSCODER_PORT);
+    ok = m_Socket.Open(m_Ip, g_Config.GetListenPort());
     if ( ok )
     {
         // start  thread;
@@ -78,7 +79,7 @@ bool CController::Init(void)
     }
     else
     {
-        std::cout << "Error opening socket on port UDP" << TRANSCODER_PORT << " on ip " << m_Ip << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetListenPort() << " on ip " << m_Ip << std::endl;
     }
 
     // done
@@ -224,7 +225,7 @@ CStream *CController::OpenStream(const CCallsign &Callsign, const CIp &Ip, uint8
     m_uiLastStreamId = (m_uiLastStreamId + 1);
     m_uiLastStreamId = (m_uiLastStreamId > m_uiMaxStreams) ? 1 : m_uiLastStreamId;
     stream = new CStream(m_uiLastStreamId, Callsign, Ip, CodecIn, CodecOut1, CodecOut2, CodecOut3);
-    if ( stream->Init(TRANSCODER_PORT+m_uiLastStreamId) )
+    if ( stream->Init(g_Config.GetListenPort()+m_uiLastStreamId) )
     {
         std::cout << "Opened stream " << m_uiLastStreamId << std::endl;
         // and store it

@@ -66,7 +66,7 @@ class CVocodecChannel
 {
 public:
     // constructors
-    CVocodecChannel(CVocodecInterface *, int, CVocodecInterface *, int, int);
+    CVocodecChannel(CVocodecInterface *, int, CVocodecInterface *, int);
 
     // destructor
     virtual ~CVocodecChannel();
@@ -81,10 +81,10 @@ public:
     uint8 GetCodecOut(void) const;
     int   GetChannelIn(void) const          { return m_iChannelIn; }
     int   GetChannelOut(void) const         { return m_iChannelOut; }
-    int   GetSpeechGain(void) const         { return m_iSpeechGain; }
     
     //Processing
     void ProcessSignal(CVoicePacket& voicePacket);
+    void ReportSignal(uint16 uiStreamId, const std::string& callsign);
     
     // interfaces
     bool IsInterfaceIn(const CVocodecInterface *interface)      { return (interface == m_InterfaceIn); }
@@ -223,8 +223,13 @@ protected:
     std::atomic<uint32>    m_PidFifoOrphanDrops;
     std::atomic<uint32>    m_PidFifoOverflowDrops;
     
-    // settings
-    int                 m_iSpeechGain;
+    // signal processing, rebuilt for each stream. Open and Close run on
+    // the stream's thread, ProcessSignal on the USB interface thread.
+    CSignalProcessor    *m_signalProcessor;
+    std::mutex          m_SignalMutex;
+
+    // a copy of a processed frame at the level for this codec
+    std::vector<int16_t> OutputPcm(uint8 uiCodecOut, const uint8 *voice);
 
     // Codec2 encoding (software) - runs in separate thread to avoid blocking hardware
     std::atomic<bool>   m_bCodec2Enabled;
@@ -257,7 +262,6 @@ protected:
     void ImbeEncoderTask(void);
 
 private:
-    CSignalProcessor* m_signalProcessor;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -30,3 +30,4 @@ install:
 	mkdir -p /ambed
 	cp $(EXECUTABLE) /ambed/
 	cp ./run /ambed/
+	test -f /ambed/ambed.ini || cp ./ambed.ini /ambed/

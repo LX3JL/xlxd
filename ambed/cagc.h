@@ -21,9 +21,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
-// Geoffrey Merck F4FXL / KC3FRA AGC code largely inspired by Liquid DSP
-// Only took the parts we need qnd recoeded it to be close the XLX coding style
-// https://github.com/jgaeddert/liquid-dsp/blob/master/src/agc/src/agc.c 
+// AGC with hang, replaces the sample by sample loop by Geoffrey Merck
+// F4FXL / KC3FRA that was inspired by Liquid DSP
 
 #ifndef cagc_h
 #define cagc_h
@@ -33,24 +32,39 @@
 class CAGC : CSampleBlockProcessor
 {
 public:
-    //Constructor
-    CAGC(float initialLeveldB);
+    //Constructor, levels in dBFS and gains in dB, attack and hang in ms,
+    //recovery in dB/s for each dB below the target, between recoveryMin and recoveryMax in dB/s
+    CAGC(float targetdB, float clampingdB, float attackMs, float hangMs,
+         float recovery, float recoveryMin, float recoveryMax, float gatedB, float limitdB);
 
     //methods
-    void ProcessSampleBlock(uint8* voice, int length) ;
-    float GetGain();//gets current gain 
-    
+    void ProcessSampleBlock(uint8* voice, int length);
+    float GetGain();//gets current gain in dB
+    float GetSpeechPeak();//gets the speech peak level in, in dBFS
+    bool IsVoice() { return m_bVoice; }//did the last frame pass the gate
+    long GetLimitedSamples() { return m_LimitedSamples; }
+
 private:
-    float m_Gain;            // current gain value
-    float m_GainMax, m_GainMin;       //gain clamping
-    float m_targetEnergy;        // scale value for target energy
+    bool  m_Enabled;            // a clamping of 0 measures but leaves the audio alone
+    float m_TargetdB;           // speech peak level to aim for
+    float m_ClampingdB;
+    float m_AttackCoef;         // share of the way down per frame
+    int   m_HangFrames;
+    float m_Recovery;           // dB per frame, for each dB below the target
+    float m_RecoveryMin;        // dB per frame
+    float m_RecoveryMax;        // dB per frame
+    float m_GateLevel;          // quieter frames aren't voice and leave the gain alone
+    float m_LimitLevel;         // no sample goes above this
 
-    // gain control loop filter parameters
-    float m_Bandwidth;    // bandwidth-time constant
-    float m_Alpha;        // feed-back gain
+    float m_SpeechPeak;         // envelope of the frame levels
+    float m_RecentPeak;         // the same, falling slowly so a word's tail isn't a quiet station
+    bool  m_bVoice;
+    int   m_HangLeft;           // frames until the gain may rise
 
-    // signal level estimate
-    float m_EnergyPrime;     // filtered output signal energy estimate
+    float m_GaindB;             // current gain
+    float m_Gain;               // the same, linear
+    float m_Limiter;            // peak limiter gain, 1.0 when idle
+    long  m_LimitedSamples;
 };
 
-#endif /* cgc_h */
+#endif /* cagc_h */

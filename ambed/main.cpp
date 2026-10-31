@@ -26,6 +26,7 @@
 #include "ctimepoint.h"
 #include "cambeserver.h"
 #include "cudpsocket.h"
+#include "cconfig.h"
 
 #include "syslog.h"
 #include <sys/stat.h>
@@ -86,17 +87,24 @@ int main(int argc, const char * argv[])
     
 #endif
     
-    // check arguments
-    if ( argc != 2 )
+    // check arguments, the listen IP used to be an argument and is now in ambed.ini
+    if ( argc > 2 || (argc == 2 && g_Config.IsValidIp(argv[1])) )
     {
-        std::cout << "Usage: ambed ip" << std::endl;
-        std::cout << "example: ambed 192.168.178.212" << std::endl;
+        std::cout << "Usage: ambed [ambed.ini]" << std::endl;
+        std::cout << "example: ambed /ambed/ambed.ini" << std::endl;
+        std::cout << "The listen IP is now LISTEN_IP in ambed.ini" << std::endl;
         return 1;
     }
-    
+
+    // load the settings, main.h defaults without an ambed.ini
+    if ( argc == 2 )
+    {
+        g_Config.Load(argv[1]);
+    }
+
     // initialize ambeserver
-    g_AmbeServer.SetListenIp(CIp(argv[1]));
-    
+    g_AmbeServer.SetListenIp(CIp(g_Config.GetListenIp().c_str()));
+
     // and let it run
     std::cout << "Starting AMBEd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << std::endl << std::endl;
     if ( !g_AmbeServer.Start() )
@@ -104,7 +112,7 @@ int main(int argc, const char * argv[])
         std::cout << "Error starting AMBEd" << std::endl;
         exit(EXIT_FAILURE);
     }
-    std::cout << "AMBEd started and listening on " << g_AmbeServer.GetListenIp() << std::endl;
+    std::cout << "AMBEd started and listening on " << g_AmbeServer.GetListenIp() << ":" << g_Config.GetListenPort() << std::endl;
 
     // Log DSCP status once at startup
     CUdpSocket::LogDscpStatus();
@@ -113,6 +121,7 @@ int main(int argc, const char * argv[])
     // (destructors of static objects run on exit)
     for (;;)
     {
-        CTimePoint::TaskSleepFor(60000);
+        CTimePoint::TaskSleepFor(CONFIG_RELOAD_PERIOD * 1000);
+        g_Config.Reload();
     }
 }

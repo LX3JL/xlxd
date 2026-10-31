@@ -48,14 +48,18 @@
 // version -----------------------------------------------------
 
 #define VERSION_MAJOR                   1
-#define VERSION_MINOR                   4
+#define VERSION_MINOR                   5
 #define VERSION_REVISION                0
 
 // global ------------------------------------------------------
 //#define RUN_AS_DAEMON
 //#define DEBUG_DUMPFILE
 
-// QoS - set DSCP/TOS on outgoing packets for network prioritization
+// Network, also overridden by ambed.ini
+#define LISTEN_IP                       "127.0.0.1"                         // IP to bind to
+#define LISTEN_PORT                     10100                               // UDP port, xlxd's TRANSCODER_PORT must match
+
+// QoS - set DSCP/TOS on outgoing packets for network prioritization, also overridden by ambed.ini
 // DSCP values: 0-63 (6 bits). Common choices for voice:
 //   46 (EF)  - Expedited Forwarding, highest priority voice
 //   34 (AF41)- Assured Forwarding class 4, high priority
@@ -64,51 +68,56 @@
 #define DSCP_MARKING_ENABLE             1                                   // 1 = enable, 0 = disable
 #define DSCP_VALUE                      46                                  // DSCP value (0-63)
 
-// Transcoder server --------------------------------------------
-#define TRANSCODER_PORT                 10100                               // UDP port
-
 // Codecs -------------------------------------------------------
 #define CODEC_NONE                      0
 #define CODEC_AMBEPLUS                  1
 #define CODEC_AMBE2PLUS                 2
 #define CODEC_CODEC2                    3
 #define CODEC_IMBE                      4
+#define NB_OF_CODECS                    5                                   // CODEC_NONE to CODEC_IMBE
 
 // Frame sizes --------------------------------------------------
 #define AMBE_FRAME_SIZE                 9
 #define CODEC2_FRAME_SIZE               8
 #define IMBE_FRAME_SIZE                 11
 
-// Transcoding speech gains (hardware vocodec channels: AMBE decode -> PCM -> AMBE encode)
-#define CODECGAIN_AMBEPLUS              -10                                 // in dB (D-Star)
-#define CODECGAIN_AMBE2PLUS             +10                                 // in dB (DMR)
+// Transcoding gains, in dB. These are the defaults, ambed.ini overrides them at runtime.
+// Every path is: decode -> <MODE>_TO_PCM -> bandpass filter -> AGC -> PCM_TO_<MODE> -> encode
+#define DSTAR_TO_PCM                    -10.0f                              // D-Star (AMBE+) decode
+#define DMR_TO_PCM                      -1.5f                               // DMR, YSF and NXDN (AMBE2+) decode
+#define M17_TO_PCM                      -10.75f                             // M17 (Codec2) decode
+#define P25_TO_PCM                      -3.75f                              // P25 (IMBE) decode
+#define PCM_TO_DSTAR                    +11.5f                              // D-Star (AMBE+) encode
+#define PCM_TO_DMR                      0.0f                                // DMR, YSF and NXDN (AMBE2+) encode
+#define PCM_TO_M17                      +5.25f                              // M17 (Codec2) encode
+#define PCM_TO_P25                      +0.75f                              // P25 (IMBE) encode
 
-// IMBE transcoding gains (software IMBE decode -> PCM -> hardware AMBE encode / software Codec2 encode)
-#define IMBE_DECODE_GAIN                +18                                 // in dB - IMBE library outputs very quiet PCM
-#define IMBE_TO_AMBEPLUS_GAIN           +0                                  // in dB - additional gain for D-Star encode
-#define IMBE_TO_AMBE2PLUS_GAIN          -13                                 // in dB - attenuation for DMR encode
-#define IMBE_TO_CODEC2_GAIN             -7                                  // in dB - gain for M17 encode
+// AGC, also overridden by ambed.ini. It levels each speaker: fast down, hold
+// through gaps, then up, faster the further a station is below the target
+#define USE_AGC                         1                                   // 1=AGC, 0=no AGC
+#define AGC_TARGET                      -41.0f                              // speech peak level the AGC aims for, in dBFS
+#define AGC_CLAMPING                    9.0f                                // most the AGC can move the gain either way in dB, 0=off
+#define AGC_ATTACK                      150.0f                              // in ms, how fast the gain comes down
+#define AGC_HANG                        1000.0f                             // in ms, how long the gain holds before it can rise
+#define AGC_RECOVERY                    2.0f                                // in dB/s for each dB below the target, how fast the gain rises
+#define AGC_RECOVERY_MIN                3.0f                                // in dB/s, slowest rise
+#define AGC_RECOVERY_MAX                20.0f                               // in dB/s, fastest rise
+#define AGC_GATE                        -60.0f                              // in dBFS, quieter frames don't move the gain
+#define AGC_CEILING                     -1.0f                               // in dBFS, the limiter keeps the loudest encoder input below this, not in ambed.ini
 
-// Codec2 transcoding gains (software Codec2 decode -> PCM -> hardware AMBE encode / software IMBE encode)
-#define CODEC2_DECODE_GAIN              +6                                  // in dB - if Codec2 library needs gain adjustment
-#define CODEC2_TO_AMBEPLUS_GAIN         -3                                  // in dB - gain for D-Star encode
-#define CODEC2_TO_AMBE2PLUS_GAIN        -13                                 // in dB - gain for DMR encode
-#define CODEC2_TO_IMBE_GAIN             -13                                 // in dB - gain for P25 encode
+// Bandpass filter on PCM, also overridden by ambed.ini
+#define USE_BANDPASSFILTER              1                                   // 1=on, 0=off
 
-// IMBE encode gain (applied to PCM from hardware vocoder -> IMBE software encode)
-// Note: Codec2 -> IMBE path in cstream.cpp uses CODEC2_TO_IMBE_GAIN separately
-#define IMBE_ENCODE_GAIN                -4                                  // in dB
-
-// Transcoding Tweaks
-#define USE_AGC                         1                                   // 1=AGC, 0=fixed gain
-#define AGC_CLAMPING                    3                                   // clamps the AGC gain to +- this value in dB
-#define USE_BANDPASSFILTER              1                                   // bandpass filter on PCM (decode path)
+// Tuning -------------------------------------------------------
+#define TUNING_LOG                      1                                   // 1 = log levels when a stream closes, 0 = off, also overridden by ambed.ini
+#define CONFIG_RELOAD_PERIOD            180                                 // in seconds, how often ambed.ini is checked
+#define TUNING_SILENCE_LEVEL            -55.0f                              // in dBFS, decoded frames below this aren't voice
 
 // Software queue depth limit - prevents unbounded growth if hardware stalls
 // At 50 frames/sec, 50 = 1 second of buffering
 #define SOFTWARE_QUEUE_MAX_DEPTH        50
 
-// Timeouts -----------------------------------------------------
+// Timeouts, also overridden by ambed.ini ------------------------
 #define STREAM_ACTIVITY_TIMEOUT         3                                   // in seconds
 
 
@@ -156,15 +165,11 @@ disp(hh);
 grid
 */
 
-#if USE_BANDPASSFILTER == 1
-
 const float FILTER_TAPS[] {
 -0.05063341f, -0.00060337f, -0.08892498f, -0.02026701f, -0.05940750f, -0.10977641f,  0.03244024f, -0.22304499f,
 0.11452865f,  0.72500000f,  0.11452865f, -0.22304499f,  0.03244024f, -0.10977641f, -0.05940750f, -0.02026701f,
 -0.08892498f, -0.00060337f, -0.05063341f };
 #define FILTER_TAPS_LENGTH          19
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // global objects
@@ -174,6 +179,9 @@ extern CAmbeServer  g_AmbeServer;
 
 class CVocodecs;
 extern CVocodecs    g_Vocodecs;
+
+class CConfig;
+extern CConfig      g_Config;
 
  
 ////////////////////////////////////////////////////////////////////////////////////////

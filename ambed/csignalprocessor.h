@@ -26,23 +26,69 @@
 #ifndef csignalprocessor_h
 #define csignalprocessor_h
 
-#include <vector>
+#include <string>
+#include "cconfig.h"
 #include "csampleblockprocessor.h"
+
+class CAGC;
+class CFixedGain;
+class CFIRFilter;
+
+// voice level at one point of the chain, for the tuning report
+class CLevelMeter
+{
+public:
+    CLevelMeter();
+
+    void Add(const uint8* voice, int length);
+    void Report(const std::string& label) const;
+
+private:
+    double  m_Sum;          // sum of absolute sample values
+    long    m_Samples;
+    long    m_Clipped;
+    int     m_Peak;
+};
 
 class CSignalProcessor
 {
 public:
-    //Constructor
-    CSignalProcessor(float gaindB);
+    //Constructor, takes the input codec and the current ambed.ini values
+    CSignalProcessor(uint8 uiCodecIn);
 
     //Destructor
     ~CSignalProcessor();
 
     //Processing
-    void Process(uint8* voice, int length);
+    void Process(uint8* voice, int length);                     //decode gain, filter, AGC
+    void ProcessOutput(uint8 uiCodecOut, uint8* voice, int length);   //encode gain
+
+    //Tuning report, logged when the stream closes
+    void Report(uint16 uiStreamId, const std::string& callsign) const;
 
 private:
-    std::vector<CSampleBlockProcessor *> m_sampleProcessors;
+    uint8       m_uiCodecIn;
+    CTuning     m_Tuning;
+    CFixedGain  *m_pDecodeGain;
+    CFIRFilter  *m_pFilter;
+    CAGC        *m_pAgc;
+    CFixedGain  *m_pEncodeGain[NB_OF_CODECS];
+
+    // tuning report
+    bool        m_bVoice;                       //is the current frame voice
+    long        m_Frames;
+    long        m_VoiceFrames;
+    CLevelMeter m_Decoded;
+    CLevelMeter m_ToAgc;
+    CLevelMeter m_FromAgc;
+    CLevelMeter m_Output[NB_OF_CODECS];
+    double      m_AgcSum;
+    float       m_AgcMin;
+    float       m_AgcMax;
+    long        m_AgcAtMax;
+    long        m_AgcAtMin;
+    double      m_SpeechPeakSum;
+    long        m_SpeechPeakFrames;
 };
 
 #endif /* csignalprocessor_h */

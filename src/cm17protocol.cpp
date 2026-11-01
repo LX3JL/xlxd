@@ -33,6 +33,24 @@
 // handled by ambed when Codec2 support is added there
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// M17 IP stream packets end with the CRC-16 of their first 52 bytes (poly 0x5935,
+// init 0xFFFF, as M17 frames use); clients that check it drop a packet sent with zero
+static void AppendM17Crc(CBuffer *Buffer)
+{
+    uint16 crc = 0xFFFF;
+    for ( size_t i = 0; i < Buffer->size(); i++ )
+    {
+        crc ^= (uint16)((*Buffer)[i] << 8);
+        for ( int b = 0; b < 8; b++ )
+        {
+            crc = (crc & 0x8000) ? (uint16)((crc << 1) ^ 0x5935) : (uint16)(crc << 1);
+        }
+    }
+    Buffer->Append((uint8)HIBYTE(crc));
+    Buffer->Append((uint8)LOBYTE(crc));
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // operation
 
 bool CM17Protocol::Init(void)
@@ -576,8 +594,7 @@ void CM17Protocol::SendSyntheticEOT(int iModId)
         buffer.Append((uint8 *)CODEC2_SILENCE, 8);
         buffer.Append((uint8 *)CODEC2_SILENCE, 8);
 
-        buffer.Append((uint8)0);
-        buffer.Append((uint8)0);
+        AppendM17Crc(&buffer);
 
         std::cout << "M17 synthetic EOT sent for module " << (char)('A' + iModId)
                   << " sid " << streamId << std::endl;
@@ -1181,9 +1198,8 @@ bool CM17Protocol::EncodeDvFramePacket(const CDvFramePacket &Packet, uint16 stre
             Buffer->Append((uint8)0);
     }
 
-    // reserved (2 bytes)
-    Buffer->Append((uint8)0);
-    Buffer->Append((uint8)0);
+    // CRC (2 bytes)
+    AppendM17Crc(Buffer);
 
     // clear the pending flag
     m_StreamsCache[iModId].m_bHasPendingCodec2 = false;
@@ -1266,9 +1282,8 @@ bool CM17Protocol::EncodeDvLastFramePacket(const CDvLastFramePacket &Packet, uin
         Buffer->Append(CODEC2_SILENCE, 8);
     }
 
-    // reserved (2 bytes)
-    Buffer->Append((uint8)0);
-    Buffer->Append((uint8)0);
+    // CRC (2 bytes)
+    AppendM17Crc(Buffer);
 
     // Reset the cache for next stream
     m_StreamsCache[iModId].m_bHasPendingCodec2 = false;

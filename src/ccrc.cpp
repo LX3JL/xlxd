@@ -249,3 +249,18 @@ unsigned char CCRC::addCRC(const unsigned char* in, unsigned int length)
 
     return crc;
 }
+
+unsigned short CCRC::crcM17(const unsigned char* in, unsigned int length)
+{
+    assert(in != NULL);
+
+    uint16_t crc = 0xFFFFU;
+
+    for (unsigned int i = 0U; i < length; i++) {
+        crc ^= uint16_t(in[i]) << 8;
+        for (unsigned int j = 0U; j < 8U; j++)
+            crc = (crc & 0x8000U) ? uint16_t((crc << 1) ^ 0x5935U) : uint16_t(crc << 1);
+    }
+
+    return crc;
+}

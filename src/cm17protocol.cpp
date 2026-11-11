@@ -28,6 +28,10 @@
 #include "cm17protocol.h"
 #include "creflector.h"
 #include "cgatekeeper.h"
+#include "ccrc.h"
+
+// Codec2 3200bps silence (encoded from 160 zero PCM samples)
+static const uint8 M17_CODEC2_SILENCE[8] = { 0xC0, 0x00, 0x6A, 0x43, 0x9C, 0xE4, 0x21, 0x08 };
 
 // Note: Software transcoding removed - M17 <-> AMBE transcoding will be
 // handled by ambed when Codec2 support is added there
@@ -128,17 +132,31 @@ void CM17Protocol::RxTask(void)
                 }
             }
 
-            uint8 m17seq = LastFrame->GetPacketId();
-            // Multiply by 2 for 40ms->20ms conversion, mask to uint8 range
-            uint8 pid1 = (uint8)((m17seq * 2) & 0xFF);
-            uint8 pid2 = (uint8)((m17seq * 2 + 1) & 0xFF);
+            // Signed stream: the final frame carries signature bytes, not
+            // voice. Send silence instead (the signature frames before it
+            // were dropped).
+            if ( IsSignatureFrame(Buffer) )
+            {
+                ::memcpy(codec2_frame1, M17_CODEC2_SILENCE, 8);
+                ::memcpy(codec2_frame2, M17_CODEC2_SILENCE, 8);
 
-            // Create regular frame for first codec2 frame
-            CDvFramePacket *Frame1 = new CDvFramePacket(codec2_frame1, streamId, pid1);
+                CCallsign csSource;
+                DecodeCallsign(Buffer.data() + 12, &csSource);
+                char sid[8];
+                ::snprintf(sid, sizeof(sid), "0x%04X", streamId);
+                std::cout << "M17 stream " << sid << " from " << csSource
+                          << ": signature stripped" << std::endl;
+            }
 
-            // Update last frame with second codec2 frame and correct packet ID
+            // Create regular frame for first codec2 frame. Packet IDs are
+            // left undefined (0xFF): the packet stream numbers every frame
+            // from its own counter, so D-Star frame numbering (mod 21)
+            // stays continuous whatever the M17 frame number does.
+            CDvFramePacket *Frame1 = new CDvFramePacket(codec2_frame1, streamId, 0xFF);
+
+            // Update last frame with second codec2 frame
             delete LastFrame;
-            LastFrame = new CDvLastFramePacket(codec2_frame2, streamId, pid2);
+            LastFrame = new CDvLastFramePacket(codec2_frame2, streamId, 0xFF);
 
             // Process first frame as regular, then last frame closes stream
             OnDvFramePacketIn(Frame1, &Ip);
@@ -173,6 +191,11 @@ void CM17Protocol::RxTask(void)
                 delete Header;
             }
         }
+        else if ( IsSignatureFrame(Buffer) )
+        {
+            // signed stream: drop the frames carrying the signature, xlxd
+            // re-encodes the stream so the signature can't be passed on
+        }
         else if ( IsValidDvFramePacket(Buffer, &Frame) )
         {
             // check if this is from a listen-only client
@@ -197,19 +220,17 @@ void CM17Protocol::RxTask(void)
             uint8 codec2_frame2[8];
             ::memcpy(codec2_frame2, Buffer.data() + 36 + 8, 8);  // second codec2 frame
 
-            // Create second frame packet with incremented packet ID
-            // Multiply by 2 for 40ms->20ms conversion, mask to uint8 range
-            CDvFramePacket *Frame2 = new CDvFramePacket(codec2_frame2, Frame->GetStreamId(),
-                                                         (uint8)(((Frame->GetPacketId() * 2) + 1) & 0xFF));
+            // Rebuild both frames with packet IDs left undefined (0xFF):
+            // the packet stream numbers every frame from its own counter,
+            // so D-Star frame numbering (mod 21) stays continuous whatever
+            // the M17 frame number does.
+            uint16 streamId = Frame->GetStreamId();
+            CDvFramePacket *Frame2 = new CDvFramePacket(codec2_frame2, streamId, 0xFF);
 
-            // Update first frame's packet ID to be even (Frame1 = seq*2, Frame2 = seq*2+1)
-            // We need to recreate Frame with correct packet ID
             uint8 codec2_frame1[8];
             ::memcpy(codec2_frame1, Buffer.data() + 36, 8);  // first codec2 frame
-            uint16 streamId = Frame->GetStreamId();
-            uint8 pid1 = (uint8)((Frame->GetPacketId() * 2) & 0xFF);
             delete Frame;
-            Frame = new CDvFramePacket(codec2_frame1, streamId, pid1);
+            Frame = new CDvFramePacket(codec2_frame1, streamId, 0xFF);
 
             // Process both frames
             OnDvFramePacketIn(Frame, &Ip);
@@ -297,6 +318,10 @@ void CM17Protocol::RxTask(void)
                 client->Alive();
             }
             g_Reflector.ReleaseClients();
+        }
+        else if ( IsStreamPacket(Buffer) && !IsSupportedVoiceType(GetStreamType(Buffer)) )
+        {
+            LogUnsupportedStream(Buffer, Ip);
         }
     }
 
@@ -576,8 +601,8 @@ void CM17Protocol::SendSyntheticEOT(int iModId)
         buffer.Append((uint8 *)CODEC2_SILENCE, 8);
         buffer.Append((uint8 *)CODEC2_SILENCE, 8);
 
-        buffer.Append((uint8)0);
-        buffer.Append((uint8)0);
+        // CRC over bytes 0..51
+        AppendCrc(&buffer);
 
         std::cout << "M17 synthetic EOT sent for module " << (char)('A' + iModId)
                   << " sid " << streamId << std::endl;
@@ -925,10 +950,8 @@ bool CM17Protocol::IsValidDvHeaderPacket(const CBuffer &Buffer, CDvHeaderPacket 
 
     if ( (Buffer.size() == 54) && (Buffer.Compare((uint8 *)"M17 ", 4) == 0) )
     {
-        // check frame type
-        uint8 frameType = Buffer.data()[19];
-
-        if ( frameType == M17_FRAMETYPE_VOICE )
+        // stream, voice 3200, no encryption (any META, CAN or signed bit)
+        if ( IsSupportedVoiceType(GetStreamType(Buffer)) )
         {
             // get sequence number with EOT flag
             uint16 sequenceWithEOT = MAKEWORD(Buffer.data()[35], Buffer.data()[34]);
@@ -980,10 +1003,8 @@ bool CM17Protocol::IsValidDvFramePacket(const CBuffer &Buffer, CDvFramePacket **
 
     if ( (Buffer.size() == 54) && (Buffer.Compare((uint8 *)"M17 ", 4) == 0) )
     {
-        // check frame type
-        uint8 frameType = Buffer.data()[19];
-
-        if ( frameType == M17_FRAMETYPE_VOICE )
+        // stream, voice 3200, no encryption (any META, CAN or signed bit)
+        if ( IsSupportedVoiceType(GetStreamType(Buffer)) )
         {
             // get sequence number with EOT flag
             uint16 sequenceWithEOT = MAKEWORD(Buffer.data()[35], Buffer.data()[34]);
@@ -1016,10 +1037,8 @@ bool CM17Protocol::IsValidDvLastFramePacket(const CBuffer &Buffer, CDvLastFrameP
 
     if ( (Buffer.size() == 54) && (Buffer.Compare((uint8 *)"M17 ", 4) == 0) )
     {
-        // check frame type
-        uint8 frameType = Buffer.data()[19];
-
-        if ( frameType == M17_FRAMETYPE_VOICE )
+        // stream, voice 3200, no encryption (any META, CAN or signed bit)
+        if ( IsSupportedVoiceType(GetStreamType(Buffer)) )
         {
             // get stream ID
             uint16 streamId = MAKEWORD(Buffer.data()[5], Buffer.data()[4]);
@@ -1043,6 +1062,109 @@ bool CM17Protocol::IsValidDvLastFramePacket(const CBuffer &Buffer, CDvLastFrameP
         }
     }
     return valid;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// stream packet TYPE helpers
+
+bool CM17Protocol::IsStreamPacket(const CBuffer &Buffer) const
+{
+    return (Buffer.size() == 54) && (Buffer.Compare((uint8 *)"M17 ", 4) == 0);
+}
+
+uint16 CM17Protocol::GetStreamType(const CBuffer &Buffer) const
+{
+    return MAKEWORD(Buffer.data()[19], Buffer.data()[18]);
+}
+
+uint16 CM17Protocol::GetFrameNumber(const CBuffer &Buffer) const
+{
+    return MAKEWORD(Buffer.data()[35], Buffer.data()[34]);
+}
+
+// Stream mode, voice only (Codec2 3200), no encryption. The META content
+// (text, GNSS, extended callsign), CAN and signed bit don't affect the voice.
+bool CM17Protocol::IsSupportedVoiceType(uint16 type) const
+{
+    return (type & M17_TYPE_STREAM) &&
+           ((type & M17_TYPE_DATA_MASK) == M17_TYPE_DATA_VOICE) &&
+           ((type & M17_TYPE_ENCR_MASK) == 0);
+}
+
+// One of the last four frames of a signed stream, which carry the
+// signature instead of voice
+bool CM17Protocol::IsSignatureFrame(const CBuffer &Buffer) const
+{
+    if ( !IsStreamPacket(Buffer) )
+        return false;
+
+    uint16 type = GetStreamType(Buffer);
+    return IsSupportedVoiceType(type) && (type & M17_TYPE_SIGNED) &&
+           ((GetFrameNumber(Buffer) & 0x7FFF) >= M17_FN_SIGNATURE_FIRST);
+}
+
+// Log a dropped stream with an unsupported TYPE, once per stream
+void CM17Protocol::LogUnsupportedStream(const CBuffer &Buffer, const CIp &Ip)
+{
+    uint16 streamId = MAKEWORD(Buffer.data()[5], Buffer.data()[4]);
+    CM17RxStreamItem *rx = FindRxStream(streamId, Ip, true);
+    if ( rx->m_bRejectLogged )
+        return;
+    rx->m_bRejectLogged = true;
+
+    uint16 type = GetStreamType(Buffer);
+    const char *reason;
+    if ( !(type & M17_TYPE_STREAM) )
+        reason = "packet mode";
+    else if ( type & M17_TYPE_ENCR_MASK )
+        reason = "encrypted";
+    else if ( (type & M17_TYPE_DATA_MASK) == M17_TYPE_DATA_VOICEDATA )
+        reason = "voice+data, Codec2 1600";
+    else if ( (type & M17_TYPE_DATA_MASK) == M17_TYPE_DATA_DATA )
+        reason = "data only";
+    else
+        reason = "reserved data type";
+
+    CCallsign csSource;
+    DecodeCallsign(Buffer.data() + 12, &csSource);
+    char ids[32];
+    ::snprintf(ids, sizeof(ids), "0x%04X", streamId);
+    char types[8];
+    ::snprintf(types, sizeof(types), "0x%04X", type);
+    std::cout << "M17 stream " << ids << " from " << csSource << " at " << Ip
+              << " dropped: TYPE " << types << " (" << reason << ") not supported" << std::endl;
+}
+
+// Find the inbound state for a stream, optionally creating it. Entries
+// idle for more than 5 seconds are discarded first.
+CM17RxStreamItem *CM17Protocol::FindRxStream(uint16 streamId, const CIp &Ip, bool create)
+{
+    for ( auto it = m_RxStreams.begin(); it != m_RxStreams.end(); )
+    {
+        if ( it->m_LastSeen.DurationSinceNow() > 5.0 )
+            it = m_RxStreams.erase(it);
+        else
+            ++it;
+    }
+
+    for ( auto &rx : m_RxStreams )
+    {
+        if ( (rx.m_uiStreamId == streamId) && (rx.m_Ip == Ip) )
+        {
+            rx.m_LastSeen.Now();
+            return &rx;
+        }
+    }
+
+    if ( !create )
+        return NULL;
+
+    CM17RxStreamItem rx;
+    rx.m_uiStreamId = streamId;
+    rx.m_Ip = Ip;
+    rx.m_LastSeen.Now();
+    m_RxStreams.push_back(rx);
+    return &m_RxStreams.back();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1181,9 +1303,8 @@ bool CM17Protocol::EncodeDvFramePacket(const CDvFramePacket &Packet, uint16 stre
             Buffer->Append((uint8)0);
     }
 
-    // reserved (2 bytes)
-    Buffer->Append((uint8)0);
-    Buffer->Append((uint8)0);
+    // CRC over bytes 0..51
+    AppendCrc(Buffer);
 
     // clear the pending flag
     m_StreamsCache[iModId].m_bHasPendingCodec2 = false;
@@ -1266,15 +1387,23 @@ bool CM17Protocol::EncodeDvLastFramePacket(const CDvLastFramePacket &Packet, uin
         Buffer->Append(CODEC2_SILENCE, 8);
     }
 
-    // reserved (2 bytes)
-    Buffer->Append((uint8)0);
-    Buffer->Append((uint8)0);
+    // CRC over bytes 0..51
+    AppendCrc(Buffer);
 
     // Reset the cache for next stream
     m_StreamsCache[iModId].m_bHasPendingCodec2 = false;
     m_StreamsCache[iModId].m_uiFrameSequence = 0;
 
     return true;
+}
+
+// Append the M17 CRC-16, big-endian, computed over everything already
+// in the buffer (bytes 0..51 of a 54-byte stream packet, magic included).
+void CM17Protocol::AppendCrc(CBuffer *Buffer) const
+{
+    uint16 crc = CCRC::crcM17(Buffer->data(), (unsigned int)Buffer->size());
+    Buffer->Append((uint8)HIBYTE(crc));
+    Buffer->Append((uint8)LOBYTE(crc));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

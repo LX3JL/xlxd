@@ -31,15 +31,14 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVocodecInterface *InterfaceOut, int iChOut, int iSpeechGain)
+CVocodecChannel::CVocodecChannel(CVocodecInterface *InterfaceIn, int iChIn, CVocodecInterface *InterfaceOut, int iChOut)
 {
     m_bOpen = false;
     m_InterfaceIn = InterfaceIn;
     m_iChannelIn = iChIn;
     m_InterfaceOut = InterfaceOut;
     m_iChannelOut = iChOut;
-    m_iSpeechGain = iSpeechGain;
-    m_signalProcessor = new CSignalProcessor((float)m_iSpeechGain);
+    m_signalProcessor = NULL;
 
     // Codec2 encoder starts disabled, enabled per-stream as needed
     m_bCodec2Enabled = false;
@@ -109,6 +108,12 @@ bool CVocodecChannel::Open(void)
         m_bOpen = true;
         ok = true;
         PurgeAllQueues();
+        {
+            // Each stream starts clean, with the current ambed.ini values
+            std::lock_guard<std::mutex> lock(m_SignalMutex);
+            delete m_signalProcessor;
+            m_signalProcessor = new CSignalProcessor(GetCodecIn());
+        }
         std::cout << "Vocodec channel " <<
             m_InterfaceIn->GetName() << ":" << m_InterfaceIn->GetSerial() << ":" << (int)m_iChannelIn << " -> " <<
             m_InterfaceOut->GetName() << ":" << m_InterfaceOut->GetSerial() << ":" << (int)m_iChannelOut << " open" << std::endl;
@@ -122,6 +127,11 @@ void CVocodecChannel::Close(void)
     {
         m_bOpen = false;
         PurgeAllQueues();
+        {
+            std::lock_guard<std::mutex> lock(m_SignalMutex);
+            delete m_signalProcessor;
+            m_signalProcessor = NULL;
+        }
         std::cout << "Vocodec channel " <<
             m_InterfaceIn->GetName() << ":" << m_InterfaceIn->GetSerial() << ":" << (int)m_iChannelIn << " -> " <<
             m_InterfaceOut->GetName() << ":" << m_InterfaceOut->GetSerial() << ":" << (int)m_iChannelOut << " closed" << std::endl;
@@ -146,64 +156,77 @@ uint8 CVocodecChannel::GetCodecOut(void) const
 
 void CVocodecChannel::ProcessSignal(CVoicePacket& voicePacket)
 {
-    m_signalProcessor->Process(voicePacket.GetVoice(), voicePacket.GetVoiceSize());
+    std::lock_guard<std::mutex> signalLock(m_SignalMutex);
+    if (m_signalProcessor == NULL)
+    {
+        return;
+    }
+
+    uint8 *rawVoice = voicePacket.GetVoice();
+    int voiceSize = voicePacket.GetVoiceSize();
+    m_signalProcessor->Process(rawVoice, voiceSize);
 
     // Codec2 encoding runs in a separate thread to avoid blocking the hardware interface.
     // Here we just queue the PCM data for async encoding.
-    if (m_bCodec2Enabled && m_pCodec2Thread != NULL)
+    if (m_bCodec2Enabled && m_pCodec2Thread != NULL && voiceSize >= 320)  // 160 samples * 2 bytes
     {
-        int voiceSize = voicePacket.GetVoiceSize();
+        std::vector<int16_t> audio = OutputPcm(CODEC_CODEC2, rawVoice);
 
-        if (voiceSize >= 320)  // 160 samples * 2 bytes
+        // Push to PCM queue and notify encoder thread (drop oldest if full)
         {
-            // Convert big-endian PCM to little-endian and queue for async encoding
-            uint8 *rawVoice = voicePacket.GetVoice();
-            std::vector<int16_t> audio(160);
-            for (int i = 0; i < 160; i++)
+            std::lock_guard<std::mutex> lock(m_Codec2PcmMutex);
+            if ( m_Codec2PcmQueue.size() >= SOFTWARE_QUEUE_MAX_DEPTH )
             {
-                audio[i] = (int16_t)((rawVoice[i*2] << 8) | rawVoice[i*2 + 1]);
+                m_Codec2PcmQueue.pop();
             }
-
-            // Push to PCM queue and notify encoder thread (drop oldest if full)
-            {
-                std::lock_guard<std::mutex> lock(m_Codec2PcmMutex);
-                if ( m_Codec2PcmQueue.size() >= SOFTWARE_QUEUE_MAX_DEPTH )
-                {
-                    m_Codec2PcmQueue.pop();
-                }
-                m_Codec2PcmQueue.push(audio);
-            }
-            m_Codec2PcmCondition.notify_one();
+            m_Codec2PcmQueue.push(audio);
         }
+        m_Codec2PcmCondition.notify_one();
     }
 
     // IMBE encoding runs in a separate thread to avoid blocking the hardware interface.
     // Here we just queue the PCM data for async encoding.
-    if (m_bImbeEnabled && m_pImbeThread != NULL)
+    if (m_bImbeEnabled && m_pImbeThread != NULL && voiceSize >= 320)  // 160 samples * 2 bytes
     {
-        int voiceSize = voicePacket.GetVoiceSize();
+        std::vector<int16_t> audio = OutputPcm(CODEC_IMBE, rawVoice);
 
-        if (voiceSize >= 320)  // 160 samples * 2 bytes
+        // Push to PCM queue and notify encoder thread (drop oldest if full)
         {
-            // Convert big-endian PCM to little-endian and queue for async encoding
-            uint8 *rawVoice = voicePacket.GetVoice();
-            std::vector<int16_t> audio(160);
-            for (int i = 0; i < 160; i++)
+            std::lock_guard<std::mutex> lock(m_ImbePcmMutex);
+            if ( m_ImbePcmQueue.size() >= SOFTWARE_QUEUE_MAX_DEPTH )
             {
-                audio[i] = (int16_t)((rawVoice[i*2] << 8) | rawVoice[i*2 + 1]);
+                m_ImbePcmQueue.pop();
             }
-
-            // Push to PCM queue and notify encoder thread (drop oldest if full)
-            {
-                std::lock_guard<std::mutex> lock(m_ImbePcmMutex);
-                if ( m_ImbePcmQueue.size() >= SOFTWARE_QUEUE_MAX_DEPTH )
-                {
-                    m_ImbePcmQueue.pop();
-                }
-                m_ImbePcmQueue.push(audio);
-            }
-            m_ImbePcmCondition.notify_one();
+            m_ImbePcmQueue.push(audio);
         }
+        m_ImbePcmCondition.notify_one();
+    }
+
+    // The software encoders above have their copies, the packet goes on to the hardware encoder
+    m_signalProcessor->ProcessOutput(GetCodecOut(), rawVoice, voiceSize);
+}
+
+// A copy of the frame at the level for this codec, big-endian PCM to native samples
+std::vector<int16_t> CVocodecChannel::OutputPcm(uint8 uiCodecOut, const uint8 *voice)
+{
+    uint8 copy[320];
+    ::memcpy(copy, voice, sizeof(copy));
+    m_signalProcessor->ProcessOutput(uiCodecOut, copy, sizeof(copy));
+
+    std::vector<int16_t> audio(160);
+    for (int i = 0; i < 160; i++)
+    {
+        audio[i] = (int16_t)((copy[i*2] << 8) | copy[i*2 + 1]);
+    }
+    return audio;
+}
+
+void CVocodecChannel::ReportSignal(uint16 uiStreamId, const std::string& callsign)
+{
+    std::lock_guard<std::mutex> lock(m_SignalMutex);
+    if (m_signalProcessor != NULL)
+    {
+        m_signalProcessor->Report(uiStreamId, callsign);
     }
 }
 
@@ -466,16 +489,6 @@ void CVocodecChannel::ImbeEncoderTask(void)
     // Encode PCM to IMBE (outside the lock)
     if (!pcmData.empty() && m_pImbe != NULL)
     {
-        // Apply IMBE encode gain to PCM before encoding
-        static const float imbeEncodeGain = pow(10.0f, IMBE_ENCODE_GAIN / 20.0f);
-        for ( size_t i = 0; i < pcmData.size(); i++ )
-        {
-            int32_t sample = (int32_t)(pcmData[i] * imbeEncodeGain);
-            if ( sample > 32767 ) sample = 32767;
-            if ( sample < -32768 ) sample = -32768;
-            pcmData[i] = (int16_t)sample;
-        }
-
         uint8 imbe[IMBE_FRAME_SIZE];
         m_pImbe->encode_4400(pcmData.data(), imbe);
 

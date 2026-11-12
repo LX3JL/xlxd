@@ -21,34 +21,60 @@
 //    You should have received a copy of the GNU General Public License
 //    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 // ----------------------------------------------------------------------------
-// Geoffrey Merck F4FXL / KC3FRA AGC code borrowed from Liquid DSP
-// Only took the parts we need qnd recoeded it to be close the XLX coding style
-// https://github.com/jgaeddert/liquid-dsp/blob/master/src/agc/src/agc.c
+// AGC with hang, replaces the sample by sample loop by Geoffrey Merck
+// F4FXL / KC3FRA that was inspired by Liquid DSP
+//
+// Works like the AGC on an HF receiver: fast down, hold through gaps, then up.
+// The further a station is below the target the faster the gain rises, easing
+// off as it gets close.
+// It follows the peaks of the speech over tens of ms, so the gain moves between
+// syllables and the shape of the speech and pitch is left alone for the
+// vocoders. Silence doesn't count, so pauses leave the gain where it is.
 
 #include <math.h>
 #include "cagc.h"
 #include "main.h"
 
+// Speech peak envelope, falling share per 20 ms frame: about 50 ms
+#define AGC_PEAK_DECAY          0.33f
+// Voice frames at the start of a stream before the gain may rise
+#define AGC_START_HANG          5
+// Recent peak fall per 20 ms frame: 12 dB/s
+#define AGC_RECENT_DECAY        0.973f
+// Peaks within this of the target still hold the gain, in dB, so ordinary
+// softer words don't lift it
+#define AGC_HANG_MARGIN         1.5f
+// A station this far below the target doesn't wait for the hang, in dB
+#define AGC_NO_HANG_ERROR       6.0f
+// Limiter recovery: 6 dB in 100 ms at 8 kHz
+#define AGC_LIMITER_RECOVERY    1.000867f
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
-CAGC::CAGC(float initialLeveldB)
+CAGC::CAGC(float targetdB, float clampingdB, float attackMs, float hangMs,
+           float recovery, float recoveryMin, float recoveryMax, float gatedB, float limitdB)
 {
-    // set internal gain appropriately
-    m_Gain = pow(10.0f, initialLeveldB/20.0f);
-    //+- 10dB Margin, TODO Move margin to constant
-    m_GainMax = pow(10.0f, (initialLeveldB + AGC_CLAMPING)/20.0f);
-    m_GainMin = pow(10.0f, (initialLeveldB - AGC_CLAMPING)/20.0f);
-                        
-    m_EnergyPrime = 1.0f;
+    m_Enabled = (clampingdB > 0.0f);
+    m_TargetdB = targetdB;
+    m_ClampingdB = clampingdB;
+    m_AttackCoef = 1.0f - exp(-20.0f / attackMs);
+    m_HangFrames = (int)(hangMs / 20.0f);
+    m_Recovery = recovery * 0.02f;
+    m_RecoveryMin = recoveryMin * 0.02f;
+    m_RecoveryMax = recoveryMax * 0.02f;
+    m_GateLevel = 32768.0f * pow(10.0f, gatedB/20.0f);
+    m_LimitLevel = 32768.0f * pow(10.0f, limitdB/20.0f);
 
-    // We do not target full scale to avoid stauration
-    m_targetEnergy = 32767.0f * pow(10.0f, (initialLeveldB - 25.0)/20.0f);//25 dB below saturation as stated in docs
-                                                                        //we also substract our target gain
+    m_SpeechPeak = 0.0f;
+    m_RecentPeak = 0.0f;
+    m_bVoice = false;
+    m_HangLeft = AGC_START_HANG;
 
-    //this is the time constant of our AGC...
-    m_Bandwidth = 1e-2f;//TODO : Move to parameter ?    
-    m_Alpha = m_Bandwidth;  
+    m_GaindB = 0.0f;
+    m_Gain = 1.0f;
+    m_Limiter = 1.0f;
+    m_LimitedSamples = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -56,36 +82,92 @@ CAGC::CAGC(float initialLeveldB)
 
 float CAGC::GetGain()
 {
-    return 20.0f*log10(m_Gain);
+    return m_GaindB;
+}
+
+float CAGC::GetSpeechPeak()
+{
+    return (m_SpeechPeak > 0.0f) ? 20.0f * log10(m_SpeechPeak / 32768.0f) : -96.0f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // process
 
-inline void CAGC::ProcessSampleBlock(uint8* voice, int length) 
+void CAGC::ProcessSampleBlock(uint8* voice, int length)
 {
+    int samples = length / 2;
+    if(samples == 0)
+    {
+        return;
+    }
+
+    float sum = 0.0f;
     for(int i = 0; i < length; i += 2)
     {
-        float input = (float)(short)MAKEWORD(voice[i+1], voice[i]);
-        //apply AGC
-        // apply gain to input sample
-        float output = input * m_Gain;
+        sum += fabs((float)(short)MAKEWORD(voice[i+1], voice[i]));
+    }
+    float level = sum / samples;
 
-        // compute output signal energy, scaled to 0 to 1
-        float instantEnergy = abs(output) / m_targetEnergy;
+    // follow the speech peaks, measured even with the gain off for tuning
+    m_bVoice = (level >= m_GateLevel);
+    if(m_bVoice)
+    {
+        m_SpeechPeak = MAX(level, m_SpeechPeak + (level - m_SpeechPeak) * AGC_PEAK_DECAY);
+        m_RecentPeak = MAX(m_SpeechPeak, m_RecentPeak * AGC_RECENT_DECAY);
+    }
 
-        // smooth energy estimate using single-pole low-pass filter
-        m_EnergyPrime = (1.0f - m_Alpha) * m_EnergyPrime + m_Alpha * instantEnergy;
+    if(!m_Enabled)
+    {
+        return;
+    }
 
-        // update gain according to output energy
-        if (m_EnergyPrime > 1e-6f)
-            m_Gain *= exp( -0.5f * m_Alpha * log(m_EnergyPrime) ); 
+    // only voice moves the gain
+    if(m_bVoice)
+    {
+        float wanted = m_TargetdB - 20.0f * log10(m_RecentPeak / 32768.0f);
+        wanted = MAX(-m_ClampingdB, MIN(m_ClampingdB, wanted));
+        float error = wanted - m_GaindB;
 
-        // clamp gain
-        if (m_Gain > m_GainMax)
-            m_Gain = m_GainMax;
-        else if(m_Gain < m_GainMin)
-            m_Gain = m_GainMin;
+        if(error < 0.0f)
+        {
+            m_GaindB += error * m_AttackCoef;
+            m_HangLeft = MAX(m_HangLeft, m_HangFrames);
+        }
+        else if(error < AGC_HANG_MARGIN)
+        {
+            m_HangLeft = m_HangFrames;
+        }
+        else if(m_HangLeft > 0 && error < AGC_NO_HANG_ERROR)
+        {
+            m_HangLeft--;
+        }
+        else
+        {
+            // quick when far off, easing in as it gets close
+            float step = MAX(m_RecoveryMin, MIN(m_RecoveryMax, error * m_Recovery));
+            m_GaindB = MIN(wanted, m_GaindB + step);
+        }
+    }
+
+    // ramp across the frame so a gain change can't click
+    float gain = m_Gain;
+    float newGain = pow(10.0f, m_GaindB/20.0f);
+    float ramp = (newGain - gain) / samples;
+
+    for(int i = 0; i < length; i += 2)
+    {
+        gain += ramp;
+        float output = (float)(short)MAKEWORD(voice[i+1], voice[i]) * gain * m_Limiter;
+
+        // the limiter pulls a peak down at once and recovers slowly
+        if(fabs(output) > m_LimitLevel)
+        {
+            float reduction = m_LimitLevel / fabs(output);
+            m_Limiter *= reduction;
+            output *= reduction;
+            m_LimitedSamples++;
+        }
+        m_Limiter = MIN(1.0f, m_Limiter * AGC_LIMITER_RECOVERY);
 
         //write processed sample back, clamp to short range
         if (output > 32767.0f) output = 32767.0f;
@@ -93,4 +175,5 @@ inline void CAGC::ProcessSampleBlock(uint8* voice, int length)
         voice[i] = HIBYTE((short)output);
         voice[i+1] = LOBYTE((short)output);
     }
+    m_Gain = newGain;
 }

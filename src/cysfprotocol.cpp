@@ -1310,6 +1310,46 @@ bool CYsfProtocol::EncodeDvLastPacket(const CDvHeaderPacket &Header, CBuffer *Bu
 ////////////////////////////////////////////////////////////////////////////////////////
 // Wires-X packet decoding helpers
 
+// Reassembly state for a source (full IP:port). Entries idle for longer
+// than the frame timeout are discarded first.
+CYsfWiresxRxItem *CYsfProtocol::GetWiresxRx(const CIp &Ip, bool create)
+{
+    for ( auto it = m_WiresxRx.begin(); it != m_WiresxRx.end(); )
+    {
+        if ( it->m_LastFrame.DurationSinceNow() > YSF_WIRESX_FRAME_TIMEOUT )
+            it = m_WiresxRx.erase(it);
+        else
+            ++it;
+    }
+
+    for ( auto &rx : m_WiresxRx )
+    {
+        if ( rx.m_Ip == Ip )
+            return &rx;
+    }
+
+    if ( !create )
+        return NULL;
+
+    m_WiresxRx.emplace_back();
+    CYsfWiresxRxItem &rx = m_WiresxRx.back();
+    rx.m_Ip = Ip;
+    rx.m_LastFrame.Now();
+    return &rx;
+}
+
+void CYsfProtocol::ReleaseWiresxRx(const CIp &Ip)
+{
+    for ( auto it = m_WiresxRx.begin(); it != m_WiresxRx.end(); ++it )
+    {
+        if ( it->m_Ip == Ip )
+        {
+            m_WiresxRx.erase(it);
+            return;
+        }
+    }
+}
+
 bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, const CIp &Ip, CYSFFICH *Fich, CCallsign *Callsign, int *Cmd, int *Arg)
 {
     uint8 tag[] = { 'Y','S','F','D' };
@@ -1317,7 +1357,7 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, const CIp &Ip, CYSF
     uint8 CONN_REQ[]  = {0x5DU, 0x23U, 0x5FU};
     uint8 DISC_REQ[]  = {0x5DU, 0x2AU, 0x5FU};
     uint8 ALL_REQ[]   = {0x5DU, 0x66U, 0x5FU};
-    uint8 command[300];
+    uint8 command[YSF_WIRESX_CMD_SIZE] = { 0 };
     CYSFPayload payload;
     bool valid = false;
 
@@ -1338,35 +1378,78 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, const CIp &Ip, CYSF
                 // get callsign
                 Callsign->SetCallsign(&(Buffer.data()[4]), CALLSIGN_LEN, false);
                 Callsign->SetModule(YSF_MODULE_ID);
-                // decode payload
-                if ( Fich->getFN() == 0U )
+                // Decode the payload into this source's reassembly buffer.
+                // A command can span several frames; it is complete on the
+                // frame whose FN equals FT. Frame layout (as G4KLX
+                // YSFGateway): FN 1 carries command[0..19], FN n >= 2
+                // carries 40 bytes at command[(n-2)*40+20]. FN 0 is the
+                // header frame and carries no command data.
+                unsigned int fn = Fich->getFN();
+                unsigned int ft = Fich->getFT();
+                CYsfWiresxRxItem *rx = (fn == 0U) ? NULL : GetWiresxRx(Ip, fn == 1U);
+                if ( rx == NULL )
                 {
                     valid = false;
                 }
-                else if ( Fich->getFN() == 1U )
+                else if ( fn == 1U )
                 {
-                    valid &= payload.readDataFRModeData2(&(Buffer.data()[35]), command + 0U);
+                    // first frame: start a fresh command
+                    ::memset(rx->m_Command, 0, sizeof(rx->m_Command));
+                    rx->m_uiFT = (uint8)ft;
+                    valid &= payload.readDataFRModeData2(&(Buffer.data()[35]), rx->m_Command + 0U);
+                }
+                else if ( (ft != rx->m_uiFT) || (fn != rx->m_uiLastFN + 1U) ||
+                          (rx->m_LastFrame.DurationSinceNow() > YSF_WIRESX_FRAME_TIMEOUT) )
+                {
+                    // not the next frame of the command in progress
+                    valid = false;
                 }
                 else
                 {
-                    valid &= payload.readDataFRModeData1(&(Buffer.data()[35]), command + (Fich->getFN() - 1U) * 20U + 0U);
+                    uint8 *dst = rx->m_Command + (fn - 2U) * 40U + 20U;
+                    valid &= payload.readDataFRModeData1(&(Buffer.data()[35]), dst);
                     if ( valid )
                     {
-                        valid &= payload.readDataFRModeData2(&(Buffer.data()[35]), command + (Fich->getFN() - 1U) * 20U + 20U);
+                        valid &= payload.readDataFRModeData2(&(Buffer.data()[35]), dst + 20U);
                     }
                 }
-                // check crc if end found.
+
+                // Copy out a complete command (zero-padded) and drop the
+                // reassembly state; keep it while more frames are due.
+                unsigned int cmdLen = 0U;
+                if ( rx != NULL )
+                {
+                    if ( valid && (fn == ft) )
+                    {
+                        ::memcpy(command, rx->m_Command, sizeof(command));
+                        cmdLen = (fn == 1U) ? 20U : (fn - 2U) * 40U + 60U;
+                        ReleaseWiresxRx(Ip);
+                    }
+                    else if ( valid )
+                    {
+                        rx->m_uiLastFN = (uint8)fn;
+                        rx->m_LastFrame.Now();
+                        valid = false;      // wait for the rest
+                    }
+                    else
+                    {
+                        ReleaseWiresxRx(Ip);
+                    }
+                }
+
+                // check crc.
                 // endMarkerPos is captured for downstream bounds checks:
                 // the response-code signature match below reads command[4]
                 // and must not run if the end marker is found at a position
                 // that would leave command[4] outside the CRC-validated
                 // region 0..endMarkerPos+1.
                 unsigned int endMarkerPos = 0U;
-                if ( Fich->getFN() == Fich->getFT() )
+                if ( valid )
                 {
                     valid = false;
-                    // Find the end marker
-                    for (unsigned int i = Fich->getFN() * 20U; i > 0U; i--)
+                    // Find the end marker; it and the CRC byte after it
+                    // must lie within the received data
+                    for (unsigned int i = cmdLen - 2U; i > 0U; i--)
                     {
                         if (command[i] == 0x03U)
                         {
@@ -1400,27 +1483,23 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, const CIp &Ip, CYSF
                        if ( *Arg > 0 )
                             (*Arg)--;
                         // ALL_REQ family — sub-code at command[5..6]
-                        // distinguishes the variant for "long form"
-                        // packets: "01" = ALL, "11" = SEARCH. Some Yaesu
-                        // radios also send a SHORT form of this prefix
-                        // with no sub-code at all (end marker lands
-                        // before command[6]). Production observation:
-                        // FTM-100D "LOCAL NEWS" uses the short form.
+                        // distinguishes the variant: "01" = ALL,
+                        // "11" = SEARCH. Radios such as the FT2D send
+                        // this request over two frames; it is only
+                        // decoded here once reassembled and CRC-checked.
                         //
-                        // Approach: try to match known sub-codes only
-                        // when bytes are within the CRC-validated region
-                        // (endMarkerPos >= 6). If no known sub-code
-                        // matches — for either reason (short form OR
-                        // unknown long-form sub-code) — fall into a
-                        // single unified diagnostic block that logs the
+                        // Sub-codes are matched only when they lie
+                        // within the CRC-validated region
+                        // (endMarkerPos >= 6). A validated request that
+                        // ends before the sub-code ("short form"), or
+                        // carries an unknown sub-code, falls into a
+                        // single diagnostic block that logs the
                         // relevant bytes and drops via the UNKNOWN path.
                         //
-                        // Pre-existing concern: the *Arg extraction at
-                        // command[7..9] earlier in this function has
-                        // the same endMarkerPos exposure for
-                        // endMarkerPos < 10. Not addressed here; scope
-                        // limited to closing the UB-on-*Cmd hole and
-                        // giving us diagnostic visibility on variants.
+                        // The *Arg extraction at command[7..9] earlier
+                        // in this function reads past the end marker
+                        // when endMarkerPos < 10; those bytes are
+                        // zero-padded, never uninitialised.
                         bool subCodeRecognised = false;
                         if ( endMarkerPos >= 6U )
                         {
@@ -1452,8 +1531,7 @@ bool CYsfProtocol::IsValidwirexPacket(const CBuffer &Buffer, const CIp &Ip, CYSF
                             //     before command[6]). Log shows
                             //     "(short form, endMarkerPos=N)" so the
                             //     operator can see the exact packet
-                            //     shape. FTM-100D "LOCAL NEWS" lives
-                            //     here.
+                            //     shape.
                             //
                             // Also closes a latent UB: previously *Cmd
                             // could be returned uninitialised when the

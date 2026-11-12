@@ -43,7 +43,7 @@ CFIRFilter::~CFIRFilter()
     delete[] m_buffer;
 }
 
-inline void CFIRFilter::ProcessSampleBlock(uint8* voice, int length)
+void CFIRFilter::ProcessSampleBlock(uint8* voice, int length)
 {
     for(int i = 0; i < length; i += 2)
     {
@@ -66,7 +66,9 @@ inline void CFIRFilter::ProcessSampleBlock(uint8* voice, int length)
         
         m_currentBufferPosition = (m_currentBufferPosition + 1) % m_tapsLength;
 
-        //write processed sample back
+        //write processed sample back, clamp to short range
+        if (output > 32767.0f) output = 32767.0f;
+        else if (output < -32768.0f) output = -32768.0f;
         voice[i] = HIBYTE((short)output);
         voice[i+1] = LOBYTE((short)output);
     }

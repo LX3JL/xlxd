@@ -42,8 +42,20 @@ typedef uint64_t uint64;
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
-// M17 frame type
+// M17 frame type (outbound: stream, voice 3200, no encryption, text META)
 #define M17_FRAMETYPE_VOICE     0x05
+
+// M17 stream LSF TYPE fields (16-bit, big-endian at bytes 18..19)
+#define M17_TYPE_STREAM         0x0001      // packet/stream: 1 = stream
+#define M17_TYPE_DATA_MASK      0x0006      // data type
+#define M17_TYPE_DATA_DATA      0x0002      //   data
+#define M17_TYPE_DATA_VOICE     0x0004      //   voice (Codec2 3200)
+#define M17_TYPE_DATA_VOICEDATA 0x0006      //   voice + data (Codec2 1600)
+#define M17_TYPE_ENCR_MASK      0x0018      // encryption type: 0 = none
+#define M17_TYPE_SIGNED         0x0800      // signed stream
+
+// M17 frame numbers that carry a stream signature (last four frames)
+#define M17_FN_SIGNATURE_FIRST  0x7FFC
 
 // M17 callsign encoding
 #define M17_CALLSIGN_ALPHABET   " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/."
@@ -126,6 +138,18 @@ public:
     bool                m_bInitialized;
 };
 
+// Per inbound stream state, touched by the RX thread only
+class CM17RxStreamItem
+{
+public:
+    CM17RxStreamItem() : m_uiStreamId(0), m_bRejectLogged(false) {}
+
+    uint16          m_uiStreamId;
+    CIp             m_Ip;
+    bool            m_bRejectLogged;        // unsupported TYPE already logged
+    CTimePoint      m_LastSeen;
+};
+
 class CM17Protocol : public CProtocol
 {
 public:
@@ -170,6 +194,17 @@ protected:
     bool IsValidDvFramePacket(const CBuffer &, CDvFramePacket **);
     bool IsValidDvLastFramePacket(const CBuffer &, CDvLastFramePacket **);
 
+    // stream packet TYPE helpers
+    bool IsStreamPacket(const CBuffer &) const;
+    uint16 GetStreamType(const CBuffer &) const;
+    uint16 GetFrameNumber(const CBuffer &) const;
+    bool IsSupportedVoiceType(uint16) const;
+    bool IsSignatureFrame(const CBuffer &) const;
+    void LogUnsupportedStream(const CBuffer &, const CIp &);
+
+    // inbound stream state (RX thread only)
+    CM17RxStreamItem *FindRxStream(uint16, const CIp &, bool);
+
     // packet encoding helpers
     void EncodeConnectAckPacket(CBuffer *);
     void EncodeConnectNackPacket(CBuffer *);
@@ -178,6 +213,7 @@ protected:
     void EncodePingPacket(CBuffer *);
     bool EncodeDvFramePacket(const CDvFramePacket &, uint16, CBuffer *);
     bool EncodeDvLastFramePacket(const CDvLastFramePacket &, uint16, CBuffer *);
+    void AppendCrc(CBuffer *) const;
 
     // M17 callsign encoding/decoding helpers
     void EncodeCallsign(const CCallsign &, uint8 *) const;
@@ -198,6 +234,9 @@ protected:
 
     // active stream count — when 0, CheckForMissedEOT skips all mutex acquisitions
     std::atomic<int>    m_nActiveStreams;
+
+    // inbound stream state (RX thread only, no lock)
+    std::vector<CM17RxStreamItem>   m_RxStreams;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

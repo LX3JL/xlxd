@@ -35,6 +35,24 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // define
 
+// DVSI hardware expects big-endian PCM, as does the signal processor
+static void PcmToBytes(const int16_t *pcm, uint8 *bytes)
+{
+    for (int i = 0; i < 160; i++)
+    {
+        bytes[i*2] = (uint8)(((uint16_t)pcm[i] >> 8) & 0xFF);
+        bytes[i*2 + 1] = (uint8)((uint16_t)pcm[i] & 0xFF);
+    }
+}
+
+static void BytesToPcm(const uint8 *bytes, int16_t *pcm)
+{
+    for (int i = 0; i < 160; i++)
+    {
+        pcm[i] = (int16_t)((bytes[i*2] << 8) | bytes[i*2 + 1]);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
@@ -46,20 +64,17 @@ CStream::CStream()
     m_uiCodecOut1 = CODEC_NONE;
     m_uiCodecOut2 = CODEC_NONE;
     m_uiCodecOut3 = CODEC_NONE;
+    m_iActivityTimeout = g_Config.GetTuning().iStreamTimeout;
     m_bStopThread = false;
     m_pThread = NULL;
     m_VocodecChannel = NULL;
     m_EncoderChannel1 = NULL;
     m_EncoderChannel2 = NULL;
     m_pCodec2Decoder = NULL;
-    m_pSignalProcessor1 = NULL;
-    m_pSignalProcessor2 = NULL;
+    m_pSignalProcessor = NULL;
     m_pImbeEncoder = NULL;
     m_pImbeDecoder = NULL;
     m_pCodec2Encoder = NULL;
-    m_fCodec2DecodeGain = 1.0f;
-    m_fImbeGain = 1.0f;
-    m_fCodec2Gain = 1.0f;
     m_pStagedPacket = NULL;
     m_LastActivity.Now();
     m_iTotalPackets = 0;
@@ -78,20 +93,17 @@ CStream::CStream(uint16 uiId, const CCallsign &Callsign, const CIp &Ip, uint8 ui
     m_uiCodecOut1 = uiCodecOut1;
     m_uiCodecOut2 = uiCodecOut2;
     m_uiCodecOut3 = uiCodecOut3;
+    m_iActivityTimeout = g_Config.GetTuning().iStreamTimeout;
     m_bStopThread = false;
     m_pThread = NULL;
     m_VocodecChannel = NULL;
     m_EncoderChannel1 = NULL;
     m_EncoderChannel2 = NULL;
     m_pCodec2Decoder = NULL;
-    m_pSignalProcessor1 = NULL;
-    m_pSignalProcessor2 = NULL;
+    m_pSignalProcessor = NULL;
     m_pImbeEncoder = NULL;
     m_pImbeDecoder = NULL;
     m_pCodec2Encoder = NULL;
-    m_fCodec2DecodeGain = 1.0f;
-    m_fImbeGain = 1.0f;
-    m_fCodec2Gain = 1.0f;
     m_LastActivity.Now();
     m_iTotalPackets = 0;
     m_iLostPackets = 0;
@@ -142,20 +154,9 @@ bool CStream::Init(uint16 uiPort)
                 // store port
                 m_uiPort = uiPort;
 
-                // Create signal processors for each output encoder
-                // Apply gain based on output codec - adjusted for Codec2 input levels
-                // Codec2 encoder gains from main.h
-                int gain1 = (m_uiCodecOut1 == CODEC_AMBEPLUS) ? CODEC2_TO_AMBEPLUS_GAIN : CODEC2_TO_AMBE2PLUS_GAIN;
-                int gain2 = (m_uiCodecOut2 == CODEC_AMBEPLUS) ? CODEC2_TO_AMBEPLUS_GAIN : CODEC2_TO_AMBE2PLUS_GAIN;
-                m_pSignalProcessor1 = new CSignalProcessor((float)gain1);
-                m_pSignalProcessor2 = new CSignalProcessor((float)gain2);
-
-                // Precompute gain multipliers (avoid pow() per packet)
-                m_fCodec2DecodeGain = pow(10.0f, CODEC2_DECODE_GAIN / 20.0f);
-                m_fImbeGain = pow(10.0f, CODEC2_TO_IMBE_GAIN / 20.0f);
+                m_pSignalProcessor = new CSignalProcessor(CODEC_CODEC2);
 
                 std::cout << "Codec2 input mode: software decode -> hardware encode (AMBE+ & AMBE2+) + software encode (IMBE)" << std::endl;
-                std::cout << "  Signal processing: gain1=" << gain1 << "dB, gain2=" << gain2 << "dB" << std::endl;
 
                 // start thread
                 m_pThread = new std::thread(CStream::Thread, this);
@@ -175,8 +176,6 @@ bool CStream::Init(uint16 uiPort)
                 m_pCodec2Decoder = NULL;
                 delete m_pImbeEncoder;
                 m_pImbeEncoder = NULL;
-                if (m_pSignalProcessor1 != NULL) { delete m_pSignalProcessor1; m_pSignalProcessor1 = NULL; }
-                if (m_pSignalProcessor2 != NULL) { delete m_pSignalProcessor2; m_pSignalProcessor2 = NULL; }
             }
         }
         else if (m_uiCodecIn == CODEC_IMBE)
@@ -199,19 +198,9 @@ bool CStream::Init(uint16 uiPort)
                 // store port
                 m_uiPort = uiPort;
 
-                // Create signal processors for each output encoder
-                // IMBE decode gain is applied separately, these are additional encoder gains
-                int gain1 = IMBE_TO_AMBEPLUS_GAIN;   // D-Star encoder gain
-                int gain2 = IMBE_TO_AMBE2PLUS_GAIN;  // DMR encoder gain
-                m_pSignalProcessor1 = new CSignalProcessor((float)gain1);
-                m_pSignalProcessor2 = new CSignalProcessor((float)gain2);
-
-                // Precompute gain multipliers (avoid pow() per packet)
-                m_fImbeGain = pow(10.0f, IMBE_DECODE_GAIN / 20.0f);
-                m_fCodec2Gain = pow(10.0f, IMBE_TO_CODEC2_GAIN / 20.0f);
+                m_pSignalProcessor = new CSignalProcessor(CODEC_IMBE);
 
                 std::cout << "IMBE input mode: software decode -> hardware encode (AMBE+ & AMBE2+) + software encode (Codec2)" << std::endl;
-                std::cout << "  Signal processing: gain1=" << gain1 << "dB (D-Star), gain2=" << gain2 << "dB (DMR)" << std::endl;
                 std::cout << "  Encoder ch1 (D-Star): in=" << m_EncoderChannel1->GetChannelIn()
                           << " out=" << m_EncoderChannel1->GetChannelOut()
                           << " codecOut=" << (int)m_EncoderChannel1->GetCodecOut() << std::endl;
@@ -237,8 +226,6 @@ bool CStream::Init(uint16 uiPort)
                 m_pImbeDecoder = NULL;
                 delete m_pCodec2Encoder;
                 m_pCodec2Encoder = NULL;
-                if (m_pSignalProcessor1 != NULL) { delete m_pSignalProcessor1; m_pSignalProcessor1 = NULL; }
-                if (m_pSignalProcessor2 != NULL) { delete m_pSignalProcessor2; m_pSignalProcessor2 = NULL; }
             }
         }
         else
@@ -448,6 +435,17 @@ void CStream::Close(void)
         totalOverflowDrops += m_EncoderChannel2->GetPidFifoOverflowDrops();
     }
 
+    // Tuning report, the thread has stopped and the channel is still open
+    std::string callsign = (const char *)m_Callsign;
+    if ( m_pSignalProcessor != NULL )
+    {
+        m_pSignalProcessor->Report(m_uiId, callsign);
+    }
+    if ( m_VocodecChannel != NULL )
+    {
+        m_VocodecChannel->ReportSignal(m_uiId, callsign);
+    }
+
     // Close and null vocodec channels
     if ( m_VocodecChannel != NULL )
     {
@@ -461,8 +459,7 @@ void CStream::Close(void)
 
     // Delete and null software objects
     if ( m_pCodec2Decoder != NULL ) { delete m_pCodec2Decoder; m_pCodec2Decoder = NULL; }
-    if ( m_pSignalProcessor1 != NULL ) { delete m_pSignalProcessor1; m_pSignalProcessor1 = NULL; }
-    if ( m_pSignalProcessor2 != NULL ) { delete m_pSignalProcessor2; m_pSignalProcessor2 = NULL; }
+    if ( m_pSignalProcessor != NULL ) { delete m_pSignalProcessor; m_pSignalProcessor = NULL; }
     if ( m_pImbeEncoder != NULL ) { delete m_pImbeEncoder; m_pImbeEncoder = NULL; }
     if ( m_pImbeDecoder != NULL ) { delete m_pImbeDecoder; m_pImbeDecoder = NULL; }
     if ( m_pCodec2Encoder != NULL ) { delete m_pCodec2Encoder; m_pCodec2Encoder = NULL; }
@@ -632,7 +629,6 @@ void CStream::TaskCodec2Input(void)
     uint8       Codec2Data[CODEC2_FRAME_SIZE];
     int16_t     pcmAudio[160];  // 160 samples = 20ms at 8kHz
     uint8       ImbeData[IMBE_FRAME_SIZE];
-    CPacketQueue *queue1, *queue2;
 
     // anything coming in from codec client ?
     if ( m_Socket.Receive(&Buffer, &Ip, 1) != -1 )
@@ -646,26 +642,17 @@ void CStream::TaskCodec2Input(void)
             // Software decode Codec2 to PCM
             m_pCodec2Decoder->codec2_decode(pcmAudio, Codec2Data);
 
-            // Apply decode gain to Codec2 output (matches IMBE path which applies IMBE_DECODE_GAIN)
-            for (int i = 0; i < 160; i++)
-            {
-                int32_t sample = (int32_t)(pcmAudio[i] * m_fCodec2DecodeGain);
-                if (sample > 32767) sample = 32767;
-                else if (sample < -32768) sample = -32768;
-                pcmAudio[i] = (int16_t)sample;
-            }
+            // Big-endian PCM through the decode gain, filter and AGC
+            uint8 pcmBytes[320];
+            PcmToBytes(pcmAudio, pcmBytes);
+            m_pSignalProcessor->Process(pcmBytes, 320);
 
             // Software encode PCM to IMBE for P25 output (3rd codec)
-            // Apply precomputed gain adjustment for IMBE encoding
-            int16_t pcmForImbe[160];
-            for (int i = 0; i < 160; i++)
-            {
-                int32_t sample = (int32_t)(pcmAudio[i] * m_fImbeGain);
-                if (sample > 32767) sample = 32767;
-                else if (sample < -32768) sample = -32768;
-                pcmForImbe[i] = (int16_t)sample;
-            }
-            m_pImbeEncoder->encode_4400(pcmForImbe, ImbeData);
+            uint8 pcmForImbe[320];
+            ::memcpy(pcmForImbe, pcmBytes, 320);
+            m_pSignalProcessor->ProcessOutput(CODEC_IMBE, pcmForImbe, 320);
+            BytesToPcm(pcmForImbe, pcmAudio);
+            m_pImbeEncoder->encode_4400(pcmAudio, ImbeData);
 
             // Queue the IMBE data for later retrieval when hardware encoders return
             // Drop oldest if queue exceeds max depth (hardware stall protection)
@@ -678,30 +665,6 @@ void CStream::TaskCodec2Input(void)
             m_ImbeQueue.push(imbeVec);
             m_nImbeQueueSize++;
 
-            // Convert PCM to byte arrays for CVoicePacket (one for each encoder)
-            // DVSI hardware expects big-endian PCM — use portable byte extraction
-            uint8 pcmBytes1[320];
-            uint8 pcmBytes2[320];
-            for (int i = 0; i < 160; i++)
-            {
-                pcmBytes1[i*2] = (uint8)(((uint16_t)pcmAudio[i] >> 8) & 0xFF);     // high byte first
-                pcmBytes1[i*2 + 1] = (uint8)((uint16_t)pcmAudio[i] & 0xFF);        // low byte second
-                pcmBytes2[i*2] = pcmBytes1[i*2];
-                pcmBytes2[i*2 + 1] = pcmBytes1[i*2 + 1];
-            }
-
-            // Apply signal processing (gain adjustment) to each PCM buffer
-            // This matches the gain normalization used in the AMBE->AMBE path
-            m_pSignalProcessor1->Process(pcmBytes1, 320);
-            m_pSignalProcessor2->Process(pcmBytes2, 320);
-
-            // Create voice packets and push to both encoder channels
-            CVoicePacket *voicePacket1 = new CVoicePacket(pcmBytes1, 320);
-            voicePacket1->SetChannel(m_EncoderChannel1->GetChannelOut());
-
-            CVoicePacket *voicePacket2 = new CVoicePacket(pcmBytes2, 320);
-            voicePacket2->SetChannel(m_EncoderChannel2->GetChannelOut());
-
             // PID-preservation: push the input packet's PID into both
             // encoder channels' FIFOs so the matching pops in the USB
             // interface (when the AMBE responses arrive from hardware)
@@ -713,15 +676,9 @@ void CStream::TaskCodec2Input(void)
             m_EncoderChannel1->PushPid(uiPid);
             m_EncoderChannel2->PushPid(uiPid);
 
-            // Push to encoder channel 1 (AMBE+)
-            queue1 = m_EncoderChannel1->GetVoiceQueue();
-            queue1->push(voicePacket1);
-            m_EncoderChannel1->ReleaseVoiceQueue();
-
-            // Push to encoder channel 2 (AMBE2+)
-            queue2 = m_EncoderChannel2->GetVoiceQueue();
-            queue2->push(voicePacket2);
-            m_EncoderChannel2->ReleaseVoiceQueue();
+            // Push to the encoder channels (AMBE+ and AMBE2+)
+            PushEncoderPcm(m_EncoderChannel1, m_uiCodecOut1, pcmBytes);
+            PushEncoderPcm(m_EncoderChannel2, m_uiCodecOut2, pcmBytes);
         }
     }
 
@@ -785,6 +742,24 @@ void CStream::TaskCodec2Input(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Codec2 and IMBE input: PCM to the hardware encoders
+
+void CStream::PushEncoderPcm(CVocodecChannel *Channel, uint8 uiCodecOut, const uint8 *pcmBytes)
+{
+    // One copy for each encoder, each at its own level
+    uint8 pcm[320];
+    ::memcpy(pcm, pcmBytes, 320);
+    m_pSignalProcessor->ProcessOutput(uiCodecOut, pcm, 320);
+
+    CVoicePacket *voicePacket = new CVoicePacket(pcm, 320);
+    voicePacket->SetChannel(Channel->GetChannelOut());
+
+    CPacketQueue *queue = Channel->GetVoiceQueue();
+    queue->push(voicePacket);
+    Channel->ReleaseVoiceQueue();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // IMBE input handling
 
 void CStream::TaskImbeInput(void)
@@ -795,7 +770,6 @@ void CStream::TaskImbeInput(void)
     uint8       ImbeData[IMBE_FRAME_SIZE];
     int16_t     pcmAudio[160];  // 160 samples = 20ms at 8kHz
     uint8       Codec2Data[CODEC2_FRAME_SIZE];
-    CPacketQueue *queue1, *queue2;
 
     // anything coming in from codec client ?
     if ( m_Socket.Receive(&Buffer, &Ip, 1) != -1 )
@@ -810,27 +784,17 @@ void CStream::TaskImbeInput(void)
             // imbe_vocoder::decode_4400(int16_t *snd, uint8_t *imbe)
             m_pImbeDecoder->decode_4400(pcmAudio, ImbeData);
 
-            // Apply precomputed gain to IMBE decoder output
-            for (int i = 0; i < 160; i++)
-            {
-                int32_t sample = (int32_t)(pcmAudio[i] * m_fImbeGain);
-                // Clip to int16 range
-                if (sample > 32767) sample = 32767;
-                else if (sample < -32768) sample = -32768;
-                pcmAudio[i] = (int16_t)sample;
-            }
+            // Big-endian PCM through the decode gain, filter and AGC
+            uint8 pcmBytes[320];
+            PcmToBytes(pcmAudio, pcmBytes);
+            m_pSignalProcessor->Process(pcmBytes, 320);
 
             // Software encode PCM to Codec2 for M17 output (3rd codec)
-            // Apply precomputed IMBE->Codec2 gain adjustment
-            int16_t pcmForCodec2[160];
-            for (int i = 0; i < 160; i++)
-            {
-                int32_t sample = (int32_t)(pcmAudio[i] * m_fCodec2Gain);
-                if (sample > 32767) sample = 32767;
-                else if (sample < -32768) sample = -32768;
-                pcmForCodec2[i] = (int16_t)sample;
-            }
-            m_pCodec2Encoder->codec2_encode(Codec2Data, pcmForCodec2);
+            uint8 pcmForCodec2[320];
+            ::memcpy(pcmForCodec2, pcmBytes, 320);
+            m_pSignalProcessor->ProcessOutput(CODEC_CODEC2, pcmForCodec2, 320);
+            BytesToPcm(pcmForCodec2, pcmAudio);
+            m_pCodec2Encoder->codec2_encode(Codec2Data, pcmAudio);
 
             // Queue the Codec2 data for later retrieval when hardware encoders return
             // Drop oldest if queue exceeds max depth (hardware stall protection)
@@ -843,29 +807,6 @@ void CStream::TaskImbeInput(void)
             m_Codec2Queue.push(c2vec);
             m_nCodec2QueueSize++;
 
-            // Convert PCM to byte arrays for CVoicePacket (one for each encoder)
-            // DVSI hardware expects big-endian PCM — use portable byte extraction
-            uint8 pcmBytes1[320];
-            uint8 pcmBytes2[320];
-            for (int i = 0; i < 160; i++)
-            {
-                pcmBytes1[i*2] = (uint8)(((uint16_t)pcmAudio[i] >> 8) & 0xFF);     // high byte first
-                pcmBytes1[i*2 + 1] = (uint8)((uint16_t)pcmAudio[i] & 0xFF);        // low byte second
-                pcmBytes2[i*2] = pcmBytes1[i*2];
-                pcmBytes2[i*2 + 1] = pcmBytes1[i*2 + 1];
-            }
-
-            // Apply signal processing (gain adjustment) to each PCM buffer
-            m_pSignalProcessor1->Process(pcmBytes1, 320);
-            m_pSignalProcessor2->Process(pcmBytes2, 320);
-
-            // Create voice packets and push to both encoder channels
-            CVoicePacket *voicePacket1 = new CVoicePacket(pcmBytes1, 320);
-            voicePacket1->SetChannel(m_EncoderChannel1->GetChannelOut());
-
-            CVoicePacket *voicePacket2 = new CVoicePacket(pcmBytes2, 320);
-            voicePacket2->SetChannel(m_EncoderChannel2->GetChannelOut());
-
             // PID-preservation: push the input packet's PID into both
             // encoder channels' FIFOs so the matching pops in the USB
             // interface (when the AMBE responses arrive from hardware)
@@ -874,15 +815,9 @@ void CStream::TaskImbeInput(void)
             m_EncoderChannel1->PushPid(uiPid);
             m_EncoderChannel2->PushPid(uiPid);
 
-            // Push to encoder channel 1 (AMBE+)
-            queue1 = m_EncoderChannel1->GetVoiceQueue();
-            queue1->push(voicePacket1);
-            m_EncoderChannel1->ReleaseVoiceQueue();
-
-            // Push to encoder channel 2 (AMBE2+)
-            queue2 = m_EncoderChannel2->GetVoiceQueue();
-            queue2->push(voicePacket2);
-            m_EncoderChannel2->ReleaseVoiceQueue();
+            // Push to the encoder channels (AMBE+ and AMBE2+)
+            PushEncoderPcm(m_EncoderChannel1, m_uiCodecOut1, pcmBytes);
+            PushEncoderPcm(m_EncoderChannel2, m_uiCodecOut2, pcmBytes);
         }
     }
 

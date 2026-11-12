@@ -28,6 +28,7 @@
 
 
 #include <vector>
+#include <cstring>
 #include <map>
 #include <mutex>
 #include "ctimepoint.h"
@@ -96,6 +97,23 @@ public:
     bool                m_bInitialized;
 };
 
+// Wires-X command reassembly: a command can span several data frames
+// (FN 1..FT), each source gets its own buffer. RX thread only.
+#define YSF_WIRESX_CMD_SIZE         300
+#define YSF_WIRESX_FRAME_TIMEOUT    1.0     // max gap between frames, seconds
+
+class CYsfWiresxRxItem
+{
+public:
+    CYsfWiresxRxItem() : m_uiFT(0), m_uiLastFN(0) { ::memset(m_Command, 0, sizeof(m_Command)); }
+
+    CIp             m_Ip;
+    uint8           m_Command[YSF_WIRESX_CMD_SIZE];
+    uint8           m_uiFT;                 // frame total of this command
+    uint8           m_uiLastFN;             // last frame received in sequence
+    CTimePoint      m_LastFrame;
+};
+
 class CYsfProtocol : public CProtocol
 {
 public:
@@ -157,6 +175,8 @@ protected:
     // identifies the source so an operator can correlate an unknown
     // command back to a peer or direct client.
     bool IsValidwirexPacket(const CBuffer &, const CIp &, CYSFFICH *, CCallsign *, int *, int*);
+    CYsfWiresxRxItem *GetWiresxRx(const CIp &, bool);
+    void ReleaseWiresxRx(const CIp &);
     
     // server status packet decoding helpers
     bool IsValidServerStatusPacket(const CBuffer &) const;
@@ -218,6 +238,7 @@ protected:
     // for wires-x
     CWiresxCmdHandler   m_WiresxCmdHandler;
     unsigned char m_seqNo;
+    std::vector<CYsfWiresxRxItem>   m_WiresxRx;     // command reassembly (RX thread only)
 
     // per-source stream-id allocation (see comment above the helpers).
     // Map key is (addr<<16)|port; value is the active reflector-side sid

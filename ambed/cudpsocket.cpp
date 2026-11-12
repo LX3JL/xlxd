@@ -26,6 +26,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include "cudpsocket.h"
+#include "cconfig.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -173,16 +174,20 @@ int CUdpSocket::Send(const char *Buffer, const CIp &Ip, uint16 destport)
 ////////////////////////////////////////////////////////////////////////////////////////
 // write - voice packets with DSCP marking
 
-#if (DSCP_MARKING_ENABLE == 1)
-static bool g_bDscpLogged = false;
+static void SetTos(int socket, int tos)
+{
+    setsockopt(socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+}
 
 int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
 {
-    if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
+    int tos = g_Config.GetVoiceTos();
+    if ( tos < 0 )
     {
-        int tos = DSCP_VALUE << 2;
-        setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+        return Send(Buffer, Ip);
     }
+
+    SetTos(m_Socket, tos);
 
     CIp temp(Ip);
     int result = (int)::sendto(m_Socket,
@@ -190,47 +195,43 @@ int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
            0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
 
     // Reset TOS for non-voice packets
-    int tos = 0;
-    setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+    SetTos(m_Socket, 0);
 
     return result;
 }
 
 int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
 {
-    if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
+    int tos = g_Config.GetVoiceTos();
+    if ( tos < 0 )
     {
-        int tos = DSCP_VALUE << 2;
-        setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+        return Send(Buffer, Ip, destport);
     }
+
+    SetTos(m_Socket, tos);
 
     CIp temp(Ip);
     temp.GetSockAddr()->sin_port = htons(destport);
     int result = (int)::sendto(m_Socket,
-                         (void *)Buffer.data(), Buffer.size(),
-                         0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
+           (void *)Buffer.data(), Buffer.size(),
+           0, (struct sockaddr *)temp.GetSockAddr(), sizeof(struct sockaddr_in));
 
     // Reset TOS for non-voice packets
-    int tos = 0;
-    setsockopt(m_Socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+    SetTos(m_Socket, 0);
 
     return result;
 }
 
 void CUdpSocket::LogDscpStatus(void)
 {
-    if ( !g_bDscpLogged )
+    int tos = g_Config.GetVoiceTos();
+    if ( tos < 0 )
     {
-        if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
-        {
-            std::cout << "Voice packets marked as DSCP " << DSCP_VALUE << std::endl;
-        }
-        else
-        {
-            std::cout << "Error: Invalid DSCP_VALUE " << DSCP_VALUE << " (must be 0-63), QoS disabled" << std::endl;
-        }
-        g_bDscpLogged = true;
+        std::cout << "Voice packets not DSCP marked" << std::endl;
+    }
+    else
+    {
+        std::cout << "Voice packets marked as DSCP " << (tos >> 2) << std::endl;
     }
 }
-#endif
 

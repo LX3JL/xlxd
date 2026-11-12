@@ -34,6 +34,9 @@ public:
     static unsigned char crc8(const unsigned char* in, unsigned int length);
     
     static unsigned char addCRC(const unsigned char* in, unsigned int length);
+
+    // M17 CRC-16: poly 0x5935, init 0xFFFF, no reflection, no final XOR
+    static unsigned short crcM17(const unsigned char* in, unsigned int length);
 };
 
 #endif

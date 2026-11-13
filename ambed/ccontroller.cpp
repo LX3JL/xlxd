@@ -221,9 +221,33 @@ CStream *CController::OpenStream(const CCallsign &Callsign, const CIp &Ip, uint8
         return NULL;
     }
 
+    // pick the next stream id whose port is free: a long stream can still
+    // hold the id the round robin comes back to, and reusing it fails with
+    // "Error opening socket" although other ids are free
+    bool found = false;
+    for ( int n = 0; (n < (int)m_uiMaxStreams) && !found; n++ )
+    {
+        m_uiLastStreamId = (m_uiLastStreamId + 1);
+        m_uiLastStreamId = (m_uiLastStreamId > m_uiMaxStreams) ? 1 : m_uiLastStreamId;
+        found = true;
+        Lock();
+        for ( size_t i = 0; i < m_Streams.size(); i++ )
+        {
+            if ( m_Streams[i]->GetId() == m_uiLastStreamId )
+            {
+                found = false;
+                break;
+            }
+        }
+        Unlock();
+    }
+    if ( !found )
+    {
+        std::cout << "No free stream id, rejecting" << std::endl;
+        return NULL;
+    }
+
     // create a new stream
-    m_uiLastStreamId = (m_uiLastStreamId + 1);
-    m_uiLastStreamId = (m_uiLastStreamId > m_uiMaxStreams) ? 1 : m_uiLastStreamId;
     stream = new CStream(m_uiLastStreamId, Callsign, Ip, CodecIn, CodecOut1, CodecOut2, CodecOut3);
     if ( stream->Init(g_Config.GetListenPort()+m_uiLastStreamId) )
     {

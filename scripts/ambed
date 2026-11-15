@@ -1,0 +1,80 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          ambed
+# Processname:       ambed
+# Required-Start:    $remote_fs $syslog $network
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: starts the AMBE transcoder as a linux service
+# Description:       AMBE transcoder for xlxd
+### END INIT INFO
+
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+. /lib/lsb/init-functions
+
+# change below settings according to your system
+NAME="ambed"
+DAEMON="/ambed/ambed"
+ARGUMENTS="/ambed/ambed.ini"
+USER=root
+GROUP=root
+
+[ -f $DAEMON ] || exit 0
+
+start () {
+
+# AMBEd runs in the foreground and logs to its output, so run it in the
+# background and send its log to syslog, tagged ambed
+
+	echo -n "Starting $NAME: "
+
+	# free the dongles from the kernel's FTDI serial driver, so the FTDI D2XX
+	# driver can claim them
+	rmmod ftdi_sio 2>/dev/null
+
+	start-stop-daemon --start --exec $DAEMON --chuid $USER:$GROUP --background \
+		--startas /bin/sh -- -c "exec $DAEMON $ARGUMENTS 2>&1 | logger -t $NAME"
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+stop () {
+
+# wait for AMBEd to exit, so a restart doesn't find the port or dongles in use
+
+	echo -n "Stopping $NAME: "
+	start-stop-daemon --stop --exec $DAEMON --retry TERM/10/KILL/5
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+case "$1" in
+	start)
+		start
+	;;
+	stop)
+		stop
+	;;
+	restart)
+		stop
+		start
+	;;
+	status)
+		echo $DAEMON $NAME :
+		if pidof $DAEMON > /dev/null; then
+			echo running
+		else
+			echo not running
+		fi
+	;;
+	*)
+		echo "Usage: $0 {start|stop|restart|status}"
+		exit 1
+esac
+
+exit 0

@@ -44,12 +44,19 @@
 
 // version -----------------------------------------------------
 #define VERSION_MAJOR                   2
-#define VERSION_MINOR                   6
-#define VERSION_REVISION                2
+#define VERSION_MINOR                   7
+#define VERSION_REVISION                0
 
 // global ------------------------------------------------------
 #define RUN_AS_DAEMON
 #define JSON_MONITOR
+
+// Settings marked [ini] can be overridden in xlxd.ini, the values here
+// are the defaults used when the file leaves them out.
+#define CONFIG_RELOAD_PERIOD            180                                 // in seconds, how often xlxd.ini is checked
+#define LISTEN_IP                       "0.0.0.0"                           // [ini] IP to listen on
+#define TRANSCODER_HOST                 "127.0.0.1"                         // [ini] IP or hostname of AMBEd
+
 // QoS - set DSCP/TOS on outgoing packets for network prioritization.
 // Voice-flow packets (voice frames, headers, EoT) are marked DSCP_VALUE.
 // Signalling packets (keepalives, logins, acks, disconnects) are sent
@@ -60,15 +67,8 @@
 //   34 (AF41)- Assured Forwarding class 4, high priority
 //   26 (AF31)- Assured Forwarding class 3, medium-high priority
 //   0        - Best effort (default, no priority)
-#define DSCP_MARKING_ENABLE             1                                   // 1 = enable, 0 = disable
-#define DSCP_VALUE                      46                                  // DSCP value (0-63)
-
-// Compile-time guard: a DSCP_VALUE outside 0-63 would shift into or
-// past the ECN bits of the TOS byte when written as (DSCP_VALUE << 2),
-// silently corrupting ECN signalling on every voice packet. Catch it
-// at build time rather than surprising an operator at runtime.
-static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
-              "DSCP_VALUE must be in range 0-63 (6 bits of the TOS byte)");
+#define DSCP_MARKING_ENABLE             1                                   // [ini] 1 = enable, 0 = disable
+#define DSCP_VALUE                      46                                  // [ini] DSCP value (0-63)
 
 // debug -------------------------------------------------------
 //#define DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
@@ -100,7 +100,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define PROTOCOL_P25                    12
 
 // DExtra - timing matched to ircDDBGateway (10s poll, 60s timeout)
-#define DEXTRA_PORT                     30001                               // UDP port
+#define DEXTRA_PORT                     30001                               // [ini] UDP port to listen on
 #define DEXTRA_KEEPALIVE_PERIOD         10                                  // in seconds
 #define DEXTRA_KEEPALIVE_TIMEOUT        (DEXTRA_KEEPALIVE_PERIOD*6)         // in seconds
 #define DEXTRA_PEER_KEEPALIVE_PERIOD    10                                  // in seconds
@@ -109,7 +109,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define DEXTRA_PEER_CONNECT_TIMEOUT     10                                  // in seconds (for handshake)
 
 // DPlus - timing matched to ircDDBGateway (1s poll, 30s timeout)
-#define DPLUS_PORT                      20001                               // UDP port
+#define DPLUS_PORT                      20001                               // [ini] UDP port to listen on
 #define DPLUS_KEEPALIVE_PERIOD          1                                   // in seconds
 #define DPLUS_KEEPALIVE_TIMEOUT         (DPLUS_KEEPALIVE_PERIOD*30)         // in seconds
 #define DPLUS_PEER_KEEPALIVE_PERIOD     5                                   // in seconds
@@ -118,7 +118,7 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define DPLUS_PEER_CONNECT_TIMEOUT      10                                  // in seconds (for handshake)
 
 // DCS - timing matched to ircDDBGateway (5s poll, 60s timeout)
-#define DCS_PORT                        30051                               // UDP port
+#define DCS_PORT                        30051                               // [ini] UDP port to listen on
 #define DCS_KEEPALIVE_PERIOD            5                                   // in seconds
 #define DCS_KEEPALIVE_TIMEOUT           (DCS_KEEPALIVE_PERIOD*12)           // in seconds
 #define DCS_PEER_KEEPALIVE_PERIOD       5                                   // in seconds
@@ -127,33 +127,33 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define DCS_PEER_CONNECT_TIMEOUT        10                                  // in seconds (for handshake)
 
 // XLX
-#define XLX_PORT                        10002                               // UDP port
+#define XLX_PORT                        10002                               // [ini] UDP port to listen on
 #define XLX_KEEPALIVE_PERIOD            1                                   // in seconds
 #define XLX_KEEPALIVE_TIMEOUT           (XLX_KEEPALIVE_PERIOD*30)           // in seconds
 #define XLX_RECONNECT_PERIOD            5                                   // in seconds
 
 // DMRPlus (dongle)
-#define DMRPLUS_PORT                    8880                                // UDP port
+#define DMRPLUS_PORT                    8880                                // [ini] UDP port to listen on
 #define DMRPLUS_KEEPALIVE_PERIOD        1                                   // in seconds
 #define DMRPLUS_KEEPALIVE_TIMEOUT       (DMRPLUS_KEEPALIVE_PERIOD*10)       // in seconds
 #define DMRPLUS_REFLECTOR_SLOT          DMR_SLOT2
 #define DMRPLUS_REFLECTOR_COLOUR        1
 
 // DMRMmdvm
-#define DMRMMDVM_PORT                   62030                               // UDP port
+#define DMRMMDVM_PORT                   62030                               // [ini] UDP port to listen on
 #define DMRMMDVM_KEEPALIVE_PERIOD       10                                  // in seconds
 #define DMRMMDVM_KEEPALIVE_TIMEOUT      (DMRMMDVM_KEEPALIVE_PERIOD*10)      // in seconds
 #define DMRMMDVM_REFLECTOR_SLOT         DMR_SLOT2
 #define DMRMMDVM_REFLECTOR_COLOUR       1
 
 // YSF
-#define YSF_PORT                        42000                               // UDP port
+#define YSF_PORT                        42000                               // [ini] UDP port to listen on
 #define YSF_KEEPALIVE_PERIOD            3                                   // in seconds
 #define YSF_KEEPALIVE_TIMEOUT           (YSF_KEEPALIVE_PERIOD*10)           // in seconds
-#define YSF_DEFAULT_NODE_TX_FREQ        437000000                           // in Hz
-#define YSF_DEFAULT_NODE_RX_FREQ        437000000                           // in Hz
-#define YSF_AUTOLINK_ENABLE             1                                   // 1 = enable, 0 = disable auto-link
-#define YSF_AUTOLINK_MODULE             'B'                                 // module for client to auto-link to
+#define YSF_DEFAULT_NODE_TX_FREQ        437000000                           // [ini] in Hz
+#define YSF_DEFAULT_NODE_RX_FREQ        437000000                           // [ini] in Hz
+#define YSF_AUTOLINK_ENABLE             1                                   // [ini] 1 = enable, 0 = disable auto-link
+#define YSF_AUTOLINK_MODULE             'B'                                 // [ini] module for client to auto-link to
 
 // YSF Reflector Peering
 #define YSF_PEER_KEEPALIVE_PERIOD       5                                   // in seconds (poll interval)
@@ -162,20 +162,20 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define YSF_PEER_MAX_ID                 99999                               // max 5-digit YSF reflector ID
 
 // G3 Terminal
-#define G3_PRESENCE_PORT                12346                               // UDP port
-#define G3_CONFIG_PORT                  12345                               // UDP port
-#define G3_DV_PORT                      40000                               // UDP port
+#define G3_PRESENCE_PORT                12346                               // [ini] UDP port
+#define G3_CONFIG_PORT                  12345                               // [ini] UDP port
+#define G3_DV_PORT                      40000                               // [ini] UDP port
 #define G3_KEEPALIVE_PERIOD             10                                  // in seconds
 #define G3_KEEPALIVE_TIMEOUT            (G3_KEEPALIVE_PERIOD*360)           // in seconds (1 hour)
 
 // IMRS
-#define IMRS_PORT                       21110                               // UDP port
+#define IMRS_PORT                       21110                               // [ini] UDP port to listen on
 #define IMRS_KEEPALIVE_PERIOD           30                                  // in seconds
 #define IMRS_KEEPALIVE_TIMEOUT          (IMRS_KEEPALIVE_PERIOD*5)           // in seconds
-#define IMRS_DEFAULT_MODULE             'B'                                 // default module to link in
+#define IMRS_AUTOLINK_MODULE            'B'                                 // [ini] module for repeaters to link to
 
 // M17
-#define M17_PORT                        17000                               // UDP port
+#define M17_PORT                        17000                               // [ini] UDP port to listen on
 #define M17_KEEPALIVE_PERIOD            5                                   // in seconds
 #define M17_KEEPALIVE_TIMEOUT           (M17_KEEPALIVE_PERIOD*6)            // in seconds
 
@@ -189,14 +189,16 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 #define P25_PEER_KEEPALIVE_TIMEOUT      (P25_PEER_KEEPALIVE_PERIOD*6)       // in seconds
 #define P25_PEER_RECONNECT_PERIOD       5                                   // in seconds
 
-// AMBE gain adjustments for cross-mode audio levels (in dB)
-#define GAIN_NXDN_TO_DMR                -3                                  // in dB
-#define GAIN_DMR_TO_NXDN                -3                                  // in dB
-#define GAIN_YSF_TO_DMR                 10                                  // in dB
-#define GAIN_DMR_TO_YSF                 -4                                  // in dB
+// AMBE gain adjustments to balance YSF and NXDN audio levels with DMR, in dB.
+// DMR AMBE is the reflector's internal format: <MODE>_TO_DMR applies to all
+// audio arriving over that mode, DMR_TO_<MODE> to all audio sent out over it.
+#define GAIN_YSF_TO_DMR                 7                                   // [ini] in dB
+#define GAIN_DMR_TO_YSF                 -4                                  // [ini] in dB
+#define GAIN_NXDN_TO_DMR                -6                                  // [ini] in dB
+#define GAIN_DMR_TO_NXDN                -3                                  // [ini] in dB
 
 // Transcoder server --------------------------------------------
-#define TRANSCODER_PORT                 10100                               // UDP port
+#define TRANSCODER_PORT                 10100                               // [ini] UDP port
 #define TRANSCODER_KEEPALIVE_PERIOD     5                                   // in seconds
 #define TRANSCODER_KEEPALIVE_TIMEOUT    (TRANSCODER_KEEPALIVE_PERIOD*6)     // in seconds
 #define TRANSCODER_AMBEPACKET_TIMEOUT   400                                 // in ms
@@ -218,31 +220,32 @@ static_assert(DSCP_VALUE >= 0 && DSCP_VALUE <= 63,
 
 // DMRid database -----------------------------------------------
 #define DMRIDDB_USE_RLX_SERVER          1                                   // 1 = use http, 0 = use local file
-#define DMRIDDB_PATH                    "/xlxd/dmrid.dat"                   // local file path
+#define DMRIDDB_PATH                    "/xlxd/dmrid.dat"                   // [ini] local file path
 #define DMRIDDB_REFRESH_RATE            180                                 // in minutes
 
 // Wires-X node database ----------------------------------------
 #define YSFNODEDB_USE_RLX_SERVER        1                                   // 1 = use http, 0 = use local file
-#define YSFNODEDB_PATH                  "/xlxd/ysfnode.dat"                 // local file path
+#define YSFNODEDB_PATH                  "/xlxd/ysfnode.dat"                 // [ini] local file path
 #define YSFNODEDB_REFRESH_RATE          180                                 // in minutes
 
 // NXDN ID database ---------------------------------------------
 #define NXDNIDDB_USE_RLX_SERVER         1                                   // 1 = use http, 0 = use local file
-#define NXDNIDDB_PATH                   "/xlxd/nxdn.csv"                    // local file path
+#define NXDNIDDB_PATH                   "/xlxd/nxdn.csv"                    // [ini] local file path
 #define NXDNIDDB_REFRESH_RATE           720                                 // in minutes (12 hours)
 
 // xml & json reporting -----------------------------------------
 #define LASTHEARD_USERS_MAX_SIZE        100
 #define XML_UPDATE_PERIOD               10                                  // in seconds
 #define JSON_UPDATE_PERIOD              10                                  // in seconds
-#define JSON_PORT                       10001
+#define JSON_PORT                       10001                               // [ini] UDP port
 
 // system paths -------------------------------------------------
-#define XML_PATH                        "/var/log/xlxd.xml"
-#define WHITELIST_PATH                  "/xlxd/xlxd.whitelist"
-#define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"
-#define INTERLINKLIST_PATH              "/xlxd/xlxd.interlink"
-#define TERMINALOPTIONS_PATH            "/xlxd/xlxd.terminal"
+#define XML_PATH                        "/var/log/xlxd.xml"                 // [ini]
+#define PID_PATH                        "/var/log/xlxd.pid"                 // [ini]
+#define WHITELIST_PATH                  "/xlxd/xlxd.whitelist"              // [ini]
+#define BLACKLIST_PATH                  "/xlxd/xlxd.blacklist"              // [ini]
+#define INTERLINK_PATH                  "/xlxd/xlxd.interlink"              // [ini]
+#define TERMINAL_PATH                   "/xlxd/xlxd.terminal"               // [ini]
 #define DEBUGDUMP_PATH                  "/var/log/xlxd.debug"
 
 // system constants ---------------------------------------------
@@ -297,5 +300,8 @@ extern CGateKeeper g_GateKeeper;
 
 class CTranscoder;
 extern CTranscoder g_Transcoder;
+
+class CConfig;
+extern CConfig g_Config;
 
 #endif /* main_h */

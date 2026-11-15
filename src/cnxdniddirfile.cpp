@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "main.h"
+#include "cconfig.h"
 #include "cnxdniddirfile.h"
 
 
@@ -71,7 +72,7 @@ bool CNxdnIdDirFile::LoadContent(CBuffer *buffer)
     std::streampos size;
 
     // open file
-    file.open(NXDNIDDB_PATH, std::ios::in | std::ios::binary | std::ios::ate);
+    file.open(g_Config.GetPath("NXDNIDDB_PATH"), std::ios::in | std::ios::binary | std::ios::ate);
     if ( file.is_open() )
     {
         // read file
@@ -170,7 +171,7 @@ bool CNxdnIdDirFile::RefreshContent(const CBuffer &buffer)
     }
 
     // report
-    std::cout << "Read " << m_NxdnIdMap.size() << " NXDN ids from file " << NXDNIDDB_PATH << std::endl;
+    std::cout << "Read " << m_NxdnIdMap.size() << " NXDN ids from file " << g_Config.GetPath("NXDNIDDB_PATH") << std::endl;
 
     // done
     return ok;
@@ -182,7 +183,7 @@ bool CNxdnIdDirFile::GetLastModTime(time_t *time)
     bool ok = false;
 
     struct stat fileStat;
-    if( ::stat(NXDNIDDB_PATH, &fileStat) != -1 )
+    if( ::stat(g_Config.GetPath("NXDNIDDB_PATH"), &fileStat) != -1 )
     {
         *time = fileStat.st_mtime;
         ok = true;

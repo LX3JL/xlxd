@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "cdmrplusclient.h"
 #include "cdmrplusprotocol.h"
@@ -57,7 +58,7 @@ bool CDmrplusProtocol::Init(void)
     //m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"DMR", 3);
     
     // create our socket
-    ok &= m_Socket.Open(DMRPLUS_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("DMRPLUS_PORT"));
     
     // update time
     m_LastKeepaliveTime.Now();
@@ -902,7 +903,7 @@ void CDmrplusProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId) 
     {
         // EMB LC
         uint8 emb[2];
-        emb[0]  = (DMRMMDVM_REFLECTOR_COLOUR << 4) & 0xF0;
+        emb[0]  = (DMRPLUS_REFLECTOR_COLOUR << 4) & 0xF0;
         //emb[0] |= PI ? 0x08U : 0x00;
         //emb[0] |= (LCSS << 1) & 0x06;
         emb[1]  = 0x00;
@@ -924,7 +925,7 @@ void CDmrplusProtocol::ReplaceEMBInBuffer(CBuffer *buffer, uint8 uiDmrPacketId) 
     {
         // NULL
         uint8 emb[2];
-        emb[0]  = (DMRMMDVM_REFLECTOR_COLOUR << 4) & 0xF0;
+        emb[0]  = (DMRPLUS_REFLECTOR_COLOUR << 4) & 0xF0;
         //emb[0] |= PI ? 0x08U : 0x00;
         //emb[0] |= (LCSS << 1) & 0x06;
         emb[1]  = 0x00;

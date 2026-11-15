@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include "main.h"
+#include "cconfig.h"
 #include "creflector.h"
 #include "cysfnodedir.h"
 
@@ -128,8 +129,8 @@ bool CYsfNodeDir::FindFrequencies(const CCallsign &callsign, uint32 *txfreq, uin
     }
     else
     {
-        *txfreq = YSF_DEFAULT_NODE_TX_FREQ;
-        *rxfreq = YSF_DEFAULT_NODE_RX_FREQ;
+        *txfreq = g_Config.GetYsfNodeTxFreq();
+        *rxfreq = g_Config.GetYsfNodeRxFreq();
         return false;
     }
 }

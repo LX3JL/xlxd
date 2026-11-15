@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "cxlxpeer.h"
 #include "cxlxdmrpeer.h"
@@ -45,10 +46,10 @@ bool CXlxProtocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);
     
     // create our socket
-    ok &= m_Socket.Open(XLX_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("XLX_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << XLX_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("XLX_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
     
     // update time

@@ -33,6 +33,25 @@
 #include "cdmriddirhttp.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// peer lookup helper
+//
+// Talk groups and ports are looked up by the peer's interlink name (P25nnnnn),
+// so peers that share an IP address each keep their own values.
+
+template <typename T>
+static const T *FindPeerValue(const std::vector<std::pair<CCallsign, T>> &list, const CCallsign &callsign)
+{
+    for ( const auto &entry : list )
+    {
+        if ( entry.first.HasSameCallsign(callsign) )
+        {
+            return &entry.second;
+        }
+    }
+    return NULL;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 
 CP25Protocol::CP25Protocol()
@@ -607,10 +626,10 @@ void CP25Protocol::HandleQueue(void)
     if ( packets.empty() )
         return;
 
-    // build peer lookup maps once per drain cycle (stable across all packets)
-    // peerTgByAddr: IP addr → P25 talk group (from Peers)
-    // peerPortByAddr: IP addr → send port (from GK peer list)
-    std::map<uint32_t, uint32_t> peerTgByAddr;
+    // build peer lookup lists once per drain cycle (stable across all packets)
+    // peerTgByName: interlink name → P25 talk group (from Peers)
+    // peerPortByName: interlink name → send port (from GK peer list)
+    std::vector<std::pair<CCallsign, uint32_t>> peerTgByName;
     {
         CPeers *peers = g_Reflector.GetPeers();
         int peerIdx = -1;
@@ -620,12 +639,12 @@ void CP25Protocol::HandleQueue(void)
             // FindNextPeer(PROTOCOL_P25) guarantees this is a CP25Peer
             CP25Peer *p25Peer = static_cast<CP25Peer *>(peer);
             {
-                peerTgByAddr[p25Peer->GetIp().GetAddr()] = p25Peer->GetP25Tg();
+                peerTgByName.push_back(std::make_pair(p25Peer->GetCallsign(), p25Peer->GetP25Tg()));
             }
         }
         g_Reflector.ReleasePeers();
     }
-    std::map<uint32_t, uint16_t> peerPortByAddr;
+    std::vector<std::pair<CCallsign, uint16_t>> peerPortByName;
     {
         CPeerCallsignList *list = g_GateKeeper.GetPeerList();
         for ( int li = 0; li < list->size(); li++ )
@@ -634,7 +653,7 @@ void CP25Protocol::HandleQueue(void)
             if ( IsP25PeerCallsign(item->GetCallsign()) && item->GetPort() != 0 )
             {
                 item->ResolveIp();
-                peerPortByAddr[item->GetIp().GetAddr()] = item->GetPort();
+                peerPortByName.push_back(std::make_pair(item->GetCallsign(), item->GetPort()));
             }
         }
         g_GateKeeper.ReleasePeerList();
@@ -701,7 +720,7 @@ void CP25Protocol::HandleQueue(void)
             }
 
             // Get destination TG from first connected P25 peer on this module
-            // using pre-built peerTgByAddr map (no per-packet Peers lock needed)
+            // using pre-built peerTgByName list (no per-packet Peers lock needed)
             {
                 CClients *clients = g_Reflector.GetClients();
                 int index = -1;
@@ -711,11 +730,11 @@ void CP25Protocol::HandleQueue(void)
                     if ( client->IsPeer() &&
                          (client->GetReflectorModule() == packet->GetModuleId()) )
                     {
-                        auto it = peerTgByAddr.find(client->GetIp().GetAddr());
-                        if ( it != peerTgByAddr.end() )
+                        const uint32_t *tg = FindPeerValue(peerTgByName, client->GetCallsign());
+                        if ( tg != NULL )
                         {
                             std::lock_guard<std::mutex> lock(m_StreamsCache[iModId].m_Mutex);
-                            m_StreamsCache[iModId].m_uiDstTg = it->second;
+                            m_StreamsCache[iModId].m_uiDstTg = *tg;
                         }
                         break;
                     }
@@ -733,7 +752,7 @@ void CP25Protocol::HandleQueue(void)
                 m_StreamsCache[iModId].m_uiFrameCount = 0;
             }
 
-            // Send terminator to all P25 peers (using pre-built peerPortByAddr map)
+            // Send terminator to all P25 peers (using pre-built peerPortByName list)
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
@@ -749,11 +768,11 @@ void CP25Protocol::HandleQueue(void)
                         continue;
                     }
 
-                    auto pit = peerPortByAddr.find(client->GetIp().GetAddr());
-                    if ( pit != peerPortByAddr.end() )
+                    const uint16_t *port = FindPeerValue(peerPortByName, client->GetCallsign());
+                    if ( port != NULL )
                     {
                         EncodeTerminatorPacket(&buffer);
-                        m_Socket.SendVoice(buffer, client->GetIp(), pit->second);
+                        m_Socket.SendVoice(buffer, client->GetIp(), *port);
                     }
                 }
             }
@@ -780,7 +799,7 @@ void CP25Protocol::HandleQueue(void)
                 p25step = m_StreamsCache[iModId].m_uiFrameCount % 18;
             }
 
-            // Send using pre-built peerTgByAddr and peerPortByAddr maps
+            // Send using pre-built peerTgByName and peerPortByName lists
             CClients *clients = g_Reflector.GetClients();
             int index = -1;
             CClient *client = NULL;
@@ -796,19 +815,18 @@ void CP25Protocol::HandleQueue(void)
                         continue;
                     }
 
-                    uint32_t addr = client->GetIp().GetAddr();
-                    auto pit = peerPortByAddr.find(addr);
-                    if ( pit != peerPortByAddr.end() )
+                    const uint16_t *port = FindPeerValue(peerPortByName, client->GetCallsign());
+                    if ( port != NULL )
                     {
                         uint32_t dstTg = 0;
-                        auto it = peerTgByAddr.find(addr);
-                        if ( it != peerTgByAddr.end() )
+                        const uint32_t *tg = FindPeerValue(peerTgByName, client->GetCallsign());
+                        if ( tg != NULL )
                         {
-                            dstTg = it->second;
+                            dstTg = *tg;
                         }
 
                         EncodeVoicePacket(&buffer, p25step, imbeData, srcId, dstTg);
-                        m_Socket.SendVoice(buffer, client->GetIp(), pit->second);
+                        m_Socket.SendVoice(buffer, client->GetIp(), *port);
                     }
                 }
             }
@@ -918,8 +936,8 @@ void CP25Protocol::HandlePeerKeepalives(void)
 {
     CBuffer buffer;
 
-    // snapshot callsign→port from GK list, release GK before acquiring Peers
-    std::map<uint32_t, uint16_t> peerPortByAddr;
+    // snapshot interlink name→port from GK list, release GK before acquiring Peers
+    std::vector<std::pair<CCallsign, uint16_t>> peerPortByName;
     {
         CPeerCallsignList *list = g_GateKeeper.GetPeerList();
         for ( int i = 0; i < list->size(); i++ )
@@ -928,7 +946,7 @@ void CP25Protocol::HandlePeerKeepalives(void)
             if ( IsP25PeerCallsign(item->GetCallsign()) && item->GetPort() != 0 )
             {
                 item->ResolveIp();
-                peerPortByAddr[item->GetIp().GetAddr()] = item->GetPort();
+                peerPortByName.push_back(std::make_pair(item->GetCallsign(), item->GetPort()));
             }
         }
         g_GateKeeper.ReleasePeerList();
@@ -955,13 +973,13 @@ void CP25Protocol::HandlePeerKeepalives(void)
         }
         else
         {
-            // find the port for this peer from pre-built map
-            auto it = peerPortByAddr.find(peer->GetIp().GetAddr());
-            if ( it != peerPortByAddr.end() )
+            // find the port for this peer from pre-built list
+            const uint16_t *port = FindPeerValue(peerPortByName, peer->GetCallsign());
+            if ( port != NULL )
             {
                 // send keepalive poll
                 EncodePollPacket(&buffer, g_Reflector.GetCallsign());
-                m_Socket.Send(buffer, peer->GetIp(), it->second);
+                m_Socket.Send(buffer, peer->GetIp(), *port);
             }
         }
     }

@@ -19,7 +19,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 # change below settings according to your system
 NAME="xlxd"
 DAEMON="/xlxd/xlxd"
-ARGUMENTS="XLX999 192.168.1.240 127.0.0.1"
+ARGUMENTS="/xlxd/xlxd.ini"
 PIDFILE="/var/log/xlxd.pid"
 USER=root
 GROUP=root
@@ -34,8 +34,6 @@ start () {
 	start-stop-daemon --start --exec $DAEMON --chuid $USER:$GROUP --background -- $ARGUMENTS
 	RETVAL=$?
 	echo
-        sleep 4
-        echo `pidof xlxd` > $PIDFILE
 	return $RETVAL
 }
 
@@ -43,6 +41,7 @@ stop () {
 	echo -n "Stopping $NAME: "
 	start-stop-daemon --stop --pidfile $PIDFILE
 	RETVAL=$?
+	rm -f $PIDFILE
 	echo
 }
 

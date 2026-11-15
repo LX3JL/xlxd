@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include "ctimepoint.h"
 #include "cgatekeeper.h"
 
@@ -62,9 +63,9 @@ bool CGateKeeper::Init(void)
 {
     
     // load lists from files
-    m_NodeWhiteList.LoadFromFile(WHITELIST_PATH);
-    m_NodeBlackList.LoadFromFile(BLACKLIST_PATH);
-    m_PeerList.LoadFromFile(INTERLINKLIST_PATH);
+    m_NodeWhiteList.LoadFromFile(g_Config.GetPath("WHITELIST_PATH"));
+    m_NodeBlackList.LoadFromFile(g_Config.GetPath("BLACKLIST_PATH"));
+    m_PeerList.LoadFromFile(g_Config.GetPath("INTERLINK_PATH"));
     
     // reset stop flag
     m_bStopThread = false;

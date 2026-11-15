@@ -213,15 +213,15 @@ CCodecStream::~CCodecStream()
 ////////////////////////////////////////////////////////////////////////////////////////
 // initialization
 
-bool CCodecStream::Init(uint16 uiPort)
+bool CCodecStream::Init(uint16 uiPort, const CIp &Ip)
 {
     bool ok;
     
     // reset stop flag
     m_bStopThread = false;
     
-    // create server's IP
-    m_Ip = g_Reflector.GetTranscoderIp();
+    // AMBEd's address when the stream opened
+    m_Ip = Ip;
     m_uiPort = uiPort;
     
     // create our socket

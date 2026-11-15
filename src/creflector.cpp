@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "creflector.h"
 #include "cgatekeeper.h"
@@ -848,7 +849,7 @@ void CReflector::XmlReportThread(CReflector *This)
     {
         // report to xml file
         std::ofstream xmlFile;
-        xmlFile.open(XML_PATH, std::ios::out | std::ios::trunc);
+        xmlFile.open(g_Config.GetPath("XML_PATH"), std::ios::out | std::ios::trunc);
         if ( xmlFile.is_open() )
         {
             // write xml file
@@ -860,7 +861,7 @@ void CReflector::XmlReportThread(CReflector *This)
 #ifndef DEBUG_NO_ERROR_ON_XML_OPEN_FAIL
         else
         {
-            std::cout << "Failed to open " << XML_PATH  << std::endl;
+            std::cout << "Failed to open " << g_Config.GetPath("XML_PATH")  << std::endl;
         }
 #endif
 
@@ -880,7 +881,7 @@ void CReflector::JsonReportThread(CReflector *This)
     bOn = false;
 
     // create listening socket
-    if ( Socket.Open(JSON_PORT) )
+    if ( Socket.Open(g_Config.GetPort("JSON_PORT")) )
     {
         // and loop
         while ( !This->m_bStopThreads )

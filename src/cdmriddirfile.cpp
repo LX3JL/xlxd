@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "main.h"
+#include "cconfig.h"
 #include "cdmriddirfile.h"
 
 
@@ -72,7 +73,7 @@ bool CDmridDirFile::LoadContent(CBuffer *buffer)
     std::streampos size;
     
     // open file
-    file.open(DMRIDDB_PATH, std::ios::in | std::ios::binary | std::ios::ate);
+    file.open(g_Config.GetPath("DMRIDDB_PATH"), std::ios::in | std::ios::binary | std::ios::ate);
     if ( file.is_open() )
     {
         // read file
@@ -144,7 +145,7 @@ bool CDmridDirFile::RefreshContent(const CBuffer &buffer)
     }
     
     // report
-    std::cout << "Read " << m_DmridMap.size() << " DMR ids from file " << DMRIDDB_PATH << std::endl;
+    std::cout << "Read " << m_DmridMap.size() << " DMR ids from file " << g_Config.GetPath("DMRIDDB_PATH") << std::endl;
     
     // done
     return ok;
@@ -156,7 +157,7 @@ bool CDmridDirFile::GetLastModTime(time_t *time)
     bool ok = false;
     
     struct stat fileStat;
-    if( ::stat(DMRIDDB_PATH, &fileStat) != -1 )
+    if( ::stat(g_Config.GetPath("DMRIDDB_PATH"), &fileStat) != -1 )
     {
         *time = fileStat.st_mtime;
         ok = true;

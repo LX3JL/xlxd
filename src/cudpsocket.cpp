@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "creflector.h"
 #include "cudpsocket.h"
@@ -153,19 +154,16 @@ int CUdpSocket::Receive(CBuffer *Buffer, CIp *Ip, int timeout)
 // bursts of same-class sends pay the syscall only once per class switch.
 // IPv4 uses IP_TOS; a future IPv6 port would need IPV6_TCLASS alongside.
 //
-// Always called — even when DSCP_MARKING_ENABLE is 0. In the disabled build
-// SendVoice() is an inline alias for Send() (see cudpsocket.h), so every
-// send path routes through here with tos=0. m_iCurrentTos starts at 0 and
-// matches the kernel default for a fresh socket, so the first call is a
-// cache hit; every subsequent Send() is also a cache hit. Result in the
-// "DSCP disabled" build: zero setsockopt syscalls — not one per Send —
-// so the runtime cost of this indirection is nil.
+// Always called — even when DSCP_MARKING_ENABLE is 0 in xlxd.ini. With
+// marking off, SendVoice() asks for tos=0 like Send(), so every send path
+// routes through here with tos=0. m_iCurrentTos starts at 0 and matches
+// the kernel default for a fresh socket, so the first call is a cache
+// hit; every subsequent send is also a cache hit. Result with marking
+// off: zero setsockopt syscalls, so the cost of this indirection is nil.
 
 // One-shot failure log for SetTosIfChanged. Shared across all sockets:
 // a kernel that rejects an IP_TOS value will reject it for every socket,
 // so a single log line per process is enough to alert the operator.
-// Declared outside the DSCP_MARKING_ENABLE guard because SetTosIfChanged
-// is also called from Send() with tos=0 when DSCP marking is disabled.
 static std::atomic<bool> g_bTosErrorLogged(false);
 
 void CUdpSocket::SetTosIfChanged(int tos)
@@ -199,7 +197,7 @@ void CUdpSocket::SetTosIfChanged(int tos)
     // Log once per process on first failure. Common causes: bad socket
     // state (EBADF), kernel seccomp/SELinux policy rejecting IP_TOS
     // (EPERM), or an invalid value (EINVAL) — the last only possible
-    // if DSCP_VALUE was bypassed by the main.h static_assert somehow
+    // if DSCP_VALUE got past the xlxd.ini range check somehow
     // (e.g. direct call with out-of-range `tos`).
     //
     // strerror() is not thread-safe on all platforms, but the exchange()
@@ -267,14 +265,18 @@ int CUdpSocket::Send(const char *Buffer, const CIp &Ip, uint16 destport)
 ////////////////////////////////////////////////////////////////////////////////////////
 // write - voice packets with DSCP marking
 
-#if (DSCP_MARKING_ENABLE == 1)
-// Single global flag for DSCP logging - shared across all SendVoice calls
-static std::atomic<bool> g_bDscpLogged(false);
+// Voice TOS from xlxd.ini, read on every voice packet so a reload
+// takes effect straight away. -1 means marking is off.
+static int VoiceTos(void)
+{
+    int tos = g_Config.GetVoiceTos();
+    return (tos < 0) ? 0 : tos;
+}
 
 int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
 {
     if ( m_Socket == -1 ) return -1;
-    SetTosIfChanged(DSCP_VALUE << 2);   // voice class — marked DSCP_VALUE
+    SetTosIfChanged(VoiceTos());        // voice class — marked DSCP_VALUE
 
     CIp temp(Ip);
     int result;
@@ -303,7 +305,7 @@ int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip)
 int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
 {
     if ( m_Socket == -1 ) return -1;
-    SetTosIfChanged(DSCP_VALUE << 2);   // voice class — marked DSCP_VALUE
+    SetTosIfChanged(VoiceTos());        // voice class — marked DSCP_VALUE
 
     CIp temp(Ip);
     temp.GetSockAddr()->sin_port = htons(destport);
@@ -331,25 +333,17 @@ int CUdpSocket::SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 destport)
 
 void CUdpSocket::LogDscpStatus(void)
 {
-    if ( !g_bDscpLogged )
+    // DSCP_VALUE is range checked when xlxd.ini is read
+    int tos = g_Config.GetVoiceTos();
+    if ( tos >= 0 )
     {
-        // DSCP_VALUE range is enforced at compile time by static_assert in
-        // main.h, so the invalid-range branch is unreachable in a correctly
-        // built binary. Kept for defence-in-depth against NDEBUG/asserts-
-        // disabled builds or a future refactor.
-        if ( DSCP_VALUE >= 0 && DSCP_VALUE <= 63 )
-        {
-            std::cout << "Voice packets marked DSCP " << DSCP_VALUE
-                      << " (EF); signalling packets unmarked (BE)" << std::endl;
-        }
-        else
-        {
-            std::cout << "Error: Invalid DSCP_VALUE " << DSCP_VALUE
-                      << " (must be 0-63), QoS disabled" << std::endl;
-        }
-        g_bDscpLogged = true;
+        std::cout << "Voice packets marked DSCP " << (tos >> 2)
+                  << "; signalling packets unmarked (BE)" << std::endl;
+    }
+    else
+    {
+        std::cout << "Voice packets not marked, DSCP marking is off" << std::endl;
     }
 }
-#endif
 
 

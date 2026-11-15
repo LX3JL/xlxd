@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include <random>
 #include "cdmrmmdvmclient.h"
@@ -68,7 +69,7 @@ bool CDmrmmdvmProtocol::Init(void)
     //m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"DMR", 3);
     
     // create our socket
-    ok &= m_Socket.Open(DMRMMDVM_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("DMRMMDVM_PORT"));
     
     // update time
     m_LastKeepaliveTime.Now();

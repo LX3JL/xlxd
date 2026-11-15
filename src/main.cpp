@@ -25,6 +25,8 @@
 #include "main.h"
 #include "creflector.h"
 #include "cudpsocket.h"
+#include "cconfig.h"
+#include "ctranscoder.h"
 
 #include "csyslog.h"
 #include <sys/stat.h>
@@ -40,6 +42,21 @@ CReflector  g_Reflector;
 
 #include "cusers.h"
 
+// pid file, read by the dashboard and by systemd
+static void WritePidFile(pid_t pid)
+{
+    const char *path = g_Config.GetPath("PID_PATH");
+    std::ofstream file(path, std::ios::out | std::ios::trunc);
+    if ( file.is_open() )
+    {
+        file << pid << std::endl;
+    }
+    else
+    {
+        std::cout << "Cannot write pid file " << path << std::endl;
+    }
+}
+
 int main(int argc, const char * argv[])
 {
 #ifdef RUN_AS_DAEMON
@@ -48,6 +65,25 @@ int main(int argc, const char * argv[])
     syslogns::redirect cout_redir(std::cout);
     syslogns::redirect cerr_redir(std::cerr);
     syslogns::redirect clog_redir(std::clog);
+#endif
+
+    // check arguments, the callsign and IPs used to be arguments and are now in xlxd.ini
+    if ( argc != 2 )
+    {
+        std::cout << "Usage: xlxd xlxd.ini" << std::endl;
+        std::cout << "example: xlxd /xlxd/xlxd.ini" << std::endl;
+        std::cout << "The callsign, listen IP and transcoder IP are now set in xlxd.ini" << std::endl;
+        return 1;
+    }
+
+    // load the settings
+    if ( !g_Config.Load(argv[1]) )
+    {
+        std::cout << "Error loading " << argv[1] << ", xlxd not started" << std::endl;
+        return 1;
+    }
+
+#ifdef RUN_AS_DAEMON
 
     //Fork the Parent Process
     pid_t pid, sid;
@@ -57,9 +93,11 @@ int main(int argc, const char * argv[])
         exit(EXIT_FAILURE);
     }
 
-    // We got a good pid, Close the Parent Process
+    // We got a good pid, record it and Close the Parent Process
+    // (writing it here means it exists before a service manager looks for it)
     if (pid > 0)
     {
+        WritePidFile(pid);
         exit(EXIT_SUCCESS);
     }
     
@@ -84,24 +122,18 @@ int main(int argc, const char * argv[])
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-    
-#endif
 
-    // check arguments
-    if ( argc != 4 )
-    {
-        std::cout << "Usage: xlxd callsign xlxdip ambedip" << std::endl;
-        std::cout << "example: xlxd XLX999 192.168.178.212 127.0.0.1" << std::endl;
-        return 1;
-    }
+#else
+    WritePidFile(::getpid());
+#endif
 
     // splash
     std::cout << "Starting xlxd " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << std::endl << std::endl;
 
     // initialize reflector
-    g_Reflector.SetCallsign(argv[1]);
-    g_Reflector.SetListenIp(CIp(argv[2]));
-    g_Reflector.SetTranscoderIp(CIp(CIp(argv[3])));
+    g_Reflector.SetCallsign(g_Config.GetCallsign());
+    g_Reflector.SetListenIp(CIp(g_Config.GetListenIp()));
+    g_Transcoder.SetServer(g_Config.GetTranscoderHost());
   
     // and let it run
     if ( !g_Reflector.Start() )
@@ -116,18 +148,20 @@ int main(int argc, const char * argv[])
     CUdpSocket::LogDscpStatus();
 
 #ifdef RUN_AS_DAEMON
-	// run forever
+	// run forever, picking up xlxd.ini changes
     while ( true )
     {
-        // sleep 60 seconds
-        CTimePoint::TaskSleepFor(60000);
+        CTimePoint::TaskSleepFor(CONFIG_RELOAD_PERIOD * 1000);
+        g_Config.Reload();
+        g_Transcoder.SetServer(g_Config.GetTranscoderHost());
     }
 #else
     // wait any key
     for (;;)
     {
-        // sleep 60 seconds
-        CTimePoint::TaskSleepFor(60000);
+        CTimePoint::TaskSleepFor(CONFIG_RELOAD_PERIOD * 1000);
+        g_Config.Reload();
+        g_Transcoder.SetServer(g_Config.GetTranscoderHost());
 #ifdef DEBUG_DUMPFILE
         g_Reflector.m_DebugFile.close();
 #endif

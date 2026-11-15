@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "ccrc.h"
 #include "cysfpayload.h"
@@ -56,10 +57,10 @@ bool CYsfProtocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"YSF", 3);
     
     // create our socket
-    ok &= m_Socket.Open(YSF_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("YSF_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << YSF_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("YSF_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
     
     // init the wiresx cmd handler
@@ -323,9 +324,10 @@ void CYsfProtocol::RxTask(void)
                             CYsfClient *newclient = new CYsfClient(Callsign, Ip);
 
                             // autolink, if enabled
-                            #if YSF_AUTOLINK_ENABLE
-                                newclient->SetReflectorModule(YSF_AUTOLINK_MODULE);
-                            #endif
+                            if ( g_Config.IsYsfAutolinkEnabled() )
+                            {
+                                newclient->SetReflectorModule(g_Config.GetYsfAutolinkModule());
+                            }
 
                             // and append
                             clients->AddClient(newclient);
@@ -996,9 +998,10 @@ bool CYsfProtocol::IsValidDvFramePacket(const CIp &Ip, const CYSFFICH &Fich, con
         uint8 *ambes[5] = { ambe0, ambe1, ambe2, ambe3, ambe4 };
         CYsfUtils::DecodeVD2Vchs((unsigned char *)&(Buffer.data()[35]), ambes);
 
-        // Adjust gain for YSF→DMR direction
+        // Adjust gain for all audio arriving over YSF
+        float gain = g_Config.GetYsfToDmrGain() / 10.0f;
         for (unsigned int i = 0; i < 5; i++) {
-            CYsfUtils::AdjustAmbeGain(ambes[i], GAIN_YSF_TO_DMR / 10.0f);
+            CYsfUtils::AdjustAmbeGain(ambes[i], gain);
         }
 
         // get DV frames
@@ -1200,12 +1203,13 @@ bool CYsfProtocol::EncodeDvPacket(const CDvHeaderPacket &Header, const CDvFrameP
     CYSFPayload payload;
     uint8 temp[120];
     ::memset(temp, 0x00, sizeof(temp));
-    // DV - with gain adjustment for DMR→YSF direction
+    // DV - with gain adjustment for all audio sent out over YSF
+    float gain = g_Config.GetDmrToYsfGain() / 10.0f;
     for (unsigned int i = 0; i < 5; i++)
     {
         uint8 ambe_copy[AMBEPLUS_SIZE];
         ::memcpy(ambe_copy, DvFrames[i].GetAmbePlus(), AMBEPLUS_SIZE);
-        CYsfUtils::AdjustAmbeGain(ambe_copy, GAIN_DMR_TO_YSF / 10.0f);
+        CYsfUtils::AdjustAmbeGain(ambe_copy, gain);
         CYsfUtils::EncodeVD2Vch(ambe_copy, temp+35+(18*i));
     }
     // data

@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "cclient.h"
 #include "cdextraclient.h"
@@ -47,10 +48,10 @@ bool CDextraProtocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XRF", 3);
 
     // create our socket
-    ok &= m_Socket.Open(DEXTRA_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("DEXTRA_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << DEXTRA_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("DEXTRA_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
     // update time

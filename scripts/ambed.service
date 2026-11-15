@@ -1,15 +1,18 @@
 [Unit]
 Description=AMBE Transcoder Daemon
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
 User=root
 Group=root
+# free the dongles from the kernel's FTDI serial driver, so the FTDI D2XX
+# driver can claim them
 ExecStartPre=-/sbin/rmmod ftdi_sio
-ExecStartPre=-/sbin/rmmod usb_serial
 ExecStart=/ambed/ambed /ambed/ambed.ini
 Restart=on-abnormal
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

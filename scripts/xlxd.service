@@ -1,0 +1,18 @@
+[Unit]
+Description=XLX Multiprotocol Reflector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+# must match PID_PATH in xlxd.ini
+PIDFile=/var/log/xlxd.pid
+User=root
+Group=root
+Nice=-20
+ExecStart=/xlxd/xlxd /xlxd/xlxd.ini
+Restart=on-abnormal
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

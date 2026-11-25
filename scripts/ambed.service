@@ -7,7 +7,7 @@ Type=simple
 User=root
 Group=root
 ExecStartPre=-/sbin/rmmod ftdi_sio
-ExecStartPre=-/sbin/rmmod usb_serial
+ExecStartPre=-/sbin/rmmod usbserial
 ExecStart=/ambed/ambed /ambed/ambed.ini
 Restart=on-abnormal
 

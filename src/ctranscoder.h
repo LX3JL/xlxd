@@ -26,6 +26,7 @@
 #define ctranscoder_h
 
 #include <atomic>
+#include <string>
 #include "csemaphore.h"
 #include "ccodecstream.h"
 #include "cudpsocket.h"
@@ -52,6 +53,10 @@ public:
     bool Init(void);
     void Close(void);
 
+    // AMBEd's IP or hostname from xlxd.ini, looked up when it changes.
+    // Called from the main thread only, at start-up and after each reload.
+    void SetServer(const std::string &);
+
     // locks
     void Lock(void)                     { m_Mutex.lock(); }
     void Unlock(void)                   { m_Mutex.unlock(); }
@@ -68,6 +73,9 @@ public:
     void Task(void);
 
 protected:
+    // AMBEd's current address, false if it has none
+    bool GetIp(CIp *) const;
+
     // keepalive helpers
     void HandleKeepalives(void);
 
@@ -97,8 +105,16 @@ protected:
     std::atomic<bool> m_bStopThread;
     std::thread     *m_pThread;
 
-    // socket
+    // AMBEd's address. Its own lock, not m_Mutex: GetStream() holds m_Mutex
+    // while it waits for AMBEd's reply, which the transcoder thread handles.
+    mutable std::mutex m_IpMutex;
     CIp             m_Ip;
+    bool            m_bHaveIp;          // false until a lookup succeeds
+    std::string     m_Server;           // IP or hostname in use, main thread only
+    std::atomic<bool> m_bKeepaliveNow;  // send a keepalive now, after a change
+
+    // socket
+    uint16          m_uiPort;           // AMBEd port, TRANSCODER_PORT
     CUdpSocket      m_Socket;
     std::atomic<bool> m_bConnected;
 

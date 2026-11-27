@@ -23,7 +23,9 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <cstring>
+#include <netdb.h>
 #include "creflector.h"
 #include "ctranscoder.h"
 
@@ -57,6 +59,9 @@ CTranscoder::CTranscoder()
     m_bWaitingForStream = false;
     m_StreamidOpenStream = 0;
     m_PortOpenStream = 0;
+    m_uiPort = TRANSCODER_PORT;
+    m_bHaveIp = false;
+    m_bKeepaliveNow = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -77,11 +82,11 @@ bool CTranscoder::Init(void)
     // reset stop flag
     m_bStopThread = false;
 
-    // create server's IP
-    m_Ip = g_Reflector.GetTranscoderIp();
+    // AMBEd's address is set by SetServer()
+    m_uiPort = g_Config.GetPort("TRANSCODER_PORT");
     
     // create our socket
-    ok = m_Socket.Open(TRANSCODER_PORT);
+    ok = m_Socket.Open(m_uiPort);
     if ( ok )
     {
         // start  thread;
@@ -89,7 +94,7 @@ bool CTranscoder::Init(void)
     }
     else
     {
-        std::cout << "Error opening socket on port UDP" << TRANSCODER_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << m_uiPort << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
     // done
@@ -164,7 +169,7 @@ void CTranscoder::Task(void)
                 // Close the orphaned AMBEd channel to prevent hardware exhaustion.
                 CBuffer closeBuf;
                 EncodeClosestreamPacket(&closeBuf, StreamId);
-                m_Socket.Send(closeBuf, m_Ip, TRANSCODER_PORT);
+                m_Socket.Send(closeBuf, Ip, m_uiPort);
                 std::cout << "ambed late response for stream " << (int)StreamId
                           << " on port " << (int)Port
                           << " — sent close to free hardware channel" << std::endl;
@@ -191,7 +196,8 @@ void CTranscoder::Task(void)
     }
     
     // keep client alive
-    if ( m_LastKeepaliveTime.DurationSinceNow() > TRANSCODER_KEEPALIVE_PERIOD )
+    if ( m_bKeepaliveNow.exchange(false) ||
+         (m_LastKeepaliveTime.DurationSinceNow() > TRANSCODER_KEEPALIVE_PERIOD) )
     {
         //
         HandleKeepalives();
@@ -214,7 +220,8 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
     if ( uiCodecIn != CODEC_NONE )
     {
         // are we connected to server
-        if ( m_bConnected )
+        CIp ip;
+        if ( m_bConnected && GetIp(&ip) )
         {
             // determine output codecs based on input
             uint8 uiCodecOut1, uiCodecOut2, uiCodecOut3;
@@ -254,7 +261,7 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
             m_bWaitingForStream = true;
             EncodeOpenstreamPacket(&Buffer, uiCodecIn, uiCodecOut1, uiCodecOut2, uiCodecOut3);
             m_SemaphoreOpenStream.PreWaitFor();
-            m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
+            m_Socket.Send(Buffer, ip, m_uiPort);
 
             // wait for AMBEd response (holding mutex blocks other GetStream callers)
             bool gotResponse = m_SemaphoreOpenStream.WaitFor(AMBED_OPENSTREAM_TIMEOUT);
@@ -278,14 +285,14 @@ CCodecStream *CTranscoder::GetStream(CPacketStream *PacketStream, uint8 uiCodecI
 
                 stream = new CCodecStream(PacketStream, m_StreamidOpenStream, uiCodecIn, uiCodecOut1, uiCodecOut2, uiCodecOut3);
 
-                if ( stream->Init(m_PortOpenStream) )
+                if ( stream->Init(m_PortOpenStream, ip) )
                 {
                     m_Streams.push_back(stream);
                 }
                 else
                 {
                     EncodeClosestreamPacket(&Buffer, stream->GetStreamId());
-                    m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
+                    m_Socket.Send(Buffer, ip, m_uiPort);
                     delete stream;
                     stream = NULL;
                 }
@@ -320,9 +327,10 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
                 // compare object pointers
                 if ( (m_Streams[i]) ==  stream )
                 {
-                    // send close packet
+                    // send close packet, to the AMBEd the stream was
+                    // opened on, even if the address changed since
                     EncodeClosestreamPacket(&Buffer, m_Streams[i]->GetStreamId());
-                    m_Socket.Send(Buffer, m_Ip, TRANSCODER_PORT);
+                    m_Socket.Send(Buffer, m_Streams[i]->GetIp(), m_uiPort);
                     
                     // and close it. Close() sets m_bStopThread on the
                     // codec stream and joins its Task thread. After
@@ -406,15 +414,115 @@ void CTranscoder::ReleaseStream(CCodecStream *stream)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// AMBEd's address
+
+// look up an IPv4 address or hostname, no DNS for an address
+static bool Resolve(const std::string &server, CIp *ip)
+{
+    struct addrinfo hints;
+    struct addrinfo *result = NULL;
+    ::memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    if ( (::getaddrinfo(server.c_str(), NULL, &hints, &result) != 0) || (result == NULL) )
+    {
+        return false;
+    }
+    *ip = CIp((const struct sockaddr_in *)result->ai_addr);
+    ::freeaddrinfo(result);
+    return true;
+}
+
+void CTranscoder::SetServer(const std::string &server)
+{
+    // a lookup only when the setting changes, so a hostname is looked up
+    // once, and one that won't resolve isn't tried again until it changes
+    if ( server == m_Server )
+    {
+        return;
+    }
+    std::string oldServer = m_Server;
+    m_Server = server;
+
+    CIp oldIp;
+    bool hadIp = GetIp(&oldIp);
+
+    CIp ip;
+    if ( !Resolve(server, &ip) )
+    {
+        std::cout << "Transcoder: cannot resolve " << server;
+        if ( hadIp )
+        {
+            std::cout << ", still using " << oldIp << std::endl;
+        }
+        else
+        {
+            std::cout << ", running without transcoding" << std::endl;
+        }
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_IpMutex);
+        m_Ip = ip;
+        m_bHaveIp = true;
+    }
+
+    struct in_addr addr;
+    bool isName = (::inet_pton(AF_INET, server.c_str(), &addr) != 1);
+    if ( oldServer.empty() )
+    {
+        // start-up
+        if ( isName )
+        {
+            std::cout << "Transcoder: " << server << " resolved to " << ip << std::endl;
+        }
+    }
+    else
+    {
+        // one address per statement, CIp's text is a shared buffer
+        std::cout << "Transcoder: changed to " << server << " (" << ip << ")";
+        std::cout << ", was " << oldServer;
+        if ( hadIp )
+        {
+            std::cout << " (" << oldIp << ")" << std::endl;
+        }
+        else
+        {
+            std::cout << " (unresolved)" << std::endl;
+        }
+
+        // wait for the new AMBEd to answer a keepalive before opening
+        // streams on it; overs in progress finish on the old one
+        if ( !hadIp || !(oldIp == ip) )
+        {
+            m_bConnected = false;
+            m_bKeepaliveNow = true;
+        }
+    }
+}
+
+bool CTranscoder::GetIp(CIp *ip) const
+{
+    std::lock_guard<std::mutex> lock(m_IpMutex);
+    *ip = m_Ip;
+    return m_bHaveIp;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // keepalive helpers
 
 void CTranscoder::HandleKeepalives(void)
 {
     CBuffer keepalive;
     
-    // send keepalive
-    EncodeKeepAlivePacket(&keepalive);
-    m_Socket.Send(keepalive, m_Ip, TRANSCODER_PORT);
+    // send keepalive, if we have an address
+    CIp ip;
+    if ( GetIp(&ip) )
+    {
+        EncodeKeepAlivePacket(&keepalive);
+        m_Socket.Send(keepalive, ip, m_uiPort);
+    }
     
     // check if still with us
     if ( m_bConnected && (m_LastActivityTime.DurationSinceNow() >= TRANSCODER_KEEPALIVE_TIMEOUT) )

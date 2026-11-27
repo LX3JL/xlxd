@@ -31,3 +31,6 @@ install:
 	[ -f /xlxd/xlxd.terminal ] && \
 		cp ../config/xlxd.terminal /xlxd/xlxd.terminal.sample || \
 		cp ../config/xlxd.terminal /xlxd/xlxd.terminal
+	[ -f /xlxd/xlxd.ini ] && \
+		cp ../config/xlxd.ini /xlxd/xlxd.ini.sample || \
+		cp ../config/xlxd.ini /xlxd/xlxd.ini

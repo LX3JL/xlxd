@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "cm17client.h"
 #include "cm17protocol.h"
@@ -47,7 +48,7 @@ bool CM17Protocol::Init(void)
     ok = CProtocol::Init();
 
     // create our socket
-    ok &= m_Socket.Open(M17_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("M17_PORT"));
 
     // update time
     m_LastKeepaliveTime.Now();

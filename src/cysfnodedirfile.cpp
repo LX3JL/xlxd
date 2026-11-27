@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "main.h"
+#include "cconfig.h"
 #include "cysfnodedirfile.h"
 
 
@@ -71,7 +72,7 @@ bool CYsfNodeDirFile::LoadContent(CBuffer *buffer)
     std::streampos size;
     
     // open file
-    file.open(YSFNODEDB_PATH, std::ios::in | std::ios::binary | std::ios::ate);
+    file.open(g_Config.GetPath("YSFNODEDB_PATH"), std::ios::in | std::ios::binary | std::ios::ate);
     if ( file.is_open() )
     {
         // read file
@@ -146,7 +147,7 @@ bool CYsfNodeDirFile::RefreshContent(const CBuffer &buffer)
 
     
     // report
-    std::cout << "Read " << size() << " YSF nodes from file " << YSFNODEDB_PATH << std::endl;
+    std::cout << "Read " << size() << " YSF nodes from file " << g_Config.GetPath("YSFNODEDB_PATH") << std::endl;
     
     // done
     return ok;
@@ -158,7 +159,7 @@ bool CYsfNodeDirFile::GetLastModTime(time_t *time)
     bool ok = false;
     
     struct stat fileStat;
-    if( ::stat(YSFNODEDB_PATH, &fileStat) != -1 )
+    if( ::stat(g_Config.GetPath("YSFNODEDB_PATH"), &fileStat) != -1 )
     {
         *time = fileStat.st_mtime;
         ok = true;

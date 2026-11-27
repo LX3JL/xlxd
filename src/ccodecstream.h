@@ -232,12 +232,13 @@ public:
     virtual ~CCodecStream();
     
     // initialization
-    bool Init(uint16);
+    bool Init(uint16, const CIp &);
     void Close(void);
     
     // get
     bool   IsConnected(void) const          { return m_bConnected; }
     uint16 GetStreamId(void) const          { return m_uiStreamId; }
+    const CIp &GetIp(void) const            { return m_Ip; }
     double GetPingMin(void) const           { return m_fPingMin; }
     double GetPingMax(void) const           { return m_fPingMax; }
     double GetPingAve(void) const           { return (m_fPingCount != 0) ? m_fPingSum/m_fPingCount : 0; }

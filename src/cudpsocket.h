@@ -49,7 +49,8 @@
 //
 // Per-class DSCP marking:
 //   Send()      → IP_TOS 0  (signalling: keepalives, logins, acks, disconnects)
-//   SendVoice() → IP_TOS DSCP_VALUE<<2  (voice flow: voice frames, headers, EoT)
+//   SendVoice() → IP_TOS DSCP_VALUE<<2  (voice flow: voice frames, headers, EoT),
+//                 or 0 when DSCP_MARKING_ENABLE is 0 in xlxd.ini
 //
 // IP_TOS is a per-socket kernel attribute set via setsockopt. To avoid the
 // syscall on every packet, m_iCurrentTos caches the last value set; only a
@@ -85,16 +86,9 @@ public:
     int Send(const char *, const CIp &, uint16);
 
     // write - voice packets with DSCP marking
-#if (DSCP_MARKING_ENABLE == 1)
     int SendVoice(const CBuffer &, const CIp &);
     int SendVoice(const CBuffer &, const CIp &, uint16);
     static void LogDscpStatus(void);
-#else
-    // When DSCP disabled, SendVoice is just an alias for Send
-    int SendVoice(const CBuffer &Buffer, const CIp &Ip) { return Send(Buffer, Ip); }
-    int SendVoice(const CBuffer &Buffer, const CIp &Ip, uint16 port) { return Send(Buffer, Ip, port); }
-    static void LogDscpStatus(void) {}
-#endif
 
 protected:
     // data

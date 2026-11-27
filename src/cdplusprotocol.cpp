@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "cclient.h"
 #include "cdplusclient.h"
@@ -47,10 +48,10 @@ bool CDplusProtocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"REF", 3);
     
     // create our socket
-    ok &= m_Socket.Open(DPLUS_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("DPLUS_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << DPLUS_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("DPLUS_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
     
     // update time

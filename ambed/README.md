@@ -92,8 +92,9 @@ Everything is set in `ambed.ini`. Set `LISTEN_IP` first: `127.0.0.1` if xlxd is 
 the same machine, otherwise the machine's own address. Without the file AMBEd
 uses the defaults in `main.h` and listens on `127.0.0.1`.
 
-AMBEd must run as root because of the FTDI driver, and the `ftdi_sio` and
-`usbserial` kernel modules must be unloaded. Plug in at least one device first.
+AMBEd must run as root because of the FTDI driver, and the kernel's own FTDI
+driver, the `ftdi_sio` module, must be unloaded so it doesn't claim the
+dongles. Plug in at least one device first.
 
 To run it as a service, copy `../scripts/ambed.service` to
 `/etc/systemd/system/`:
@@ -101,16 +102,19 @@ To run it as a service, copy `../scripts/ambed.service` to
 ```ini
 [Unit]
 Description=AMBE Transcoder Daemon
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
 User=root
 Group=root
+# free the dongles from the kernel's FTDI serial driver, so the FTDI D2XX
+# driver can claim them
 ExecStartPre=-/sbin/rmmod ftdi_sio
-ExecStartPre=-/sbin/rmmod usb_serial
 ExecStart=/ambed/ambed /ambed/ambed.ini
 Restart=on-abnormal
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
@@ -218,6 +222,9 @@ Tuning:   PCM_TO_P25 +0.75      level  -48.5 dBFS  peak  -22.9 dBFS  clipped 0.0
 The callsign shown is the reflector's, as AMBEd isn't told who is talking.
 
 ### How to tune
+
+For a step-by-step guide covering AMBEd and XLXd's gains together, see the
+[Audio Tuning Guide](../AUDIO-TUNING.md). In short:
 
 1. Look at several stations on each mode, not just your own radio.
 2. Set each `<MODE>_TO_PCM` so typical stations on that mode average near 0 dB

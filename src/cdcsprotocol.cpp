@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "cclient.h"
 #include "cdcsclient.h"
@@ -51,10 +52,10 @@ bool CDcsProtocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"DCS", 3);
     
     // create our socket
-    ok &= m_Socket.Open(DCS_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("DCS_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << DCS_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("DCS_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
     
     // update time

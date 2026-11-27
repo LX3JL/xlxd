@@ -10,7 +10,7 @@ The sources are published under GPL Licenses.
 
 ---
 
-## Supported Protocols (XLX v2.6.x with M17 Extension, YSF Peer, NXDN Peer, P25 Peer, REF Peer, XRF Peer and DCS Peer)
+## Supported Protocols (XLX v2.7.x with M17 Extension, YSF Peer, NXDN Peer, P25 Peer, REF Peer, XRF Peer and DCS Peer)
 
 - **D-Star**: Icom-G3Terminal, DExtra, DPlus and DCS
 - **DMR**: DMRPlus (dongle) and DMRMmdvm
@@ -83,6 +83,25 @@ XLX001 (v2.6.0)                              XLX002 (v2.6.0)
 
 ---
 
+## Important: Command Line Change in XLX v2.7.0
+
+**XLX v2.7.0 reads its settings from `xlxd.ini`, and takes the path to that file as its only argument:**
+
+```bash
+xlxd /xlxd/xlxd.ini
+```
+
+The old form, `xlxd <callsign> <listen-ip> <ambed-ip>`, no longer starts the reflector. When upgrading:
+
+1. Copy `config/xlxd.ini` to `/xlxd/xlxd.ini` (`make install` does this if there isn't one already).
+2. Move your callsign, listen IP and transcoder IP from your start-up script into `[Reflector]` in `xlxd.ini`.
+3. If you changed anything else in `main.h` that is now in `xlxd.ini` (ports, YSF autolink, gains, file paths), set it in `xlxd.ini` instead.
+4. Change your start-up script or unit to run `xlxd /xlxd/xlxd.ini`. `scripts/xlxd.service` is a ready-made systemd unit.
+
+xlxd checks `xlxd.ini` every 3 minutes and reloads it when it changes. Most settings apply without a restart; the file says which ones need one. xlxd now writes its own pid file, `/var/log/xlxd.pid` by default (`PID_PATH`).
+
+---
+
 ## Important: AMBEd Update Required for XLX v2.6.0+
 
 **If you are upgrading to XLX v2.6.0 or later, you MUST also update your AMBEd (AMBE transcoder daemon).**
@@ -144,14 +163,16 @@ XLX001 (v2.6.0)                              XLX002 (v2.6.0)
 
 DMR, YSF, and NXDN all use the same AMBE+2 codec but with different audio level conventions. XLX automatically adjusts gains when bridging between these modes to provide consistent audio levels.
 
-**Current gain adjustments** (configured in `main.h`):
+**Current gain adjustments** (set in `[Gain]` in `xlxd.ini`, defaults in `main.h`):
 
-| Path | Gain | Notes |
-|------|------|-------|
-| YSF → DMR | +10 dB | YSF audio is quieter than DMR convention |
-| DMR → YSF | -4 dB | Reduce DMR levels for YSF |
-| NXDN → DMR | -3 dB | Reduce NXDN levels for DMR |
-| DMR → NXDN | -3 dB | Reduce DMR levels for NXDN |
+| Setting | Default | Applies to |
+|---------|---------|------------|
+| `YSF_TO_DMR` | +7 dB | All audio arriving over YSF, whatever mode it goes out on |
+| `DMR_TO_YSF` | -4 dB | All audio sent out over YSF, whatever mode it came from |
+| `NXDN_TO_DMR` | -6 dB | All audio arriving from NXDN peers |
+| `DMR_TO_NXDN` | -3 dB | All audio sent to NXDN peers |
+
+The aim is to balance YSF and NXDN levels with DMR. Inside the reflector all AMBE audio is held as DMR AMBE, so YSF and NXDN are converted to DMR as they arrive and back as they leave: `<MODE>_TO_DMR` applies to everything arriving over that mode (D-Star and M17 listeners hear it too), and `DMR_TO_<MODE>` to everything sent out over it. YSF to YSF audio gets both YSF adjustments. The defaults in `main.h` keep their old names, `GAIN_YSF_TO_DMR` and so on.
 
 This adjustment is performed in the AMBE+2 bitstream by modifying the b2 voice parameter, which requires:
 1. Golay FEC decoding to extract voice parameters
@@ -160,6 +181,8 @@ This adjustment is performed in the AMBE+2 bitstream by modifying the b2 voice p
 4. Golay FEC re-encoding
 
 The adjustment is applied once at the reflector level, providing consistent audio levels for all users without requiring individual radio configuration changes.
+
+To tune these and AMBEd's gains for your reflector, see the [Audio Tuning Guide](AUDIO-TUNING.md).
 
 ---
 
@@ -224,11 +247,13 @@ M17 transcoding uses DVSI hardware via AMBEd for all paths:
 - **Voice Codec**: Codec2 3200bps (8 bytes per 20ms frame)
 - **Callsign Encoding**: Base-40 (9 characters in 6 bytes)
 
-### Configuration (main.h)
+### Configuration
+
+The listen port is `M17_PORT` in `[Ports]` in `xlxd.ini` (default 17000). The rest is in `main.h`:
 
 ```cpp
 // M17 Protocol Settings
-#define M17_PORT                17000   // UDP port
+#define M17_PORT                17000   // UDP port, default for xlxd.ini
 #define M17_KEEPALIVE_PERIOD    5       // seconds
 #define M17_KEEPALIVE_TIMEOUT   35      // seconds
 
@@ -301,14 +326,15 @@ git clone https://github.com/LX3JL/xlxd.git
 cd xlxd/src/
 ```
 
-#### Configure main.h before compiling
+#### Check main.h before compiling
 ```bash
 nano main.h
 ```
 
-Important settings to check:
-- `NB_OF_MODULES` - Number of modules (default 10, max 26)
-- `YSF_DEFAULT_NODE_TX_FREQ` / `YSF_DEFAULT_NODE_RX_FREQ` - YSF frequencies
+Most settings are now in `xlxd.ini` (see below). `main.h` holds the
+defaults, plus a few build-time settings:
+- `NB_OF_MODULES` - Number of modules (default 26, max 26)
+- `DMRIDDB_USE_RLX_SERVER`, `YSFNODEDB_USE_RLX_SERVER`, `NXDNIDDB_USE_RLX_SERVER` - download the ID databases, or read local files
 - M17 clients must specify a valid module (A-Z)
 
 #### Compile and install
@@ -318,12 +344,24 @@ make
 make install
 ```
 
-#### Setup startup script
+#### Configure xlxd.ini
 ```bash
-cp ~/xlxd/scripts/xlxd /etc/init.d/xlxd
-nano /etc/init.d/xlxd  # Adapt parameters to your needs
-update-rc.d xlxd defaults
+nano /xlxd/xlxd.ini
 ```
+
+Set at least `CALLSIGN` and `LISTEN_IP`, and `TRANSCODER_HOST` (an IP or hostname) if AMBEd is on
+another machine. Anything left out uses the default from `main.h`. xlxd checks
+the file every 3 minutes, and most changes apply without a restart; the file
+says which ones need one.
+
+#### Setup the service
+```bash
+cp ~/xlxd/scripts/xlxd.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable xlxd
+```
+
+See `scripts/README.md` for details, and for systems without systemd.
 
 #### Download DMR ID database
 ```bash
@@ -335,8 +373,8 @@ Follow the readme in the AMBEd directory for FTDI driver and AMBE service setup.
 
 #### Start/Stop the service
 ```bash
-service xlxd start
-service xlxd stop
+systemctl start xlxd
+systemctl stop xlxd
 ```
 
 #### Install dashboard
@@ -589,9 +627,11 @@ The user-agent is set to `XLX {version} NXDN Client Updater` to properly identif
 Configuration in `main.h`:
 ```cpp
 #define NXDNIDDB_USE_RLX_SERVER         1       // 1 = use http, 0 = use local file
-#define NXDNIDDB_PATH                   "/xlxd/nxdn.csv"  // local file path
+#define NXDNIDDB_PATH                   "/xlxd/nxdn.csv"  // local file path, default for xlxd.ini
 #define NXDNIDDB_REFRESH_RATE           720     // in minutes (12 hours)
 ```
+
+The local file path can be changed with `NXDNIDDB_PATH` in `[Files]` in `xlxd.ini`.
 
 ### Notes
 

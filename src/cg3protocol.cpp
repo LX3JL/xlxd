@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include <sys/stat.h>
 #include "cg3client.h"
@@ -57,23 +58,23 @@ bool CG3Protocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"XLX", 3);
 
     // create our DV socket
-    ok &= m_Socket.Open(G3_DV_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("G3_DV_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << G3_DV_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("G3_DV_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
     //create helper sockets
-    ok &= m_PresenceSocket.Open(G3_PRESENCE_PORT);
+    ok &= m_PresenceSocket.Open(g_Config.GetPort("G3_PRESENCE_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << G3_PRESENCE_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("G3_PRESENCE_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
-    ok &= m_ConfigSocket.Open(G3_CONFIG_PORT);
+    ok &= m_ConfigSocket.Open(g_Config.GetPort("G3_CONFIG_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << G3_CONFIG_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("G3_CONFIG_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
 
 #ifndef DEBUG_NO_G3_ICMP_SOCKET
@@ -829,7 +830,7 @@ void CG3Protocol::NeedReload(void)
 {
     struct stat fileStat;
 
-    if (::stat(TERMINALOPTIONS_PATH, &fileStat) != -1)
+    if (::stat(g_Config.GetPath("TERMINAL_PATH"), &fileStat) != -1)
     {
         if (m_LastModTime != fileStat.st_mtime)
         {
@@ -863,7 +864,7 @@ void CG3Protocol::ReadOptions(void)
     int opts = 0;
 
 
-    std::ifstream file(TERMINALOPTIONS_PATH);
+    std::ifstream file(g_Config.GetPath("TERMINAL_PATH"));
     if (file.is_open())
     {
         m_GwAddress = 0u;
@@ -904,12 +905,12 @@ void CG3Protocol::ReadOptions(void)
                 }
             }
         }
-        std::cout << "G3 handler loaded " << opts << " options from file " << TERMINALOPTIONS_PATH << std::endl;
+        std::cout << "G3 handler loaded " << opts << " options from file " << g_Config.GetPath("TERMINAL_PATH") << std::endl;
         file.close();
 
         struct stat fileStat;
 
-        if (::stat(TERMINALOPTIONS_PATH, &fileStat) != -1)
+        if (::stat(g_Config.GetPath("TERMINAL_PATH"), &fileStat) != -1)
         {
             m_LastModTime = fileStat.st_mtime;
         }

@@ -23,6 +23,7 @@
 // ----------------------------------------------------------------------------
 
 #include "main.h"
+#include "cconfig.h"
 #include <string.h>
 #include "ysfdefines.h"
 #include "cysfutils.h"
@@ -46,10 +47,10 @@ bool CImrsProtocol::Init(void)
     m_ReflectorCallsign.PatchCallsign(0, (const uint8 *)"IMR", 3);
     
     // create our socket
-    ok &= m_Socket.Open(IMRS_PORT);
+    ok &= m_Socket.Open(g_Config.GetPort("IMRS_PORT"));
     if ( !ok )
     {
-        std::cout << "Error opening socket on port UDP" << IMRS_PORT << " on ip " << g_Reflector.GetListenIp() << std::endl;
+        std::cout << "Error opening socket on port UDP" << g_Config.GetPort("IMRS_PORT") << " on ip " << g_Reflector.GetListenIp() << std::endl;
     }
     
     // update time
@@ -153,7 +154,7 @@ void CImrsProtocol::Task(void)
                     // create the client
                     CImrsClient *newclient = new CImrsClient(Callsign, Ip);
                     // connect to default module
-                    newclient->SetReflectorModule(IMRS_DEFAULT_MODULE);
+                    newclient->SetReflectorModule(g_Config.GetImrsAutolinkModule());
                     
                     // and append
                     clients->AddClient(newclient);
